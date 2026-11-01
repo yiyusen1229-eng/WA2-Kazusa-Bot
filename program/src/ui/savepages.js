@@ -136,7 +136,7 @@
       if (window.zoomSwap && String(page) !== String(window.__savePage || "")) {
         var slots = document.querySelectorAll("#saveScreen .saveSlot");
         window.__savePage = page;
-        window.zoomSwapSel("#saveScreen .saveSlot", "#saveScreen .saveSlot", function () { window.__renderSaveSlotsNow(page); }, 390);
+        window.zoomSwapSel("#saveScreen", "#saveScreen", function () { window.__renderSaveSlotsNow(page); }, 390);
         return;
       }
     } catch (e) {}
