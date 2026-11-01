@@ -1516,6 +1516,11 @@ document.addEventListener("contextmenu", function (e) {
   // 输入框上仍然保留浏览器默认（方便复制粘贴）
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
   e.preventDefault();
+  /* 隐藏状态下右键 = 先把界面叫回来（不管右键功能设的是哪一项） */
+  if (document.body.classList.contains("uiHidden")) {
+    document.body.classList.remove("uiHidden");
+    return;
+  }
 
   var mode = "save";
   try {
@@ -1593,6 +1598,16 @@ document.addEventListener("DOMContentLoaded", function () {
   window.__refreshCost();
   setInterval(function () { window.__refreshCost(); }, 20000);
 });
+
+/* 隐藏窗口后，左键点一下画面就恢复 ——
+   此时 UI 全是 pointer-events:none，点事件落在底层元素上，所以监听在 document 捕获阶段。
+   右键不走这里（交给上面的 contextmenu，避免"恢复界面"和"右键功能"同时触发）。 */
+document.addEventListener("click", function (e) {
+  if (!document.body.classList.contains("uiHidden")) return;
+  document.body.classList.remove("uiHidden");
+  e.preventDefault();
+  e.stopPropagation();   /* 只负责"叫回界面"，不要顺带翻页 */
+}, true);
 
 /* 隐藏界面：只留背景与立绘
    注意选择器必须对得上真实 ID：#menubar / .dialogBox / #quickBar 这三个在 DOM 里根本不存在
