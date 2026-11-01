@@ -97,7 +97,13 @@
       img.src = base;
       el.addEventListener("mouseenter", function () { img.src = hover; });
       el.addEventListener("mouseleave", function () { img.src = base; });
-      el.addEventListener("click", function (e) { e.stopPropagation(); });
+      el.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (typeof window.__optTab !== "function") return;
+        var n = current + (pair[1] === "l" ? -1 : 1);   /* 标签编号是 1~3 */
+        n = Math.max(1, Math.min(3, n));
+        window.__optTab(n);
+      });
     });
   }
 

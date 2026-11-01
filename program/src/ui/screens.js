@@ -87,7 +87,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".optTabs .t").forEach(t => t.addEventListener("click", () => {
-      playPageSE(); window.__setOptPage && window.__setOptPage(+t.dataset.opt); playSE && playSE("click");
+      window.__setOptPage && window.__setOptPage(+t.dataset.opt); playSE && playSE("click");
     }));
     // ESC 关闭
     document.addEventListener("keydown", e => {

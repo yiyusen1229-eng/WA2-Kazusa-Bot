@@ -144,8 +144,7 @@
      左箭头上一页、右箭头下一页，10 页循环（第 1 页再往左 → 第 10 页） */
   function go(d) {
     var cur = window.__savePage || 1;
-    try { window.playSE && window.playSE("page"); } catch (e) {}
-      if (window.__setSavePage) window.__setSavePage(cur + d);
+    if (window.__setSavePage) window.__setSavePage(cur + d);
     else window.__renderSaveSlots(((cur - 1 + d) % 10 + 10) % 10 + 1);
   }
   function wirePager() {
