@@ -36,8 +36,13 @@
 
   /* ---------- 开关 ---------- */
   function closeAll() {
-    /* uiOpen 已回滚 */
-    ["saveScreen", "blogScreen"].forEach(id => $(id) && $(id).classList.remove("show"));
+    ["saveScreen", "blogScreen", "optScreen"].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.classList.remove("show", "fading");
+      el.style.transition = "none";
+      el.style.opacity = "";
+    });
   }
   window.__openScreen = function (name, mode) {
     try { closeAll(); } catch (e) {}
@@ -68,7 +73,15 @@
           sc.classList.toggle("mode-save", saveMode === "save");
           sc.classList.toggle("mode-load", saveMode !== "save");
           window.__saveMode = saveMode;
-          sc.classList.add("show");
+      sc.style.transition = "none";
+      sc.style.opacity = "0";
+      sc.classList.add("show");
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          sc.style.transition = "opacity 220ms ease";
+          sc.style.opacity = "1";
+        });
+      });
         }
       }
       if (name === "blog") {

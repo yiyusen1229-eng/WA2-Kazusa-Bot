@@ -920,6 +920,10 @@ class Handler(SimpleHTTPRequestHandler):
             q = parse_qs(urlparse(self.path).query)
             action = qs(q, ("action", "act")).strip()
             w = globals().get("_WINDOW")
+            try:
+                applog.log("窗口控制: action=%s window=%s" % (action, "有" if w else "无"), "WIN")
+            except Exception:
+                pass
             if w is None:
                 return self._json({"ok": False, "error": "窗口未就绪"})
             if action == "close":

@@ -126,6 +126,7 @@
 
   // 窗口控制（无边框窗口需要自己实现）
   function winCtrl(act) {
+  try { if (window.__dbg) window.__dbg("WIN", act); } catch (e) {}
     // 走本地接口最可靠（不依赖 pywebview 的 js_api 注入时机）
     try {
       fetch("/api/window?act=" + act, { cache: "no-store" });
