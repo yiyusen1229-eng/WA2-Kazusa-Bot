@@ -40,6 +40,7 @@ program/work_geom/
 
 # 使用者自行提供的数据（含他人作品内容，一律不入库）
 program/src/story_index.json
+program/src/story_index.json.gz
 program/src/worldbook.json
 program/src/persona*.txt
 program/src/fewshot.json
