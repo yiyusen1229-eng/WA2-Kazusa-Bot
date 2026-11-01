@@ -1,0 +1,71 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+body{background:#111;color:#0f0;font:12px monospace;margin:0;padding:6px}
+#o{white-space:pre-wrap}
+iframe{width:800px;height:450px;border:0;margin-top:4px}
+</style></head>
+<body><div id="o">…</div><iframe id="f" src="index.html#save"></iframe>
+<script>
+var L = [];
+function say(s){ L.push(s); document.getElementById('o').textContent = L.join('\n'); }
+
+setTimeout(function(){
+  var w = document.getElementById('f').contentWindow, d = w.document;
+  var el = d.getElementById('saveScreen');
+  if (!el) { say('没有 #saveScreen'); return; }
+
+  // ---------- 测试 A：WAAPI 直接驱动 transform ----------
+  say('=== A. WAAPI transform ===');
+  var anim = null;
+  try {
+    anim = el.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(0.5)' }],
+      { duration: 1200, fill: 'both', easing: 'linear' }
+    );
+    say('animate() 返回对象: ' + (anim ? '有' : 'null'));
+    say('playState: ' + (anim ? anim.playState : '-'));
+    say('getAnimations 数量: ' + el.getAnimations().length);
+  } catch (e) {
+    say('animate() 抛错: ' + e.message);
+  }
+
+  // ---------- 采样 computed transform ----------
+  var tf = [], t0 = performance.now();
+  var iv = setInterval(function(){
+    tf.push(w.getComputedStyle(el).transform);
+    if (performance.now() - t0 > 600) { clearInterval(iv); checkB(); }
+  }, 100);
+
+  function checkB(){
+    var uniq = {};
+    tf.forEach(function(v){ uniq[v] = 1; });
+    say('computed transform 不同取值: ' + Object.keys(uniq).length);
+    say('  首: ' + tf[0]);
+    say('  末: ' + tf[tf.length-1]);
+    say('currentTime: ' + (anim ? Math.round(anim.currentTime) : '-'));
+    say('playState(600ms后): ' + (anim ? anim.playState : '-'));
+    say(anim && anim.playState === 'running' ? '→ 动画在执行 ✓' : '→ 动画没跑 ✗');
+    if (Object.keys(uniq).length > 1) say('→ computed 有变化（WAAPI 生效）');
+    else say('→ computed 无变化（transform 被吞）');
+
+    // ---------- 测试 B：opacity 对照 ----------
+    say('');
+    say('=== B. WAAPI opacity 对照 ===');
+    var a2 = el.animate([{opacity:1},{opacity:0.4}], {duration:1200, fill:'both'});
+    var op=[], t1=performance.now();
+    var iv2 = setInterval(function(){
+      op.push(w.getComputedStyle(el).opacity);
+      if (performance.now()-t1 > 600){
+        clearInterval(iv2);
+        var u2={}; op.forEach(function(v){u2[v]=1;});
+        say('opacity 不同取值: ' + Object.keys(u2).length + '  (' + op[0] + ' → ' + op[op.length-1] + ')');
+        say(Object.keys(u2).length>1 ? '→ opacity 动画有效 ✓' : '→ opacity 也未动 ✗');
+        [anim, a2].forEach(function(a){ try { a && a.cancel(); } catch(e){} });
+        say('');
+        say('结论：若 A 的 computed 无变化而 B 有变化，');
+        say('说明动画在跑但 transform 被渲染层丢弃（不是回放问题）。');
+      }
+    }, 100);
+  }
+}, 5000);
+</script></body></html>
