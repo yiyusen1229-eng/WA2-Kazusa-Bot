@@ -376,6 +376,18 @@ _RENDER_LOCK = _th.Lock()
 _TEXT_CACHE = {}
 
 
+def _clear_text_cache():
+    """启动时清空字模磁盘缓存：下次用到再重新生成，避免缓存无限增长"""
+    try:
+        import shutil
+        d = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                          "..", "res", "assets", "ui", "text_cache"))
+        if os.path.isdir(d):
+            shutil.rmtree(d, ignore_errors=True)
+    except Exception:
+        pass
+
+
 def _text_disk_path(key):
     """文字渲染的磁盘缓存路径（同参数只渲染一次，之后直接读文件）"""
     import hashlib
@@ -1432,6 +1444,7 @@ def serve_only(prefer_port=None):
 
 
 def main():
+    _clear_text_cache()
     os.environ.setdefault("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
                       "--autoplay-policy=no-user-gesture-required")
     import webview

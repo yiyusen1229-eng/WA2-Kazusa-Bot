@@ -1155,7 +1155,11 @@ function renderThinking() {
   const box = $("thinkBox");
   const btn = $("thinkBtn");
   const on = thinkOn();
-  if (btn) btn.textContent = on ? "动作：开" : "动作：关";
+  if (btn) {
+  var v = btn.querySelector("img.val");
+  var k = on ? "log_act_onv" : "log_act_offv";
+  if (v && v.dataset.baked !== k) { v.dataset.baked = k; v.src = "assets/ui/text/" + k + ".png"; }
+  }
   if (!box) return;
   const act = (window.__lastAction || "").trim();
   const t = (window.__lastThinking || "").trim();

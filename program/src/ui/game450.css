@@ -795,3 +795,8 @@ body.histOpen #toolbar { display:none !important; }
 .hline .ico { cursor: default; }
 /* 对话界面按钮里的字模：按各自 CSS 字号换算高度 */
 #thinkBtn img, #sendBtn img { height: 8.5px !important; width: auto !important; display: inline-block; vertical-align: middle; }
+
+/* 动作按钮：标签图 + 值图，按 7.6px 字号换算 */
+#thinkBtn img.lbl { height: 8.5px !important; width: auto !important; vertical-align: middle; }
+#thinkBtn img.val { height: 8.5px !important; width: auto !important; vertical-align: middle; margin-left: 1px; }
+#sendBtn img { height: 8.5px !important; width: auto !important; vertical-align: middle; }
