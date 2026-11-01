@@ -51,6 +51,22 @@
     allScreens().forEach(function (el) { if (el !== except) hideScreen(el); });
   }
 
+  /* 浮层入场：先压透明，加 show 后两帧再推到 1（等 display 生效） */
+  function fadeIn(el) {
+    if (!el) return;
+    el.style.transition = "none";
+    el.style.opacity = "0";
+    el.classList.add("show");
+    if (window.zoomIn) window.zoomIn(el, 390);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        el.style.transition = "opacity 220ms ease";
+        el.style.opacity = "1";
+      });
+    });
+  }
+  window.__fadeInScreen = fadeIn;
+
   window.__hideUIScreen = hideScreen;
   window.__closeScreens = function () { closeAll(null); };
   /* 打开任意浮层：先关掉其它浮层，再显示自己 */
@@ -91,16 +107,7 @@
           sc.classList.toggle("mode-save", saveMode === "save");
           sc.classList.toggle("mode-load", saveMode !== "save");
           window.__saveMode = saveMode;
-      sc.style.transition = "none";
-      sc.style.opacity = "0";
-      sc.classList.add("show");
-      if (window.zoomIn) window.zoomIn(sc, 390);
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          sc.style.transition = "opacity 220ms ease";
-          sc.style.opacity = "1";
-        });
-      });
+          fadeIn(sc);
         }
       }
       if (name === "blog") {

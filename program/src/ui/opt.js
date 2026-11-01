@@ -27,17 +27,8 @@ var CT, CT2;
     safe(bindModelFields);
     safe(bindExit);
     safe(refreshTabs);
-  /* 淡入：先压到 0，加 show 后用两帧推到 1（CSS transition 在 display 切换时不会启动） */
-  s.style.transition = "none";
-  s.style.opacity = "0";
-  s.classList.add("show");
-  if (window.zoomIn) window.zoomIn(s, 390);
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () {
-      s.style.transition = "opacity 220ms ease";
-      s.style.opacity = "1";
-    });
-  });
+  /* 淡入走 screens.js 的统一实现（同一个效果不要两处各写一遍） */
+  if (window.__fadeInScreen) window.__fadeInScreen(s);
     window.__optOpen = true;
     // 界面显示后让统一文字渲染器补扫一遍（隐藏时它不会处理）
     if (window.__uiTextScan) {

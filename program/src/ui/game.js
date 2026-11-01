@@ -12,16 +12,6 @@ let bgmEnabled = true;
 let CHAR_NAME = "和纱";
 
 /* ---------- 素材表 ---------- */
-const SPR = {
-  cold:   "assets/kaz_cold.png",
-  angry:  "assets/kaz_angry.png",
-  smile:  "assets/kaz_smile.png",
-  sad:    "assets/kaz_sad.png",
-  school: "assets/kaz_school.png",
-  casual: "assets/kaz_casual.png",
-  dress:  "assets/kaz_dress.png",
-};
-
 const BGS = {
   classroom: "assets/bg_classroom.png",
   music:     "assets/bg_music.png",
@@ -29,11 +19,6 @@ const BGS = {
   street:    "assets/bg_street.png",
 };
 
-window.__bgmTitle = function () {
-  var map = { menu: "Extended Winter", calm: "言葉にできない想い", warm: "雪の降る風景",
-              sad: "届かない恋", tense: "心の闇" };
-  return map[currentBgm] || "Extended Winter";
-};
 
 const BGM_KEY = { menu: "bgmMenu", calm: "bgmCalm", warm: "bgmWarm", sad: "bgmSad", tense: "bgmTense" };
 function bgmSrc(name) {
@@ -371,8 +356,6 @@ window.__saveMeta = function () {
     at: Date.now()
   };
 };
-/* 存档界面用：当前对话条数（给"存了几条"看） */
-window.__historyCount = function () { return (window.__history || []).length; };
 /* 存档界面用：按场景名取背景图，给槽位缩略图用 */
 window.__bgThumb = function (name) { return BGS[name] || BGS.classroom; };
 /* 工具栏提示（快速存档/读档暂未开放时用） */
@@ -434,16 +417,6 @@ function setBg(name) {
 }
 
 let currentSprite = null;
-function setSprite(name, force) {
-  if (currentSprite === name && !force) return;
-  currentSprite = name;
-  const sp = $("sprite");
-  sp.classList.remove("show");
-  setTimeout(() => {
-    sp.src = SPR[name] || SPR.cold;
-    sp.classList.add("show");
-  }, 200);
-}
 
 
 /* ---------- 立绘：按服装编号（用户提供的对应关系） ---------- */

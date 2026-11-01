@@ -156,8 +156,6 @@
     return fetchList().then(function () { paint(page); });
   };
 
-  /* 调试用：当前已知的存档列表 */
-  window.__saveSlotState = function () { return state; };
 
   /* ---------- 底栏翻页箭头 ----------
      左箭头上一页、右箭头下一页，10 页循环（第 1 页再往左 → 第 10 页） */

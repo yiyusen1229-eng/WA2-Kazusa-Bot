@@ -25,25 +25,17 @@
   /* 恢复默认用的值：打开时从后端 defaults 取，取不到就用上面这份 */
   var DEF = { ctx: 100, trigger: 60, recent: 25, entries: 12 };
 
-  /* ---------- 统一字模 ---------- */
-  var GLYPH_VER = "special1";
-
+  /* ---------- 统一字模 ----------
+     实际渲染交给 uitext.js 的 __uiTextRender（和界面其它文字同一条 /api/text 链路），
+     这里只做「同样内容不重复渲染」的缓存判断。 */
   function setGlyph(el, text) {
     if (!el || el.__txt === text) return;
     el.__txt = text;
-    var fs = parseFloat(getComputedStyle(el).fontSize) || 12;
-    var img = new Image();
-    img.onload = function () {
-      if (!el.isConnected) return;
-      el.textContent = "";
-      img.style.cssText = "display:inline-block;vertical-align:middle;height:" +
-                          fs.toFixed(1) + "px;width:auto;pointer-events:none";
-      img.setAttribute("data-uitxt", text);
-      el.appendChild(img);
-    };
-    img.onerror = function () { el.textContent = text; };
-    /* tight=1：数字/字母不占满全角格，读数不会散开 */
-    img.src = "/api/text?text=" + encodeURIComponent(text) + "&plain=1&tight=1&v=" + GLYPH_VER;
+    if (window.__uiTextRender) {
+      window.__uiTextRender(el, text, { tight: true });   // tight：数字不撑满全角格
+    } else {
+      el.textContent = text;                              // 极端情况下的兜底
+    }
   }
 
   /* ---------- 换算 ---------- */
@@ -309,7 +301,9 @@
 
   function saveName() {
     var inp = $("spName");
-    var name = ((inp && inp.value) || "").trim();
+    /* 输入框藏着的时候，保存的是当前显示的名字（点「保存」不该报「名字不能为空」） */
+    var editing = !!(inp && inp.style.display !== "none");
+    var name = (editing ? inp.value : nameValue || "").trim();
     if (!name) { flash("名字不能为空"); return; }
     keepInput = true;
     fetch("/api/special/name", {
@@ -433,10 +427,5 @@
     loadName();
     /* 隐藏时 uitext 不会处理标签，显示后补扫一遍 */
     if (s && window.__uiTextScan) window.__uiTextScan(s);
-  };
-
-  window.__closeSpecial = function () {
-    var s = document.getElementById("specialScreen");
-    if (s && window.__hideUIScreen) window.__hideUIScreen(s);
   };
 })();

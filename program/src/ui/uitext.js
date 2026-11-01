@@ -146,6 +146,22 @@
       setTimeout(function () { scan(root); }, 150);
     };
 
+    /* 给别的模块用的单条渲染：把一段文字渲染进元素。
+       special.js 的读数/角色名走这里，和界面其它字模是同一条链路。
+       opts: { size, tight, perLine } */
+    window.__uiTextRender = function (el, text, opts) {
+      if (!el) return;
+      opts = opts || {};
+      var fs = opts.size || parseFloat(getComputedStyle(el).fontSize) || 12;
+      makeImg(text, fs, function (img) {
+        if (!img || !el.isConnected) return;
+        el.textContent = "";
+        img.setAttribute("data-uitxt", text);
+        el.appendChild(img);
+        el.style.lineHeight = "1";
+      }, opts.perLine || "", opts.tight ? "1" : "");
+    };
+
     // 输入框占位符
     var inp = document.getElementById("input");
     if (inp && inp.parentElement) {
