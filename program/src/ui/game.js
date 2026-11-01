@@ -193,7 +193,10 @@ bgmAudio.preload = "auto";
 window.addEventListener("app:prefs", function (e) {
   const P = e.detail || {};
   if (bgmAudio && !bgmAudio.paused) {
-    bgmAudio.volume = (P.bgmVol === undefined ? 30 : P.bgmVol) / 100;
+    /* OPTION2 的 BGM 滑块优先（volBgm），没有就退回旧的 bgmVol */
+  var _b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 30 : P.bgmVol));
+  var _m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+  bgmAudio.volume = (_b / 100) * _m;
   }
 });
 
@@ -1342,7 +1345,10 @@ window.__applyVolumes = function () {
   var voice = ((P.volVoice === undefined ? 90 : P.volVoice) / 100) * m;
   try { if (window.__bgmAudio) window.__bgmAudio.volume = bgm; } catch (e) {}
   try { if (window.__voiceAudio) window.__voiceAudio.volume = voice; } catch (e) {}
+  window.__volBgm = bgm;
+  window.__volVoice = voice;
 };
+window.__applyVolumesV2 = true;
 document.addEventListener("DOMContentLoaded", function () {
   try { window.__applyVolumes(); } catch (e) {}
 });
@@ -1352,3 +1358,37 @@ document.addEventListener("DOMContentLoaded", function () {
    旧页：向内收缩 + 虚化 + 变透明
    新页：从略大开始，向内收缩同时由透明迅速实化
    总时长默认 390ms（与翻页音 SE_9213 等长） */
+
+/* ---------- 滑鼠右键功能（OPTION 2 设置项） ----------
+   三种模式：hide = 隐藏所有界面只留 CG/立绘；options = 打开设置；save = 打开存档 */
+document.addEventListener("contextmenu", function (e) {
+  // 输入框上仍然保留浏览器默认（方便复制粘贴）
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  e.preventDefault();
+
+  var mode = "save";
+  try {
+    var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+    if (P.rightClick) mode = P.rightClick;
+  } catch (err) {}
+
+  if (window.__dbg) window.__dbg("RMB", mode);
+
+  if (mode === "hide") {
+    document.body.classList.toggle("uiHidden");
+    return;
+  }
+  if (mode === "options") {
+    try { if (window.__openOptions) window.__openOptions(); } catch (err) {}
+    return;
+  }
+  try { if (window.__openScreen) window.__openScreen("save", "save"); } catch (err) {}
+});
+
+/* 隐藏界面：只留背景与立绘 */
+(function () {
+  var css = document.createElement("style");
+  css.textContent = "body.uiHidden .dialogBox,body.uiHidden #toolbar,body.uiHidden #menubar," +
+    "body.uiHidden .uiScreen,body.uiHidden #quickBar{opacity:0!important;pointer-events:none!important}";
+  document.head.appendChild(css);
+})();

@@ -298,7 +298,13 @@ window.__renderSaveSlots = function (page) {
         showToast("对话不足两条，不能存档");
         return;
       }
-      if (el.classList.contains("filled")) askOverwrite(idx);
+      /* 「是否确认」关掉时，覆盖存档不再二次确认，直接写 */
+      var needAsk = true;
+      try {
+        var _P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+        if (_P.confirmAsk === false) needAsk = false;
+      } catch (e) {}
+      if (el.classList.contains("filled") && needAsk) askOverwrite(idx);
       else saveTo(idx);
     } else {
       if (!el.classList.contains("filled")) {
