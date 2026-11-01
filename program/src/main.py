@@ -361,6 +361,17 @@ WORLDBOOK_FILE = os.path.join(BASE, "worldbook.json")
 
 # ---------------- 人设 / 世界书 ----------------
 import threading as _th
+from sessions import (SESS_DIR, _sess_path, session_save, session_load,
+                     session_list, session_thumb)
+
+
+def qs(q, names, default=""):
+    """从 parse_qs 结果里取第一个存在的参数名（正式名 + 兼容旧名）"""
+    for n in names:
+        v = q.get(n)
+        if v and v[0] != "":
+            return v[0]
+    return default
 _RENDER_LOCK = _th.Lock()
 _TEXT_CACHE = {}
 _TEXT_CACHE_MAX = 2000
@@ -702,126 +713,6 @@ def worldbook_context(messages, depth=None, max_entries=None, max_chars=None):
 
 
 # ---------------- HTTP 服务 ----------------
-# ===== 会话存档 =====
-SESS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sessions")
-
-
-def _sess_path(slot):
-    safe = "".join(c for c in str(slot or "auto") if c.isalnum() or c in "-_")[:32]
-    return os.path.join(SESS_DIR, (safe or "auto") + ".json")
-
-
-def session_save(data):
-    try:
-        os.makedirs(SESS_DIR, exist_ok=True)
-        slot = data.get("slot") or "auto"
-        payload = {
-            "slot": slot,
-            "saved_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "messages": (data.get("messages") or [])[-60:],
-            "meta": data.get("meta") or {},
-        }
-        path = _sess_path(slot)
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=1)
-        os.replace(tmp, path)
-        return {"ok": True, "slot": slot, "count": len(payload["messages"]),
-                "saved_at": payload["saved_at"]}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-def session_load(slot="auto"):
-    try:
-        path = _sess_path(slot)
-        if not os.path.exists(path):
-            return {"ok": False, "error": "no such slot"}
-        with open(path, encoding="utf-8") as f:
-            d = json.load(f)
-        return dict(ok=True, **d)
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-_SESS_CACHE = {}      # 文件名 -> (mtime, 摘要)，避免每次打开界面都把上百个存档全解析一遍
-
-
-def _session_brief(path, fname):
-    """读一个存档，只取槽位要显示的那点信息（不含缩略图本体）"""
-    try:
-        mt = os.path.getmtime(path)
-    except OSError:
-        return None
-    hit = _SESS_CACHE.get(fname)
-    if hit and hit[0] == mt:
-        return hit[1]
-    try:
-        with open(path, encoding="utf-8") as fh:
-            d = json.load(fh)
-        msgs = d.get("messages") or []
-        preview = ""
-        for m in reversed(msgs):
-            if m.get("role") == "assistant":
-                t = (m.get("zh") or m.get("content") or "").strip()
-                if t:
-                    preview = t
-                    break
-        meta = d.get("meta") or {}
-        rec = {"slot": d.get("slot"), "saved_at": d.get("saved_at"),
-               "count": len(msgs), "preview": preview[:60],
-               "bg": meta.get("bg", ""),
-               # 缩略图不再塞进列表：只报有没有，本体走 /api/session/thumb（浏览器自己缓存）
-               "thumb": bool(meta.get("thumb"))}
-        _SESS_CACHE[fname] = (mt, rec)
-        return rec
-    except Exception:
-        return None
-
-
-def session_list():
-    try:
-        os.makedirs(SESS_DIR, exist_ok=True)
-        out = []
-        for f in sorted(os.listdir(SESS_DIR)):
-            if not f.endswith(".json"):
-                continue
-            rec = _session_brief(os.path.join(SESS_DIR, f), f)
-            if rec:
-                out.append(rec)
-        return {"ok": True, "slots": out}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-def qs(q, names, default=""):
-    """从 parse_qs 结果里取第一个存在的参数名。
-
-    names 里第一个是正式名，后面是兼容用的旧名（t/emo/sp/per_line 这些短名
-    是为了不让浏览器缓存的旧前端报错，保留一段时间后再删）。
-    """
-    for n in names:
-        v = q.get(n)
-        if v and v[0] != "":
-            return v[0]
-    return default
-
-
-def session_thumb(slot):
-    """槽位缩略图（JPEG 字节）；老存档没有就返回 None"""
-    try:
-        p = os.path.join(SESS_DIR, "%s.json" % slot)
-        with open(p, encoding="utf-8") as fh:
-            d = json.load(fh)
-        t = (d.get("meta") or {}).get("thumb") or ""
-        if not t.startswith("data:image"):
-            return None
-        import base64
-        return base64.b64decode(t.split(",", 1)[1])
-    except Exception:
-        return None
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
 
 
 class Handler(SimpleHTTPRequestHandler):

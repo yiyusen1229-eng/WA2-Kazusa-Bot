@@ -3,6 +3,7 @@
 用 array 存倒排表, 内存占用比"每篇存词表"低一个数量级
 """
 import array
+import gzip
 import json
 import math
 import os
@@ -11,6 +12,16 @@ import re
 CJK = re.compile(r"[\u4e00-\u9fff]")
 WORD = re.compile(r"[a-zA-Z]{2,}")
 STOP = set("的了是我你他她它在和与就都也很还又而但如果不没要会能可以这个那个什么怎么为什么吗呢吧啊呀哦嗯")
+
+
+def _load_docs(path):
+    """读取剧本索引：优先 .json.gz（体积约为 json 的 1/6，启动更快）"""
+    if path.endswith(".gz"):
+        with gzip.open(path, "rt", encoding="utf-8") as fh:
+            return json.load(fh)
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
 
 
 def tokenize(text):
@@ -27,7 +38,7 @@ def tokenize(text):
 
 class StoryIndex:
     def __init__(self, path):
-        self.docs = json.load(open(path, encoding="utf-8"))
+        self.docs = _load_docs(path)
         self.vocab = {}
         self.post = []          # token_id -> array('I') of doc ids (重复即 tf)
         self.dl = array.array("I")
@@ -112,6 +123,10 @@ _CACHE = {}
 def get_index(path=None):
     if path is None:
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story_index.json")
+    # 有 .gz 就用 .gz
+    gz = path + ".gz"
+    if os.path.exists(gz):
+        path = gz
     if path not in _CACHE:
         if not os.path.exists(path):
             return None

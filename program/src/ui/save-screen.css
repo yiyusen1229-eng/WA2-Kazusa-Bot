@@ -1,0 +1,277 @@
+/* ===== 存档界面：槽位网格 =====
+   框直接用 sys_01010（自带 No Data / Date / First Sentence 等文字），不叠任何自绘文本 */
+   /* 左下：选中态 */
+
+/* 编号：sys_00019 数字格 14x16，缩到 60% */
+
+
+
+/* 开场画面：静态背景（不再加载 38MB 视频） */
+#introStill {
+  position: absolute;
+  inset: 0;
+  background: url("assets/title.png") center / cover no-repeat;
+  filter: brightness(.85);
+}
+
+/* ===== 存档界面：PAGE 行 =====
+   PAGE + 白线 = 一张合成图（右侧已在图片里延伸，无接缝）
+   黑框 = 单独一层 */
+#saveScreen .savePageBar {
+  position: absolute;
+  left: 284.8px; top: 39.9px;
+  width: 515.2px; height: 30px;
+  background: url("assets/ui/save/pg_row.png") left top / 100% 100% no-repeat;
+  pointer-events: none;
+  /* 白线要压在页签上面：原版这条线是连续的一条，穿过页签底部 */
+  z-index: 7;
+}
+
+#saveScreen .savePageBlack {
+  position: absolute;
+  left: 250px; top: 40.0px;
+  width: 550px; height: 30.0px;
+  background: url("assets/ui/save/pg_bar.png") 0 0 / 100% 100% no-repeat;
+  opacity: .85;
+  pointer-events: none;
+  z-index: 2;
+}
+/* (已移除隐藏规则) */
+
+/* (uiOpen 规则已回滚) */
+
+/* ===== 存档界面：1~10 页签 =====
+   三层分开画（依据原版：sys_01021 三行 = 三态，且层级不同）
+     行 2 常态 → 整条 tabs_base.png，在白线**下面**
+     行 1 悬停 → 单格 tab_hover_N.png，在白线**下面**
+     行 0 当前 → 单格 tab_active_N.png，在白线**上面**
+   几何来自模板匹配（pagetabs 单格 64x32 → 图上 40 宽）：
+     10 格 × 40 = 400 宽，条带左边 390.2、上边 45.8
+   容器**不能设 z-index**，否则三层会被关在同一个层叠上下文里，
+   跨不过 PAGE 白线。 */
+#saveScreen .saveTabs {
+  position: absolute;
+  left: 390.2px; top: 45.8px;
+  width: 400px; height: 20px;
+}
+#saveScreen .saveTabs img {
+  position: absolute; left: 0; top: 0;
+  width: 400px; height: 20px; display: block; pointer-events: none;
+}
+/* 常态整条 + 悬停：黑框(2) 之上、白线(7) 之下 */
+#saveScreen #saveTabsBase { z-index: 5; }
+#saveScreen #saveTabsHover { width: 40px; z-index: 5; }
+/* 当前页：白线之上 */
+#saveScreen #saveTabsActive {
+  width: 40px; z-index: 8;
+  /* 亮态标签压在白线**上面**，底边正好落在白线底边（白线 y 62.8~65.0，
+     标签画到 65.8 会多出 0.8px），把底部裁掉这一点 */
+  clip-path: inset(0 0 0.8px 0);
+}
+#saveScreen .saveTab {
+  position: absolute; top: 0; height: 20px; width: 40px;
+  pointer-events: none;   /* 命中交给容器统一处理 */
+}
+
+/* ===== 存档界面：10 个存档槽（没有数据状态）=====
+   几何量自 g2.jpg（2730x1536 全屏原图），系数 800/2730 = 0.293040：
+     资产槽位格 1896x288（3x 的 632x96）在图上画成 1348x204.8 → 舞台上 395.0x60.0
+     列距 1347.7 → 395.0；行距 204.75 → 60.0
+     左上角原点：图上 (18.5, 238.5) → 舞台 (5.42, 69.90)
+   交叉验证：把同一张图缩到 1708 宽，行距读数 128 → 128*0.4684 = 60.0，一致。
+   注意 395/60 = 6.583 = 1896/288，背景图不再被拉伸。 */
+#saveScreen .saveSlot {
+  position: absolute;
+  width: 395.0px; height: 60.0px;
+  background: url("assets/ui/save/slot_nodata.png") 0 0 / 100% 100% no-repeat;
+  pointer-events: auto; cursor: pointer;
+  z-index: 4;
+}
+/* 有数据的槽：换成空白底纹（缩略图/日期/首句以后画在上面） */
+#saveScreen .saveSlot.filled {
+  background-image: url("assets/ui/save/slot_filled.png");
+}
+
+/* 读档模式：空槽不可点（存档模式里空槽是可以点的，存到那一格）
+   注意不能写 pointer-events:none —— 那连 :hover 都没了，悬停边框就不出现 */
+#saveScreen.mode-load .saveSlot.empty {
+  cursor: default;
+}
+
+/* 悬停：叠一层 sys_01011（红橙边框 + 左侧「文件夹+下箭头」图标），
+   尺寸和槽位格一样，直接盖上去 */
+#saveScreen .saveSlot::after {
+  content: ""; position: absolute; inset: 0;
+  background: url("assets/ui/save/slot_hover.png") 0 0 / 100% 100% no-repeat;
+  opacity: 0; pointer-events: none;
+  transition: opacity .08s linear;
+}
+#saveScreen .saveSlot:hover::after { opacity: 1; }
+/* 读档界面的悬停层是另一张（青色边框 + 文件夹上箭头 sys_02011） */
+#saveScreen.mode-load .saveSlot::after {
+  background-image: url("assets/ui/save/slot_hover_load.png");
+}
+
+/* ===== 槽位编号 =====
+   数字取自 sys_00019（140x16 的图集，字符格 12x16，0123456789）
+   原图 "01" 墨迹 x71..113 y286..316，按 14 行字高反推比例 2.214：
+     格子原点 舞台 (20.16, 82.51)，槽位元素在 (5.4, 69.9)
+     → 相对槽位 (14.76, 12.61)，单格 7.786 x 10.382 */
+#saveScreen .saveSlot .num {
+  position: absolute; left: 14.76px; top: 12.61px;
+  height: 10.382px; display: flex; align-items: flex-start;
+  pointer-events: none;
+}
+#saveScreen .saveSlot .num img {
+  width: 7.786px; height: 10.382px; display: block;
+}
+
+/* ===== 有数据的槽里的三件内容 =====
+   位置按原图网格量的（槽位元素 395x60 内的相对坐标）：
+     缩略图 (31.5, 8) 78x47；时间戳 (117, 11.5)；首句 (117, 27) */
+#saveScreen .saveSlot .thumb {
+  position: absolute; left: 31.5px; top: 8px; width: 75.5px; height: 47px;
+  overflow: hidden; pointer-events: none; display: none;
+}
+#saveScreen .saveSlot.filled .thumb { display: block; }
+#saveScreen .saveSlot .thumb img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+
+#saveScreen .saveSlot .date {
+  position: absolute; left: 117px; top: 11.5px; height: 10.382px;
+  display: flex; align-items: flex-start;
+  pointer-events: none; white-space: nowrap;
+}
+#saveScreen .saveSlot .date img {
+  width: 7.786px; height: 10.382px; display: block;
+}
+#saveScreen .saveSlot .date .sp {
+  display: inline-block; width: 4.5px; height: 10.382px;
+}
+
+#saveScreen .saveSlot .sent {
+  position: absolute; left: 117px; top: 26.5px; height: 12px;
+  pointer-events: none; white-space: nowrap;
+}
+#saveScreen .saveSlot .sent img { height: 12px; width: auto; display: block; }
+#saveScreen .slot1 { left: 5.4px; top: 69.9px; }
+#saveScreen .slot2 { left: 5.4px; top: 129.9px; }
+#saveScreen .slot3 { left: 5.4px; top: 189.9px; }
+#saveScreen .slot4 { left: 5.4px; top: 249.9px; }
+#saveScreen .slot5 { left: 5.4px; top: 309.9px; }
+#saveScreen .slot6 { left: 400.4px; top: 69.9px; }
+#saveScreen .slot7 { left: 400.4px; top: 129.9px; }
+#saveScreen .slot8 { left: 400.4px; top: 189.9px; }
+#saveScreen .slot9 { left: 400.4px; top: 249.9px; }
+#saveScreen .slot10 { left: 400.4px; top: 309.9px; }
+
+/* ===== 底栏翻页键 =====
+   素材 sys_01022：左右箭头各 3 态（1 默认 / 2 悬停 / 3 按下），中间一条横幅
+   （存档模式 = 储存数据/SAVE，读档模式 = 读取数据/LOAD）。
+   几何量自游戏截图（2730 图，系数 800/2730）：
+     箭头 44x62(左) / 44x58(右) 在图上画成 2.15 倍 → 舞台 27.7x39.1 / 27.7x36.6
+     左箭头左上 (942,1282) → (276.0, 375.7)；右箭头 (1693,1282) → (496.0, 375.7)
+     横幅 288x34 画成 2.1 倍，左上 (1063,1304) → (311.5, 382.1)，177.3x21.7 */
+#saveScreen .pagerL,
+#saveScreen .pagerR {
+  position: absolute; top: 375.7px; cursor: pointer; z-index: 3;
+}
+#saveScreen .pagerL { left: 276.0px; width: 27.7px; height: 39.1px; }
+#saveScreen .pagerR { left: 496.0px; width: 27.7px; height: 36.6px; }
+#saveScreen .pagerL img,
+#saveScreen .pagerR img {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  opacity: 0; pointer-events: none; transition: opacity .06s linear;
+}
+#saveScreen .pagerL img.s1, #saveScreen .pagerR img.s1 { opacity: 1; }
+#saveScreen .pagerL:hover img.s1, #saveScreen .pagerR:hover img.s1 { opacity: 0; }
+#saveScreen .pagerL:hover img.s2, #saveScreen .pagerR:hover img.s2 { opacity: 1; }
+#saveScreen .pagerL:active img.s2, #saveScreen .pagerR:active img.s2 { opacity: 0; }
+#saveScreen .pagerL:active img.s3, #saveScreen .pagerR:active img.s3 { opacity: 1; }
+
+#saveScreen .pagerBar {
+  position: absolute; left: 311.5px; top: 382.1px;
+  width: 177.3px; height: 21.7px;
+  pointer-events: none; z-index: 3;
+}
+#saveScreen .pagerBar img { width: 100%; height: 100%; display: block; }
+
+/* ===== 存/读档提示框（sys_00110，2.15 倍） =====
+   图中量得左上 (852,648) 尺寸 1032x241 → 舞台 (249.7,189.9) 302.4x70.6 */
+#saveScreen .dlgToast {
+  position: absolute; left: 249.7px; top: 189.9px;
+  width: 302.4px; height: 70.6px;
+  display: none; z-index: 30; pointer-events: none;
+}
+#saveScreen .dlgToast.on { display: block; }
+#saveScreen .dlgToast .box {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block;
+}
+#saveScreen .dlgToast .txt {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  text-align: center; font-size: 15px; line-height: 1;
+  color: #fff; white-space: nowrap;
+}
+
+/* ===== 覆盖确认框（sys_00100 544x216 + sys_00101 按钮，2.15 倍） =====
+   框: 图中 (784,545) 1170x464 → 舞台 (229.7,159.7) 342.9x136
+   是: (1006,802) 344x86 → (294.8,235.0) 100.8x25.2
+   否: (1381,802) 同上 → (404.7,235.0) */
+#saveScreen .dlgConfirm {
+  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  display: none; z-index: 40;
+}
+#saveScreen .dlgConfirm.on { display: block; }
+#saveScreen .dlgConfirm .box {
+  position: absolute; left: 229.7px; top: 159.7px;
+  width: 342.9px; height: 136px; display: block; pointer-events: none;
+}
+#saveScreen .dlgConfirm .txt {
+  position: absolute; left: 229.7px; width: 342.9px;
+  text-align: center; font-size: 15px; line-height: 1;
+  color: #fff; white-space: nowrap; pointer-events: none;
+}
+#saveScreen .dlgConfirm .t1 { top: 194.9px; }
+#saveScreen .dlgConfirm .t2 { top: 213.9px; }
+
+#saveScreen .dlgConfirm .btn {
+  position: absolute; width: 100.8px; height: 25.2px; cursor: pointer;
+}
+#saveScreen .dlgConfirm .btn.yes { left: 294.8px; top: 235.0px; }
+#saveScreen .dlgConfirm .btn.no  { left: 404.7px; top: 235.0px; }
+#saveScreen .dlgConfirm .btn img {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  opacity: 0; pointer-events: none; transition: opacity .06s linear;
+}
+#saveScreen .dlgConfirm .btn img.s1 { opacity: 1; }
+#saveScreen .dlgConfirm .btn:hover img.s1 { opacity: 0; }
+#saveScreen .dlgConfirm .btn:hover img.s2 { opacity: 1; }
+#saveScreen .dlgConfirm .btn:active img.s2 { opacity: 0; }
+#saveScreen .dlgConfirm .btn:active img.s3 { opacity: 1; }
+
+/* ===== 存档界面：雪花 logo =====
+   素材（741x380）在参考图里画成约 182x86，左上角 (29, 6)，
+   顶部一截被顶栏挡住——和原版一样「从标题条下面露出来」。
+   原来 227 宽 @ (21,8) 偏大、偏左下。 */
+#saveScreen .uiLogo {
+  left: 29px !important; top: 6px !important;
+  width: 182px !important; height: 86px !important;
+}
+
+/* ===== 右下角 EXIT（sys_09100 三态，原图 (2483,1468) 119x49 / 2730x1536） ===== */
+.uiExit {
+  /* 几何沿用设置界面那套（模板匹配 sys_09100 得到，k=2.13） */
+  position: absolute; left: 727.62px; top: 430.18px;
+  width: 34.87px; height: 14.95px;
+  cursor: pointer; z-index: 20;
+}
+.uiExit img {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  opacity: 0; pointer-events: none; transition: opacity .06s linear;
+}
+.uiExit img.s1 { opacity: 1; }
+.uiExit:hover img.s1 { opacity: 0; }
+.uiExit:hover img.s2 { opacity: 1; }
+.uiExit:active img.s2 { opacity: 0; }
+.uiExit:active img.s3 { opacity: 1; }

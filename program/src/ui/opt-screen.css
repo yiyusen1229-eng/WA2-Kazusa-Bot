@@ -1,0 +1,414 @@
+/* ================= 用游戏原图替换自绘样式 ================= */
+
+/* 存档/模型槽: 使用游戏原框 sys_01010 tile */
+.slot {
+  background: url("assets/ui/slot_normal.png") 0 0 / 100% 100% no-repeat !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 2px 10px 2px 6px !important;
+}
+.slot:hover {
+  background-image: url("assets/ui/slot_sel.png") !important;
+  filter: none !important;
+}
+.slot.empty {
+  background-image: url("assets/ui/slot_normal.png") !important;
+}
+
+/* 模型管理整屏: 用和纱角色介绍图做背景 */
+#modelScreen {
+  background: #04101d url("assets/ui/sys_07200.png") center/cover no-repeat !important;
+}
+#modelScreen::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(2,12,22,.82), rgba(2,12,22,.72) 40%, rgba(2,12,22,.86));
+  pointer-events: none;
+}
+
+/* 缩略图区: 游戏框左侧本来就是空的, 直接放图 */
+.mThumb {
+  background-color: rgba(4,24,42,.55) !important;
+  border: 1px solid rgba(120,200,240,.35) !important;
+  border-radius: 0 !important;
+}
+
+/* 按钮: 游戏原按钮帧 */
+.mBtn, .mgrBtn {
+  background: url("assets/ui/btn_normal.png") 0 0 / 100% 100% no-repeat !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: #eaf8ff !important;
+  text-shadow: 0 1px 2px rgba(0,20,40,.9);
+}
+.mBtn:hover, .mgrBtn:hover {
+  background-image: url("assets/ui/btn_hover.png") !important;
+  filter: none !important;
+}
+
+/* 关闭按钮: 游戏原图标 */
+.mClose {
+  background: url("assets/ui/icon_close.png") center/contain no-repeat !important;
+  border: none !important; border-radius: 0 !important;
+  color: transparent !important; font-size: 0 !important;
+  width: 26px !important; height: 26px !important;
+}
+.mClose:hover { filter: brightness(1.35); background-color: transparent !important; }
+
+/* 详情卡: 游戏原圆角面板 sys_00100 */
+#modelDetail { background: rgba(2,12,22,.66) !important; }
+.mdCard {
+  width: 560px !important; max-width: 86% !important;
+  min-height: 216px;
+  padding: 22px 30px !important;
+  background: transparent url("assets/ui/panel.png") 0 0 / 100% 100% no-repeat !important;
+  border: none !important; border-radius: 0 !important; box-shadow: none !important;
+}
+.mdName { color: #dff4ff; text-shadow: 0 1px 3px #001a2e; }
+.mdBody, .mdBody div span, .mdBody div b { color: #cfeaf7; }
+.mdBack {
+  background: url("assets/ui/btn_normal.png") 0 0 / 100% 100% no-repeat !important;
+  border: none !important; color: #eaf8ff !important;
+}
+.mdBack:hover { background-image: url("assets/ui/btn_hover.png") !important; }
+
+/* 按游戏原框(632x96)比例精确摆放槽内元素 */
+.slot { padding: 0 !important; display: block !important; }
+.slot .no {
+  position: absolute !important; left: 1.6% !important; top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 15px !important; color: #eaf8ff !important;
+  text-shadow: 0 1px 3px rgba(0,15,30,.9) !important;
+}
+.slot .thumb {
+  position: absolute !important; left: 7.6% !important; top: 11% !important;
+  width: 21% !important; height: 78% !important;
+  background: rgba(4,22,40,.55) !important;
+  border: none !important;
+}
+.slot .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slot .txt {
+  position: absolute !important; left: 31% !important; right: 2.5% !important;
+  top: 50% !important; transform: translateY(-50%) !important;
+  font-size: 10px !important; line-height: 1.35 !important;
+}
+
+/* 模型槽同样按比例 */
+.modelSlot .mThumb {
+  position: absolute !important; left: 7.6% !important; top: 11% !important;
+  width: 21% !important; height: 78% !important; flex: none !important;
+  border: none !important; background-color: rgba(4,22,40,.55) !important;
+}
+.modelSlot .mBox {
+  position: absolute !important; left: 31% !important; right: 2.5% !important;
+  top: 8% !important; bottom: 8% !important;
+  display: flex !important; flex-direction: column; justify-content: center; gap: 2px;
+}
+
+/* 缩略图区宽度收到 18.2%, 文字从 28.5% 开始(对齐游戏原框) */
+.slot .thumb, .modelSlot .mThumb {
+  width: 18.2% !important;
+}
+.slot .txt, .modelSlot .mBox {
+  left: 28.5% !important;
+}
+
+/* ===== 按游戏原图测量值精确对齐 (1280x720 -> 800x450 除以 1.6) ===== */
+.uiHead { height: 25px !important; }
+.uiFoot { height: 28px !important; }
+.uiLogo {
+  left: 21px !important; top: 8px !important;
+  width: 227px !important;
+}
+.optTabs {
+  left: 401px !important; right: auto !important;
+  top: 46px !important; width: 365px !important; height: 47px !important;
+}
+.uiPageLbl {
+  left: 382px !important; right: auto !important;
+  top: 53px !important; font-size: 9px !important;
+}
+.optPanel {
+  left: 94px !important; top: 85.6px !important;
+  width: 637px !important; height: 255px !important;
+  transform: none !important;
+}
+
+/* 设置界面: 像游戏那样压暗背景, 模型管理按钮挪到右下角 */
+#optScreen { background: rgba(1,8,16,.86) !important; }
+.mgrBtn {
+  right: 16px !important; top: auto !important;
+  bottom: 36px !important;
+}
+
+/* ===== 滑块: 方格分段(对齐游戏) ===== */
+.optPanel .sbar {
+  display: flex !important; gap: 1px;
+  background: none !important;
+}
+.optPanel .sbar i {
+  flex: 1 1 0; min-width: 0;
+  background: rgba(6,34,52,.55);
+  border: 1px solid rgba(120,210,250,.30);
+  border-radius: 1px;
+}
+.optPanel .sbar i.on {
+  background: #35d2ee;
+  border-color: #9bf0ff;
+  box-shadow: 0 0 3px rgba(80,220,255,.55) inset;
+}
+/* OPTION 2 音量页用橙色 */
+#optScreen[data-page="1"] .optPanel .sbar i.on {
+  background: #ffa53a;
+  border-color: #ffd390;
+  box-shadow: 0 0 3px rgba(255,170,60,.6) inset;
+}
+
+/* ===== 标签页: 选中亮, 未选中暗 ===== */
+.optTabs .t { filter: brightness(.62) saturate(.7); transition: filter .15s; }
+.optTabs .t.on, .optTabs .t:hover { filter: none; }
+
+/* ===== 底栏高度 ===== */
+.uiFoot { height: 35px !important; }
+
+/* ===== 翻页条放大 ===== */
+.pagerBtn {
+  width: 52px !important; height: 40px !important;
+  bottom: 44px !important;
+}
+.pagerLabel { bottom: 52px !important; font-size: 9px !important; }
+
+/* 标签页: 未选中用暗行 */
+.optTabs .t { background-position-y: 100% !important; }
+.optTabs .t.on { background-position-y: 0% !important; }
+
+/* 底栏两侧 */
+.optFootL {
+  position: absolute; left: 12px; bottom: 7px;
+  font-size: 9px; color: #cfeeff; letter-spacing: .3px;
+  text-shadow: 0 1px 2px rgba(0,10,24,.9);
+}
+.optFootR {
+  position: absolute; right: 12px; bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; color: #cfeeff;
+  text-shadow: 0 1px 2px rgba(0,10,24,.9);
+}
+.optFootR b {
+  font-weight: normal; padding: 1px 7px;
+  border: 1px solid rgba(150,230,255,.55); border-radius: 2px;
+  background: rgba(20,90,140,.55);
+}
+.optFootR .ex { margin-left: 8px; }
+.optFootR i {
+  width: 14px; height: 14px; display: inline-block;
+  border: 1px solid rgba(150,230,255,.7); border-radius: 2px;
+  background: rgba(20,90,140,.45);
+}
+
+/* 翻页条文字 */
+.optPagerTxt {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 40px; text-align: center; pointer-events: none;
+  font-size: 8px; color: #cfeeff;
+  text-shadow: 0 1px 2px rgba(0,10,24,.9);
+}
+.optPagerTxt em {
+  display: block; font-style: normal; margin-bottom: 4px;
+  font-size: 9px; color: #e8f8ff;
+}
+.optPagerTxt span, .optPagerTxt b { margin: 0 16px; font-weight: normal; }
+.optPagerTxt b { letter-spacing: 1px; }
+
+/* 底栏两侧文字(用伪元素, 保证出现) */
+#optScreen .uiFoot::before {
+  content: "Extended Winter";
+  position: absolute; left: 12px; bottom: 8px;
+  font-size: 9px; color: #cfeeff; letter-spacing: .3px;
+  text-shadow: 0 1px 2px rgba(0,10,24,.95);
+}
+#optScreen .uiFoot::after {
+  content: "DEFAULT        恢复默认设置          EXIT";
+  position: absolute; right: 12px; bottom: 8px;
+  font-size: 9px; color: #cfeeff; white-space: pre;
+  text-shadow: 0 1px 2px rgba(0,10,24,.95);
+}
+/* 翻页条文字, 替换原来跑偏的 OPTION 1 */
+#optScreen .pagerLabel { display: none !important; }
+#optScreen .uiFoot ~ .pagerTxt { display: none; }
+#optScreen::after {
+  content: "変更游戏的环境设置";
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 62px; font-size: 9px; color: #e8f8ff;
+  text-shadow: 0 1px 2px rgba(0,10,24,.95); pointer-events: none;
+}
+#optScreen .pagerBtn.prev::after,
+#optScreen .pagerBtn.next::after {
+  position: absolute; bottom: -12px; font-size: 8px; color: #cfeeff;
+  white-space: nowrap;
+}
+#optScreen .pagerBtn.prev::after { content: "上一页"; left: 6px; }
+#optScreen .pagerBtn.next::after { content: "下一页"; right: 6px; }
+
+/* ===== 用游戏原图拼装 OPTION 界面 ===== */
+.optPageBar { position: absolute; right: 14px; top: 42px; width: 472px; height: 60px; pointer-events: none; }
+.optTabs {
+  left: auto !important; right: 20px !important; top: 52px !important;
+  width: 330px !important; height: 46px !important;
+}
+.optPager { display: none !important; }
+.pgPrev, .pgNext {
+  position: absolute; bottom: 46px; width: 42px; height: 40px;
+  background-size: 100% 100%; cursor: pointer;
+}
+.pgPrev { left: calc(50% - 150px); background-image: url("assets/ui/pg_prev.png"); }
+.pgNext { left: calc(50% + 108px); background-image: url("assets/ui/pg_next.png"); }
+.pgText {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 46px; width: 220px; height: 40px; pointer-events: none;
+  background: url("assets/ui/pg_text.png") 0 0 / 100% 100% no-repeat;
+}
+.optPagerHit { display: none; }
+
+/* 翻页条: 直接用完整原图 sys_03020, 不再拆 */
+#optScreen::after { content: none !important; }
+.pgPrev, .pgNext, .pgText { display: none !important; }
+.optPager {
+  display: block !important;
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 40px; width: 300px; height: 89px;
+  pointer-events: none;
+}
+.optPagerHit { display: block !important; position: absolute; bottom: 52px; width: 50px; height: 70px; cursor: pointer; }
+.optPagerHit.prev { left: calc(50% - 150px); }
+.optPagerHit.next { left: calc(50% + 100px); }
+
+/* 翻页条: 用切好的三件(箭头x2 + 文字) */
+.optPager { display: none !important; }
+.pgPrev, .pgNext, .pgText { display: block !important; }
+.pgPrev {
+  position: absolute; bottom: 44px; left: calc(50% - 168px);
+  width: 40px; height: 38px; cursor: pointer;
+  background: url("assets/ui/pg_prev.png") 0 0 / 100% 100% no-repeat;
+}
+.pgNext {
+  position: absolute; bottom: 44px; left: calc(50% + 128px);
+  width: 40px; height: 38px; cursor: pointer;
+  background: url("assets/ui/pg_next.png") 0 0 / 100% 100% no-repeat;
+}
+.pgText {
+  position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
+  width: 250px; height: 38px; pointer-events: none;
+  background: url("assets/ui/pg_text.png") 0 0 / 100% 100% no-repeat;
+}
+.optPagerHit { display: none !important; }
+
+/* 翻页条最终: 原图三件, 按 sprite 精确切 */
+.pgPrev, .pgNext, .pgText { display: block !important; }
+.pgPrev {
+  position:absolute; bottom: 46px; left: calc(50% - 145px);
+  width: 34px; height: 44px; cursor:pointer;
+  background: url("assets/ui/pg_prev.png") 0 0 / 100% 100% no-repeat;
+}
+.pgNext {
+  position:absolute; bottom: 46px; left: calc(50% + 111px);
+  width: 34px; height: 44px; cursor:pointer;
+  background: url("assets/ui/pg_next.png") 0 0 / 100% 100% no-repeat;
+}
+.pgText {
+  position:absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
+  width: 230px; height: 48px; pointer-events:none;
+  background: url("assets/ui/pg_text.png") 0 0 / 100% 100% no-repeat;
+}
+
+/* 标签页: 尺寸对齐游戏 */
+.optTabs { left: 430px !important; top: 44px !important; width: 340px !important; height: 42px !important; }
+/* 滑块: 更细的格子 */
+.optPanel .sbar { gap: 2px !important; }
+.optPanel .sbar i { border-width: 1px !important; }
+/* 翻页文字块: 恢复素材比例 288:119 */
+.pgText { width: 214px !important; height: 88px !important; bottom: 40px !important; }
+.pgPrev, .pgNext { bottom: 58px !important; height: 52px !important; width: 38px !important; }
+/* 底栏左侧 BGM 名 */
+.optFootL { font-size: 9px !important; bottom: 8px !important; }
+
+
+/* 训练图表: 坐标轴 + 预览区 */
+.chartBox { position: relative; margin-top: 6px; }
+.chartBox canvas { display: block; width: 100%; height: 130px; }
+.axisY {
+  position: absolute; left: 2px; top: -2px;
+  font-size: 6.5px; color: rgba(150,220,250,.65);
+  letter-spacing: .5px;
+}
+.axisX {
+  position: absolute; right: 4px; bottom: -2px;
+  font-size: 6.5px; color: rgba(150,220,250,.65);
+}
+.preview {
+  margin-top: 8px; padding: 7px 9px;
+  border: 1px solid rgba(110,200,255,.22);
+  border-radius: 3px;
+  background: rgba(4,20,34,.55);
+  font-size: 7.2px; line-height: 1.55; color: #cfeeff;
+}
+.pvH {
+  font-size: 7.6px; color: #8fe0ff; letter-spacing: .6px;
+  margin-bottom: 4px;
+}
+.pvRow { display: flex; gap: 6px; margin: 3px 0; }
+.pvRow b {
+  flex: 0 0 auto; font-weight: normal;
+  color: #7fd4ff; min-width: 24px;
+}
+.pvRow span {
+  flex: 1 1 auto; color: #e6f7ff;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pvMeta {
+  margin-top: 4px; font-size: 6.8px;
+  color: rgba(150,220,250,.7);
+}
+
+/* 左栏两张卡: 保持自然高度, 不互相挤压 */
+.trCol.left { overflow-y: auto; }
+.trCol.left .trCard { flex: 0 0 auto; }
+.trCol.left .trCard + .trCard { margin-top: 0; }
+
+
+/* 题头防裁切 */
+.trCard { padding: 3px 6px 5px 6px !important; }
+.trH {
+  margin-top: 0 !important;
+  padding-top: 1px !important;
+  line-height: 1.35 !important;
+  overflow: visible !important;
+}
+.trCol.left .trCard { padding-top: 2px !important; }
+
+
+/* 第二轮修正 */
+/* 左栏两块等高拉伸, 底部与右栏对齐 */
+.trCol.left { justify-content: stretch; }
+.trCol.left .trCard { flex: 1 1 0 !important; min-height: 0; overflow: hidden; }
+/* 图表加高, 填满卡片 */
+.chartBox { flex: 1 1 auto; min-height: 190px; display: flex; flex-direction: column; }
+.chartBox canvas { flex: 1 1 auto; height: 100% !important; min-height: 170px; }
+/* 坐标轴标注: 放大 + 移到画布外侧 */
+.axisY {
+  position: absolute; left: -14px; top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  font-size: 8px !important; color: rgba(160,225,250,.85) !important;
+  letter-spacing: 1px;
+}
+.axisX {
+  position: absolute; right: 2px; bottom: -13px;
+  font-size: 8px !important; color: rgba(160,225,250,.85) !important;
+}
+/* 按钮禁用态 */
+.trBtn.disabled { opacity: .42; pointer-events: none; filter: grayscale(.5); }
+/* 题头更保险: 额外顶部留白 */
+.trH { padding-top: 3px !important; }
+.trCard { padding-top: 5px !important; }
+
+
