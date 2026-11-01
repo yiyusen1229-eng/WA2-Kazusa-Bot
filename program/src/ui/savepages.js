@@ -130,18 +130,11 @@
   }
 
   /* 翻页 / 打开存档界面时调用：先用旧数据占位，再按服务器结果重画一次 */
-  window.__renderSaveSlots = function (page) {
-    /* 换页时槽位整片淡出→重绘→淡入 */
-    try {
-      if (window.zoomSwap && String(page) !== String(window.__savePage || "")) {
-        var slots = document.querySelectorAll("#saveScreen .saveSlot");
-        window.__savePage = page;
-        window.pgSwap(document.getElementById("saveScreen"), function () { window.__renderSaveSlotsNow(page); }, 390);
-        return;
-      }
-    } catch (e) {}
-    window.__renderSaveSlotsNow(page);
-  };
+window.__renderSaveSlots = function (page) {
+  /* 只做重绘：动画在别处叠加，渲染本身必须可靠 */
+  window.__savePage = page;
+  window.__renderSaveSlotsNow(page);
+};
   window.__renderSaveSlotsNow = function (page) {
     page = page || window.__savePage || 1;
     page = Math.max(1, Math.min(PAGES, page));

@@ -34,7 +34,7 @@
 
 /* 按钮: 游戏原按钮帧 */
 .mBtn, .mgrBtn {
-  background: url("assets/ui/btn_normal.png") 0 0 / 100% 100% no-repeat !important;
+  background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat !important;
   border: none !important;
   border-radius: 0 !important;
   color: #eaf8ff !important;
@@ -66,10 +66,10 @@
 .mdName { color: #dff4ff; text-shadow: 0 1px 3px #001a2e; }
 .mdBody, .mdBody div span, .mdBody div b { color: #cfeaf7; }
 .mdBack {
-  background: url("assets/ui/btn_normal.png") 0 0 / 100% 100% no-repeat !important;
+  background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat !important;
   border: none !important; color: #eaf8ff !important;
 }
-.mdBack:hover { background-image: url("assets/ui/btn_hover.png") !important; }
+.mdBack:hover { background-position-y: 50% !important; }
 
 /* 按游戏原框(632x96)比例精确摆放槽内元素 */
 .slot { padding: 0 !important; display: block !important; }
