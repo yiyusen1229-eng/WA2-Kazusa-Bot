@@ -953,10 +953,10 @@ async function send() {
   window.__history = history;      // 用户消息也要同步到全局，否则存档规则读到的是旧长度
   // 等待提示也用字模渲染，避免冒出系统字体
   if (window.gdiRenderMsg) {
-    gdiRenderMsg("……", $("msgText"), 56, 1200, 1);
+    gdiRenderMsg("「......」", $("msgText"), 56, 1200, 1);
     $("msgText").classList.add("gdi");
   } else {
-    $("msgText").textContent = "……";
+    $("msgText").textContent = "「......」";
   }
 
   try {
