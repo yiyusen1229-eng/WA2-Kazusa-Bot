@@ -199,7 +199,14 @@ window.__renderSaveSlots = function (page) {
     toastTimer = setTimeout(function () { t.classList.remove("on"); }, 1000);
   }
 
+  var _lastSaveAt = 0;
   function saveTo(idx) {
+    /* 防抖：一次点击只写一次（之前重复绑定导致同一秒写了 8 次，
+       最后一次可能把前面的内容覆盖成空档） */
+    var now = Date.now();
+    if (now - _lastSaveAt < 300) return;
+    _lastSaveAt = now;
+
     busy = true;
     var meta = (window.__saveMeta && window.__saveMeta()) || {};
     /* 存档时把当前画面截图放进缩略图 */
@@ -317,7 +324,12 @@ window.__renderSaveSlots = function (page) {
 
   function wireSlots() {
     var sc = document.getElementById("saveScreen");
-    if (sc) sc.addEventListener("click", onSlotClick);
+    /* 只绑一次：__openScreen 每次打开都会调到这里，重复绑定会让一次点击
+       触发 N 次存档请求（日志里能看到同一秒 8 条 POST /api/session/save）。 */
+    if (sc && !sc.dataset.wired) {
+      sc.dataset.wired = "1";
+      sc.addEventListener("click", onSlotClick);
+    }
     wireConfirm();
   }
 
