@@ -361,8 +361,7 @@ WORLDBOOK_FILE = os.path.join(BASE, "worldbook.json")
 
 # ---------------- 人设 / 世界书 ----------------
 import threading as _th
-from sessions import (SESS_DIR, _sess_path, session_save, session_load,
-                     session_list, session_thumb)
+from sessions import session_save, session_load, session_list, session_thumb
 
 
 def qs(q, names, default=""):
