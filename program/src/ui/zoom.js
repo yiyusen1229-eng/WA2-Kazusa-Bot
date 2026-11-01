@@ -129,4 +129,18 @@
         });
       });
     }, out);
+  };
+  /* 用 @keyframes 做换页：给元素加 pgOut / pgIn 类，动画结束自动移除 */
+  window.pgSwap = function (el, fn, ms) {
+    if (!el) { try { fn && fn(); } catch (e) {} return; }
+    el.classList.remove("pgIn");
+    el.classList.add("pgOut");
+    var outMs = 175, inMs = 215;
+    setTimeout(function () {
+      try { fn && fn(); } catch (e) {}
+      el.classList.remove("pgOut");
+      void el.offsetWidth;
+      el.classList.add("pgIn");
+      setTimeout(function () { el.classList.remove("pgIn"); }, inMs + 60);
+    }, outMs);
   };})();
