@@ -160,7 +160,7 @@
   height: 24px;
   padding: 0;
   border: 0;
-  background: url("assets/ui/opt/conn1.png") center / 100% 100% no-repeat;
+  background: url("assets/ui/btn_3state.png") center / 100% 300% no-repeat;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -168,7 +168,7 @@
   font-size: 0;              /* 原生文字不显示，改用字模图 */
   color: transparent;
   outline: none;
-}#optScreen .o3conn:hover { background-image: url("assets/ui/opt/conn2.png"); }#optScreen .o3conn:active { background-image: url("assets/ui/opt/conn3.png"); }#optScreen .o3conn.on { background-image: url("assets/ui/opt/conn3.png"); }#optScreen .o3conn.fail { background-image: url("assets/ui/opt/conn1.png"); filter: hue-rotate(-40deg); }#optScreen .o3conn img { height: 12px; width: auto; pointer-events: none; }/* 字段：固定宽度的块级容器，提交后只留字模图 */
+}#optScreen .o3conn:hover { background-position-y: 50%; }#optScreen .o3conn:active { background-image: url("assets/ui/opt/conn3.png"); }#optScreen .o3conn.on { background-image: url("assets/ui/opt/conn3.png"); }#optScreen .o3conn.fail { background-image: url("assets/ui/opt/conn1.png"); filter: hue-rotate(-40deg); }#optScreen .o3conn img { height: 12px; width: auto; pointer-events: none; }/* 字段：固定宽度的块级容器，提交后只留字模图 */
 #optScreen .o3field {
   display: inline-block;
   position: relative;
@@ -226,7 +226,7 @@
   height: 24px;
   padding: 0;
   border: 0;
-  background: url("assets/ui/opt/conn1.png") center / 100% 100% no-repeat;
+  background: url("assets/ui/btn_3state.png") center / 100% 300% no-repeat;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -235,6 +235,6 @@
   color: transparent;
   outline: none;
 }
-#optScreen .o3switch:hover { background-image: url("assets/ui/opt/conn2.png"); }
-#optScreen .o3switch:active { background-image: url("assets/ui/opt/conn3.png"); }
+#optScreen .o3switch:hover { background-position-y: 50%; }
+#optScreen .o3switch:active { background-position-y: 100%; }
 #optScreen .o3switch img { height: 12px; width: auto; pointer-events: none; }
