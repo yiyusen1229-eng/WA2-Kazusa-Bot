@@ -86,14 +86,9 @@
           var cur = document.getElementById("optContent" + (current === 1 ? "" : current));
           var nxt = document.getElementById("optContent" + (n === 1 ? "" : n));
           var run = function () { current = n; refreshTabs(); };
-          if (window.fadeEls && cur && nxt) {
-            window.fadeEls([cur], function () {
-              run();
-              nxt.style.transition = "opacity 100ms ease";
-              nxt.style.opacity = "0";
-              nxt.style.display = "block";
-              requestAnimationFrame(function () { nxt.style.opacity = "1"; });
-            }, 200);
+          if (window.zoomSwap && cur && nxt) {
+            nxt.style.display = "block";
+            window.zoomSwap([cur], [nxt], run, 390);
           } else run();
         });
       })(i);

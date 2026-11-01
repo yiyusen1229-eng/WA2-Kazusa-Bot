@@ -1363,3 +1363,38 @@ window.fadeEls = function (els, fn, ms) {
     });
   }, half);
 };
+/* 换页动画（按原版观感实现）：
+   旧页：向内收缩 + 虚化 + 变透明
+   新页：从略大开始，向内收缩同时由透明迅速实化
+   总时长默认 390ms（与翻页音 SE_9213 等长） */
+window.zoomSwap = function (oldEls, newEls, fn, ms) {
+  ms = ms || 390;
+  var out = Math.round(ms * 0.45), inn = ms - out;
+  var olds = oldEls ? [].concat(oldEls) : [];
+  olds.forEach(function (el) {
+    el.style.transition = "transform " + out + "ms ease, opacity " + out + "ms ease, filter " + out + "ms ease";
+    el.style.transformOrigin = "50% 50%";
+    el.style.transform = "scale(0.94)";
+    el.style.filter = "blur(5px)";
+    el.style.opacity = "0";
+  });
+  setTimeout(function () {
+    try { fn && fn(); } catch (e) {}
+    var news = newEls ? [].concat(newEls) : [];
+    news.forEach(function (el) {
+      el.style.transition = "none";
+      el.style.transformOrigin = "50% 50%";
+      el.style.transform = "scale(1.06)";
+      el.style.filter = "blur(4px)";
+      el.style.opacity = "0.15";
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          el.style.transition = "transform " + inn + "ms cubic-bezier(.2,.9,.25,1), opacity " + inn + "ms ease, filter " + inn + "ms ease";
+          el.style.transform = "scale(1)";
+          el.style.filter = "blur(0)";
+          el.style.opacity = "1";
+        });
+      });
+    });
+  }, out);
+};

@@ -11,7 +11,7 @@
 (function () {
   // 悬停/点击都算“可交互”的元素
   var INTERACTIVE =
-    ".uiExit,.mbBtn,.mbItem,.optTab,.optPagerBtn,#optPrev,#optNext,.ctHot,.ctBar," +
+    ".uiExit,.mbBtn,.mbItem,.optTab,.optPagerBtn,#optPrev,#optNext,.ctHot,.ctBar,#saveTabs,.saveTabs," +
     "#pagerPrev,#pagerNext,.pagerL,.pagerR,.saveTab,.pageTab,.saveSlot," +
     "[data-act],[data-pg],.cfgRow button,.o3btn,.dlgToast,.dlgConfirm button," +
     ".blogItem,.modelRow,.mgrBtn,button,select";
@@ -19,7 +19,7 @@
   // 这些的“点击”用翻页音（切页/切页签/翻页键）
   var PAGE =
     ".optTab,.optPagerBtn,#optPrev,#optNext,#pagerPrev,#pagerNext," +
-    ".pagerL,.pagerR,.saveTab,.pageTab,[data-pg]";
+    ".pagerL,.pagerR,.saveTab,.pageTab,[data-pg],#saveTabs,.saveTabs";
 
   var last = null;
 

@@ -133,10 +133,10 @@
   window.__renderSaveSlots = function (page) {
     /* 换页时槽位整片淡出→重绘→淡入 */
     try {
-      if (window.fadeEls && String(page) !== String(window.__savePage || "")) {
+      if (window.zoomSwap && String(page) !== String(window.__savePage || "")) {
         var slots = document.querySelectorAll("#saveScreen .saveSlot");
         window.__savePage = page;
-        window.fadeEls(slots, function () { window.__renderSaveSlotsNow(page); }, 200);
+        window.zoomSwap(slots, slots, function () { window.__renderSaveSlotsNow(page); }, 390);
         return;
       }
     } catch (e) {}
