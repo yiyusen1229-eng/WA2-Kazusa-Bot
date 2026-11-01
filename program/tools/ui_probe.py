@@ -106,6 +106,8 @@ def main():
     ap.add_argument("--wait", type=int, default=1000, help="两步之间的等待毫秒数")
     ap.add_argument("--shot", help="截图输出路径（PNG）")
     ap.add_argument("--title", default="WA2 Probe")
+    ap.add_argument("--persist", action="store_true",
+                    help="用持久化配置目录（相当于 -private_mode=False），可跨进程验证 localStorage")
     ap.add_argument("--width", type=int, default=1280)
     ap.add_argument("--height", type=int, default=720)
     args = ap.parse_args()
@@ -149,7 +151,7 @@ def main():
 
     win = webview.create_window(args.title, args.url,
                                 width=args.width, height=args.height)
-    webview.start(runner, win, private_mode=True, debug=False)
+    webview.start(runner, win, private_mode=not args.persist, debug=False)
     print(json.dumps(out, ensure_ascii=False, indent=1)[:12000])
 
 
