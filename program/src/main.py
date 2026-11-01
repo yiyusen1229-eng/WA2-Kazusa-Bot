@@ -3,6 +3,30 @@
 AI 聊天界面架构 —— 可插拔的桌面聊天 UI 框架
 内嵌本地 HTTP 服务 + WebView2 原生窗口
 """
+# ============================================================================
+# 目录 —— 这个文件有 1900+ 行，按段读，别整篇读
+#   ※ 行号是 2026-11-01 的快照，改代码后会漂移；找位置请搜 §标题。
+#
+#   §0  顶部常量             L.31    路径 / 窗口尺寸 / 模型名 / 安全模式开关
+#   §1  偏好设置             L.122   prefs.json 读写（GET/POST /api/prefs）
+#   §2  模型配置             L.220   cloud_cfg / probe_endpoint / model_cfg_*
+#   §3  标签解析             L.319   fewshot + <scene> <emotion> <action> 拆分
+#   §4  人设 / 世界书 / 翻译  L.533   persona_text / load_worldbook / translate_ja
+#   §5  训练管理             L.560   /api/train/*
+#   §6  token 与花费         L.762   _record_usage / /api/usage（算钱在 pricing.py）
+#   §7  记忆书胶水           L.809   _memory_context / 后台打包（核心逻辑在 memory.py）
+#   §8  HTTP 服务            L.965   class Handler
+#        8.1 路由 do_GET / do_POST
+#        8.2 静态文件 translate_path / send_head（Range）
+#        8.3 窗口控制 _window_ctl
+#        8.4 语音 _tts
+#        8.5 模型配置接口 _modelcfg
+#        8.6 文字渲染 _text_img
+#        8.7 对话 _chat  ← 最大的一块（约 350 行）
+#   §9  启动                 L.1696  ollama_models / _warm_font / serve / main
+#
+# 新功能请**新建独立文件**，不要再往这个文件里堆（见交接文档「一个功能一个文件」）。
+# ============================================================================
 import os
 import sys
 import applog
@@ -122,31 +146,6 @@ def prefs_save(d):
             pass
         return False
 
-
-def ensure_cloud_cfg():
-    """首次启动没有 config.json 就生成一份空白模板（不含任何密钥）"""
-    try:
-        if os.path.exists(CLOUD_CFG_FILE):
-            return
-        blank = {
-            "provider": "",
-            "base_url": "",
-            "api_key": "",
-            "model": "",
-            "models": {
-                "chat":  {"endpoint": "", "key": "", "model": "", "connected": False},
-                "voice": {"endpoint": "", "key": "", "model": "", "connected": False},
-                "mt":    {"endpoint": "", "key": "", "model": "", "connected": False},
-            },
-        }
-        with open(CLOUD_CFG_FILE, "w", encoding="utf-8") as f:
-            json.dump(blank, f, ensure_ascii=False, indent=1)
-        log("generated blank config: %s" % CLOUD_CFG_FILE)
-    except Exception as e:
-        try:
-            log("ensure_cloud_cfg failed: %s" % e)
-        except Exception:
-            pass
 
 def cloud_cfg():
     try:
