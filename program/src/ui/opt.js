@@ -19,7 +19,16 @@
     safe(bindModelFields);
     safe(bindExit);
     safe(refreshTabs);
-    s.classList.add("show");
+  /* 淡入：先压到 0，加 show 后用两帧推到 1（CSS transition 在 display 切换时不会启动） */
+  s.style.transition = "none";
+  s.style.opacity = "0";
+  s.classList.add("show");
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      s.style.transition = "opacity 220ms ease";
+      s.style.opacity = "1";
+    });
+  });
     window.__optOpen = true;
     // 界面显示后让统一文字渲染器补扫一遍（隐藏时它不会处理）
     if (window.__uiTextScan) {
