@@ -1,6 +1,6 @@
 /* 调试面板：把「音效触发 / 界面打开 / 滚轮」记成时间线显示在屏幕上
  *
- * 用法：默认显示在左上角；Ctrl+Shift+D 开关。
+ * 用法：默认**关闭**（点标题栏「调试」或按 Ctrl+Shift+D 打开）。
  * 它只观察、不改变行为（包一层 window.playSE / __openScreen，再挂在 document 上听滚轮）。
  */
 (function () {
@@ -13,7 +13,7 @@
     "position:fixed", "left:6px", "top:6px", "z-index:99999",
     "max-width:520px", "padding:4px 6px", "border-radius:3px",
     "background:rgba(0,0,0,.72)", "color:#8f8", "font:10px/1.45 monospace",
-    "white-space:pre", "pointer-events:none", "display:block",
+    "white-space:pre", "pointer-events:none", "display:none",
     "text-shadow:0 0 2px #000"
   ].join(";");
   document.body.appendChild(box);
