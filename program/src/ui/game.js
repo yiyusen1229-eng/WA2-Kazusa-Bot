@@ -783,10 +783,7 @@ function addHistory(role, text, raw) {
   ic.alt = "";
   /* 图标取自 sys_00031：灰气泡=用户（无语音）、白气泡=和纱、白气泡+播放三角=悬停 */
   const canReplay = (role === "assistant") && !!raw && !!window.__voiceOk;
-      /* 助手行一律用亮色气泡；语音不可用时只是变暗且不可点，不能换成深色的 icon_me（看起来像黑色方块） */
-      const isBot = (role === "assistant");
-  ic.src = "assets/ui/history/" + (isBot ? "icon_her" : "icon_me") + ".png";
-      if (isBot && !canReplay) { ic.style.opacity = "0.5"; ic.style.filter = "grayscale(0.6)"; }
+  ic.src = "assets/ui/history/" + (canReplay ? "icon_her" : "icon_me") + ".png";
   ico.appendChild(ic);
   const body = document.createElement("div");
   body.className = "body";

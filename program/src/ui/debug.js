@@ -92,7 +92,7 @@
       acc = 0;
       /* 高速滚动时限流：260ms 内只响一次，低速正常触发 */
       var now = performance.now();
-      if (now - lastWheelSE < 260) return;
+      if (now - lastWheelSE < 420) return;
       lastWheelSE = now;
       log("PAGE", "滚轮触发");
       try { if (window.playSE) window.playSE("page"); } catch (err) {}

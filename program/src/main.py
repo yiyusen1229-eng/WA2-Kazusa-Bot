@@ -958,12 +958,19 @@ class Handler(SimpleHTTPRequestHandler):
             elif action == "togglemax":
                 u = _user32()
                 hw = _win_hwnd()
-                maxed = False
                 if hw:
                     maxed = bool(u.IsZoomed(hw))
-                    u.ShowWindow(hw, 9 if maxed else 3)   # SW_RESTORE / SW_MAXIMIZE
-                    maxed = bool(u.IsZoomed(hw))
-                return self._json({"ok": bool(hw), "maxed": maxed})
+                    u.ShowWindow(hw, 9 if maxed else 3)      # SW_RESTORE / SW_MAXIMIZE
+                    return self._json({"ok": True, "maxed": bool(u.IsZoomed(hw))})
+                # 拿不到 hwnd 时退回 pywebview（和最小化/关闭同一条路）
+                try:
+                    if getattr(w, "_wa2_maxed", False):
+                        w.restore(); w._wa2_maxed = False
+                    else:
+                        w.maximize(); w._wa2_maxed = True
+                    return self._json({"ok": True, "maxed": w._wa2_maxed})
+                except Exception as e:
+                    return self._json({"ok": False, "error": str(e)})
             elif action == "state":
                 u = _user32()
                 hw = _win_hwnd()
