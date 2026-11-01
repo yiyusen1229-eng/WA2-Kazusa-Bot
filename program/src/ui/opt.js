@@ -169,6 +169,7 @@
 
     function paint(idx) {
       var img = imgs[idx];
+      if (!img) { return; }   /* 控件被删但 sel 还有残留 key，直接跳过 */
       if (CT.sel[idx]) {
         img.src = DIR + "w" + W2(idx) + "_sel.png";
         img.classList.add("on");
@@ -313,6 +314,7 @@
 
     function paint(idx) {
       var img = imgs[idx];
+      if (!img) { return; }   /* 控件被删但 sel 还有残留 key，直接跳过 */
       if (CT2.sel[idx]) {
         img.src = CT2.dir + "w" + W2(idx) + "_sel.png";
         img.classList.add("on");
@@ -414,7 +416,8 @@
       fb.classList.add("on");
     }
 
-    for (var k2 in CT2.sel) paint(+k2);
+    for (var k3 in CT2.sel) { if (+k3 >= CT2.widgets.length) delete CT2.sel[k3]; }
+  for (var k2 in CT2.sel) paint(+k2);
     for (var si2 = 0; si2 < CT2.sliders.length; si2++) drawFill2(si2);
   }
 

@@ -11,7 +11,7 @@
 (function () {
   // 悬停/点击都算“可交互”的元素
   var INTERACTIVE =
-    ".uiExit,.mbBtn,.mbItem,.optTab,.optPagerBtn,#optPrev,#optNext," +
+    ".uiExit,.mbBtn,.mbItem,.optTab,.optPagerBtn,#optPrev,#optNext,.ctHot,.ctBar," +
     "#pagerPrev,#pagerNext,.pagerL,.pagerR,.saveTab,.pageTab,.saveSlot," +
     "[data-act],[data-pg],.cfgRow button,.o3btn,.dlgToast,.dlgConfirm button," +
     ".blogItem,.modelRow,.mgrBtn,button,select";
