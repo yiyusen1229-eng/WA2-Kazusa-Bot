@@ -124,7 +124,13 @@
       if (window.__dbg) window.__dbg("FULL", "togglefull");
       fetch("/api/window?action=togglefull", { cache: "no-store" })
         .then(function (r) { return r.json(); })
-        .then(function (d) { if (window.__dbg) window.__dbg("FULL", JSON.stringify(d).slice(0, 40)); })
+        .then(function (d) {
+          if (window.__dbg) window.__dbg("FULL", JSON.stringify(d).slice(0, 40));
+          /* OPTION 1 的「窗口模式 / 全屏模式」高亮要跟着变 */
+          if (d && typeof d.fullscreen === "boolean" && window.__ct1SetWinModeUI) {
+            window.__ct1SetWinModeUI(d.fullscreen);
+          }
+        })
         .catch(function () {});
     } catch (e) {}
   }

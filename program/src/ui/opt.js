@@ -1,8 +1,9 @@
 // 系统设置界面（重建中：目前只有顶栏和底栏）
 
-/* CT2（OPTION 2 的控件表）必须在 IIFE 之外可见：
-   文件末尾的 __ct2State / applyCt2 / 启动还原都读它，放在 IIFE 里会 ReferenceError。 */
-var CT2;
+/* CT / CT2（OPTION 1 / OPTION 2 的控件表）必须在 IIFE 之外可见：
+   文件末尾的 __ct1State / __ct2State / applyCt* / 启动还原都读它们，
+   放在 IIFE 里就是 ReferenceError（上一轮 OPTION 2 的坑）。 */
+var CT, CT2;
 
 (function () {
   function byId(id) { return document.getElementById(id); }
@@ -127,32 +128,41 @@ var CT2;
   }
 
   // ---------- OPTION 1 内容区：按控件贴图 ----------
-  var CT = {
+  CT = {
     W: 1024, H: 464,
     W_STAGE: 645.27, H_STAGE: 292.45,
+    /* 控件分组：
+         1 = 窗口/全屏（0 窗口模式 / 1 全屏模式）
+         2 = 文本显示速度（2 瞬间 / 3 高速 / 4 普通 / 5 顺滑）
+         4 = 画面特效（10/11，先不接功能）
+         0 = 左右箭头（12/13 是「窗口透明度（普通场景）」那一行的）
+         5 = 窗口 ON / OFF（14 开 / 15 关）
+       注意：控件图是按**索引**命名的（assets/ui/opt/ct/wNN_sel.png），
+       所以删行不能重新编号，只能把位置留空（null），否则图会张冠李戴。
+       6/7 = 文本快进模式、8/9 = 自动模式速度 —— 按用户要求删除；底图也裁掉了，
+       原「视觉设置」整段上移 74px，所以下面这些 y 都已经减过 74。 */
     widgets: [
       [458, 14, 252, 36, 1], [714, 14, 252, 36, 1],
       [458, 78, 124, 36, 2], [586, 78, 124, 36, 2],
       [714, 78, 124, 36, 2], [842, 78, 124, 36, 2],
-      [458, 118, 252, 36, 3], [714, 118, 252, 36, 3],
-      [482, 158, 52, 36, 0], [890, 158, 52, 36, 0],
-      [458, 222, 252, 36, 4], [714, 222, 252, 36, 4],
-      [482, 262, 52, 36, 0], [890, 262, 52, 36, 0],
-      [388, 272, 80, 26, 5], [388, 302, 80, 26, 5],
-      [482, 302, 52, 36, 0], [890, 302, 52, 36, 0],
-      [482, 342, 52, 36, 0], [890, 342, 52, 36, 0],
-      [482, 382, 52, 36, 0], [890, 382, 52, 36, 0]
+      null, null, null, null,
+      [458, 148, 252, 36, 4], [714, 148, 252, 36, 4],
+      [482, 188, 52, 36, 0], [890, 188, 52, 36, 0],
+      [388, 198, 80, 26, 5], [388, 228, 80, 26, 5],
+      [482, 228, 52, 36, 0], [890, 228, 52, 36, 0],
+      [482, 268, 52, 36, 0], [890, 268, 52, 36, 0],
+      [482, 308, 52, 36, 0], [890, 308, 52, 36, 0]
     ],
     sliders: [
-      { x: 543, y: 158, n: 21, pitch: 16, h: 26 },
-      { x: 543, y: 262, n: 21, pitch: 16, h: 26 },
-      { x: 543, y: 302, n: 21, pitch: 16, h: 26 },
-      { x: 543, y: 342, n: 21, pitch: 16, h: 26 },
-      { x: 543, y: 382, n: 21, pitch: 16, h: 26 }
+      { x: 543, y: 188, n: 21, pitch: 16, h: 26 },
+      { x: 543, y: 228, n: 21, pitch: 16, h: 26 },
+      { x: 543, y: 268, n: 21, pitch: 16, h: 26 },
+      { x: 543, y: 308, n: 21, pitch: 16, h: 26 }
     ],
-    sel: { 0: 1, 5: 1, 11: 1, 14: 1 },
-    slideVal: [11, 0, 0, 0, 0]
+    sel: { 0: 1, 4: 1, 11: 1, 14: 1 },
+    slideVal: [21, 0, 0, 0]
   };
+
 
   function bindContent() {
     if (window.__ctBound) return;
@@ -170,9 +180,10 @@ var CT2;
     var DIR = "assets/ui/opt/ct/";
     var W2 = function (i) { return (i < 10 ? "0" + i : "" + i); };
 
-    // 每个控件一张 img，按状态切图
+    // 每个控件一张 img，按状态切图（被删掉的行是 null，直接跳过）
     var imgs = [];
     CT.widgets.forEach(function (w, idx) {
+      if (!w) { imgs[idx] = null; return; }
       var img = document.createElement("img");
       img.className = "ctImg";
       img.style.left = (w[0] * sx) + "px";
@@ -197,19 +208,38 @@ var CT2;
       }
     }
 
+    /* 「窗口透明度（普通场景）」那一行的左右箭头（12/13）；其余三行按用户要求先不接 */
+    var CT_ARROWS = { 12: -1, 13: 1 };
+
     function clickWidget(idx) {
+      if (!CT.widgets[idx]) return;              // 被删掉的行
       var g = CT.widgets[idx][4];
-      if (g === 0) return;                       // 箭头不参与选中
-      if (CT.sel[idx]) { delete CT.sel[idx]; paint(idx); return; }
+      var d = CT_ARROWS[idx];
+      if (d) {
+        var s = CT.sliders[0];
+        CT.slideVal[0] = Math.max(1, Math.min(s.n, (CT.slideVal[0] || s.n) + d));
+        drawFill(0);
+        applyCt1();
+        return;
+      }
+      if (g === 0) return;                       // 其它箭头：暂不接
+      if (CT.sel[idx]) return;                   // 单选组：不允许再点一下变成"全都不选"
       for (var k in CT.sel) {
-        if (+k !== idx && CT.widgets[+k][4] === g) { delete CT.sel[k]; paint(+k); }
+        var wk = CT.widgets[+k];
+        if (+k !== idx && wk && wk[4] === g) { delete CT.sel[k]; paint(+k); }
       }
       CT.sel[idx] = 1;
       paint(idx);
+      applyCt1();
+      /* 窗口 / 全屏：点了就真的切窗口 */
+      if (idx === 0 || idx === 1) {
+        try { if (window.__setWinMode) window.__setWinMode(idx === 1 ? "full" : "window"); } catch (e) {}
+      }
     }
 
-    // 热区
+    // 热区（被删掉的行不建热区）
     CT.widgets.forEach(function (w, idx) {
+      if (!w) return;
       var d = document.createElement("div");
       d.className = "ctHot";
       d.style.left = (w[0] * sx) + "px";
@@ -274,6 +304,7 @@ var CT2;
         var n = Math.floor((ax - s2.x) / s2.pitch) + 1;
         CT.slideVal[si] = Math.max(1, Math.min(s2.n, n));
         drawFill(si);
+        if (si === 0) applyCt1();     /* 只有「普通场景窗口透明度」接了功能 */
       });
       box.appendChild(d);
     });
@@ -285,6 +316,12 @@ var CT2;
       fb.style.width = (n * 16 * sx) + "px";
       fb.classList.add("on");
     }
+
+    /* 全量重画（启动时按 prefs 还原后调用） */
+    window.__ct1RepaintAll = function () {
+      for (var i = 0; i < imgs.length; i++) paint(i);
+      for (var si = 0; si < CT.sliders.length; si++) drawFill(si);
+    };
 
     // 初始状态
     for (var k2 in CT.sel) paint(+k2);
@@ -921,3 +958,70 @@ if (document.readyState === "loading") {
   restoreCt2();
 }
 window.addEventListener("app:ready", restoreCt2);
+
+/* ---------- OPTION 1 的取值真正生效 ----------
+   控件分组见 CT 上方注释（索引沿用原图，删掉的行是 null）：
+     0=窗口模式 1=全屏模式 ｜ 2~5=文字速度（瞬间/高速/普通/顺滑）｜ 10/11=画面特效（未接功能）
+     12/13=窗口透明度（普通场景）左右箭头 ｜ 14=窗口ON 15=窗口OFF（互斥）
+   其余三条滑块（CG 场景 / 小说背景 / 指令图标）按用户要求先不接功能。
+*/
+function ct1Pct(i) {
+  var n = CT.slideVal[i] || 1;
+  return Math.round((n - 1) / 20 * 100);
+}
+window.__ct1State = function () {
+  var speed = CT.sel[2] ? 0 : CT.sel[3] ? 1 : CT.sel[4] ? 2 : CT.sel[5] ? 3 : 2;
+  return {
+    winMode: CT.sel[1] ? "full" : "window",
+    textSpeed: speed,
+    dialogOn: !!CT.sel[14],
+    winAlpha: ct1Pct(0)
+  };
+};
+function applyCt1() {
+  var st = window.__ct1State();
+  try {
+    if (window.App && window.App.setPref) {
+      window.App.setPref("textSpeed", st.textSpeed);
+      window.App.setPref("winVisible", st.dialogOn);
+      window.App.setPref("winAlpha", st.winAlpha);
+      window.App.setPref("winMode", st.winMode);
+    }
+  } catch (e) {}
+  try { if (window.__applyUiPrefs) window.__applyUiPrefs(); } catch (e) {}
+}
+window.__applyCt1 = applyCt1;
+
+/* 外部同步「窗口模式 / 全屏模式」的高亮：
+   标题栏菜单的全屏开关、以及后端全屏失败退回最大化时都会调到这里。 */
+window.__ct1SetWinModeUI = function (full) {
+  [0, 1].forEach(function (i) { delete CT.sel[i]; });
+  CT.sel[full ? 1 : 0] = 1;
+  if (window.__ctBound && window.__ct1RepaintAll) window.__ct1RepaintAll();
+  try { if (window.App && window.App.setPref) window.App.setPref("winMode", full ? "full" : "window"); } catch (e) {}
+};
+
+/* 启动时按已存的 prefs 还原 OPTION 1（同样要等 App 就绪，所以跑两次） */
+function restoreCt1() {
+  try {
+    var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+    var sp = (typeof P.textSpeed === "number") ? Math.max(0, Math.min(3, P.textSpeed | 0)) : 2;
+    [2, 3, 4, 5].forEach(function (i) { delete CT.sel[i]; });
+    CT.sel[2 + sp] = 1;
+    [0, 1].forEach(function (i) { delete CT.sel[i]; });
+    CT.sel[P.winMode === "full" ? 1 : 0] = 1;
+    [14, 15].forEach(function (i) { delete CT.sel[i]; });
+    var on = (P.winVisible === undefined) ? true : !!P.winVisible;
+    CT.sel[on ? 14 : 15] = 1;
+    var a = (typeof P.winAlpha === "number") ? P.winAlpha : 100;
+    CT.slideVal[0] = Math.max(1, Math.min(21, Math.round(a / 100 * 20) + 1));
+    if (window.__ctBound && window.__ct1RepaintAll) window.__ct1RepaintAll();
+    if (window.App && window.App.setPref) window.__applyCt1();
+  } catch (e) {}
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", restoreCt1);
+} else {
+  restoreCt1();
+}
+window.addEventListener("app:ready", restoreCt1);

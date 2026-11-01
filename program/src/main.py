@@ -957,17 +957,37 @@ class Handler(SimpleHTTPRequestHandler):
                 # “铺满屏幕但点不动”的透明层，所以改走 pywebview 自己的全屏开关
                 try:
                     w.toggle_fullscreen()
-                    return self._json({"ok": True})
+                    w._wa2_full = not bool(getattr(w, "_wa2_full", False))
+                    return self._json({"ok": True, "fullscreen": w._wa2_full})
                 except Exception as e:
                     try:
                         w.maximize()
                         return self._json({"ok": True, "fallback": "maximize"})
                     except Exception:
                         return self._json({"ok": False, "error": str(e)})
+            elif action == "fullscreen":
+                # OPTION 1 的「窗口模式 / 全屏模式」：按目标状态切，不是盲目 toggle。
+                want = qs(q, ("on",), "1")
+                target = (want != "0")
+                try:
+                    cur = bool(getattr(w, "_wa2_full", False))
+                    if target != cur:
+                        w.toggle_fullscreen()
+                    w._wa2_full = target
+                    return self._json({"ok": True, "fullscreen": target})
+                except Exception as e:
+                    # 全屏 API 不可用时退回最大化，至少不是"点了没反应"
+                    try:
+                        w.maximize()
+                        w._wa2_full = target
+                        return self._json({"ok": True, "fullscreen": target, "fallback": "maximize"})
+                    except Exception:
+                        return self._json({"ok": False, "error": str(e)})
             elif action == "state":
                 u = _user32()
                 hw = _win_hwnd()
-                return self._json({"ok": bool(hw), "maxed": bool(u.IsZoomed(hw)) if hw else False})
+                return self._json({"ok": bool(hw), "maxed": bool(u.IsZoomed(hw)) if hw else False,
+                                   "fullscreen": bool(getattr(w, "_wa2_full", False))})
             elif action == "resize":
                 try:
                     nw = int(q.get("w", ["0"])[0])
