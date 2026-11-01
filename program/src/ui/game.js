@@ -176,7 +176,8 @@ function playSE(kind) {
                  : (kind === "click" ? P.seClick : (kind === "cancel" ? P.seCancel : P.seHover));
   const item = C.se && C.se[key || 0];
   if (!item) return;
-  const vol = (P.seVol === undefined ? 35 : P.seVol) / 100;
+  const master = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+  const vol = ((P.seVol === undefined ? 35 : P.seVol) / 100) * master;
   let a = seCache[item.file];
   if (!a) { a = new Audio(SE_BASE + item.file); a.preload = "auto"; seCache[item.file] = a; }
   a.volume = vol;
@@ -1316,3 +1317,16 @@ window.fadeSwap = function (el, fn, ms) {
   window.addEventListener("load", attach);
   setInterval(attach, 1500);
 })();
+
+/* ---------- 音量总控：BGM / 语音 / 音效都乘上主音量 ---------- */
+window.__applyVolumes = function () {
+  var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+  var m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+  var bgm = ((P.volBgm === undefined ? 70 : P.volBgm) / 100) * m;
+  var voice = ((P.volVoice === undefined ? 90 : P.volVoice) / 100) * m;
+  try { if (window.__bgmAudio) window.__bgmAudio.volume = bgm; } catch (e) {}
+  try { if (window.__voiceAudio) window.__voiceAudio.volume = voice; } catch (e) {}
+};
+document.addEventListener("DOMContentLoaded", function () {
+  try { window.__applyVolumes(); } catch (e) {}
+});

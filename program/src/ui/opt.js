@@ -279,7 +279,7 @@
     W: 1024, H: 464,
     W_STAGE: 645.27, H_STAGE: 292.45,
     dir: "assets/ui/opt/ct2/",
-    widgets: [[458,14,252,36,1],[714,14,252,36,1],[458,54,164,36,2],[630,54,164,36,2],[802,54,164,36,2],[482,118,52,36,0],[890,118,52,36,0],[390,119,80,14,3],[390,137,80,14,3],[482,158,52,36,0],[890,158,52,36,0],[390,159,80,14,4],[390,177,80,14,4],[482,198,52,36,0],[890,198,52,36,0],[946,198,52,36,0],[390,199,80,14,5],[390,217,80,14,5],[482,238,52,36,0],[890,238,52,36,0],[946,238,52,36,0],[390,239,80,14,6],[390,257,80,14,6],[458,302,252,36,7],[714,302,252,36,7],[458,342,252,36,8],[714,342,252,36,8]],
+    widgets: [[458,14,252,36,1],[714,14,252,36,1],[458,54,164,36,2],[630,54,164,36,2],[802,54,164,36,2],[482,118,52,36,0],[890,118,52,36,0],[390,119,80,14,3],[390,137,80,14,3],[482,158,52,36,0],[890,158,52,36,0],[390,159,80,14,4],[390,177,80,14,4],[482,198,52,36,0],[890,198,52,36,0],[946,198,52,36,0],[390,199,80,14,5],[390,217,80,14,5],[482,238,52,36,0],[890,238,52,36,0],[946,238,52,36,0],[390,239,80,14,6],[390,257,80,14,6],[458,302,252,36,7],[714,302,252,36,7],],
     sliders: [{x:543,y:119,n:21,pitch:16,h:26},{x:543,y:159,n:21,pitch:16,h:26},{x:543,y:199,n:21,pitch:16,h:26},{x:543,y:239,n:21,pitch:16,h:26}],
     sel: { 0: 1, 2: 1, 7: 1, 11: 1, 16: 1, 21: 1, 24: 1, 26: 1 },
     slideVal: [13, 13, 13, 21]
@@ -327,7 +327,7 @@
     function clickWidget(idx) {
       var g = CT2.widgets[idx][4];
       if (g === 0) return;
-      if (CT2.sel[idx]) { delete CT2.sel[idx]; paint(idx); return; }
+      if (CT2.sel[idx]) { delete CT2.sel[idx]; paint(idx); applyCt2(); return; }
       for (var k in CT2.sel) {
         if (+k !== idx && CT2.widgets[+k][4] === g) { delete CT2.sel[k]; paint(+k); }
       }
@@ -401,6 +401,7 @@
         var n = Math.floor((ax - s2.x) / s2.pitch) + 1;
         CT2.slideVal[si] = Math.max(1, Math.min(s2.n, n));
         drawFill2(si);
+        applyCt2();
       });
       box.appendChild(d);
     });
@@ -758,3 +759,55 @@
     if (e.key === "Escape" && window.__optOpen) close();
   });
 })();
+
+/* ---------- OPTION 2 的取值真正生效 ----------
+   sliders: 0=全体 1=BGM 2=SE 3=VOICE（1~21 格 → 0~100%）
+   widgets 分组：1=是否确认 2=右键功能（3 选 1） 3~6 未用 7=翻页中断 8=已删
+*/
+function ct2Pct(i) {
+  var n = CT2.slideVal[i] || 1;
+  return Math.round((n - 1) / 20 * 100);
+}
+window.__ct2State = function () {
+  return {
+    confirm: !!CT2.sel[0],
+    rightClick: CT2.sel[2] ? "hide" : (CT2.sel[7] ? "options" : "save"),
+    volMaster: ct2Pct(0),
+    volBgm: ct2Pct(1),
+    volSe: ct2Pct(2),
+    volVoice: ct2Pct(3)
+  };
+};
+function applyCt2() {
+  var st = window.__ct2State();
+  try {
+    if (window.App && window.App.setPref) {
+      window.App.setPref("confirmAsk", st.confirm);
+      window.App.setPref("rightClick", st.rightClick);
+      window.App.setPref("volMaster", st.volMaster);
+      window.App.setPref("volBgm", st.volBgm);
+      window.App.setPref("seVol", st.volSe);
+      window.App.setPref("volVoice", st.volVoice);
+    }
+  } catch (e) {}
+  try { if (window.__applyVolumes) window.__applyVolumes(); } catch (e) {}
+}
+window.__applyCt2 = applyCt2;
+
+/* 启动时按已存的 prefs 还原滑块与选项 */
+document.addEventListener("DOMContentLoaded", function () {
+  try {
+    var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+    if (typeof P.volMaster === "number") {
+      var vals = [P.volMaster, P.volBgm, P.seVol, P.volVoice];
+      vals.forEach(function (v, i) {
+        CT2.slideVal[i] = Math.max(1, Math.min(21, Math.round(v / 100 * 20) + 1));
+      });
+    }
+    if (P.confirmAsk) CT2.sel[0] = 1; else delete CT2.sel[0];
+    ["hide", "options", "save"].forEach(function (m, i) { delete CT2.sel[[2, 7, 24][i]]; });
+    if (P.rightClick === "hide") CT2.sel[2] = 1;
+    else if (P.rightClick === "options") CT2.sel[7] = 1;
+    else CT2.sel[24] = 1;
+  } catch (e) {}
+});
