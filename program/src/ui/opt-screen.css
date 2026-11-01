@@ -206,18 +206,10 @@
 }
 
 /* 翻页条文字 */
-.optPagerTxt {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: 40px; text-align: center; pointer-events: none;
-  font-size: 8px; color: #cfeeff;
-  text-shadow: 0 1px 2px rgba(0,10,24,.9);
-}
-.optPagerTxt em {
-  display: block; font-style: normal; margin-bottom: 4px;
-  font-size: 9px; color: #e8f8ff;
-}
-.optPagerTxt span, .optPagerTxt b { margin: 0 16px; font-weight: normal; }
-.optPagerTxt b { letter-spacing: 1px; }
+
+
+
+
 
 /* 底栏两侧文字(用伪元素, 保证出现) */
 #optScreen .uiFoot::before {
@@ -234,7 +226,7 @@
 }
 /* 翻页条文字, 替换原来跑偏的 OPTION 1 */
 #optScreen .pagerLabel { display: none !important; }
-#optScreen .uiFoot ~ .pagerTxt { display: none; }
+
 #optScreen::after {
   content: "変更游戏的环境设置";
   position: absolute; left: 50%; transform: translateX(-50%);
@@ -256,69 +248,38 @@
   width: 330px !important; height: 46px !important;
 }
 .optPager { display: none !important; }
-.pgPrev, .pgNext {
-  position: absolute; bottom: 46px; width: 42px; height: 40px;
-  background-size: 100% 100%; cursor: pointer;
-}
-.pgPrev { left: calc(50% - 150px); background-image: url("assets/ui/pg_prev.png"); }
-.pgNext { left: calc(50% + 108px); background-image: url("assets/ui/pg_next.png"); }
-.pgText {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: 46px; width: 220px; height: 40px; pointer-events: none;
-  background: url("assets/ui/pg_text.png") 0 0 / 100% 100% no-repeat;
-}
-.optPagerHit { display: none; }
+
+
+
+
+
 
 /* 翻页条: 直接用完整原图 sys_03020, 不再拆 */
 #optScreen::after { content: none !important; }
-.pgPrev, .pgNext, .pgText { display: none !important; }
+
 .optPager {
   display: block !important;
   position: absolute; left: 50%; transform: translateX(-50%);
   bottom: 40px; width: 300px; height: 89px;
   pointer-events: none;
 }
-.optPagerHit { display: block !important; position: absolute; bottom: 52px; width: 50px; height: 70px; cursor: pointer; }
-.optPagerHit.prev { left: calc(50% - 150px); }
-.optPagerHit.next { left: calc(50% + 100px); }
+
+
+
 
 /* 翻页条: 用切好的三件(箭头x2 + 文字) */
 .optPager { display: none !important; }
-.pgPrev, .pgNext, .pgText { display: block !important; }
-.pgPrev {
-  position: absolute; bottom: 44px; left: calc(50% - 168px);
-  width: 40px; height: 38px; cursor: pointer;
-  background: url("assets/ui/pg_prev.png") 0 0 / 100% 100% no-repeat;
-}
-.pgNext {
-  position: absolute; bottom: 44px; left: calc(50% + 128px);
-  width: 40px; height: 38px; cursor: pointer;
-  background: url("assets/ui/pg_next.png") 0 0 / 100% 100% no-repeat;
-}
-.pgText {
-  position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
-  width: 250px; height: 38px; pointer-events: none;
-  background: url("assets/ui/pg_text.png") 0 0 / 100% 100% no-repeat;
-}
-.optPagerHit { display: none !important; }
+
+
+
+
+
 
 /* 翻页条最终: 原图三件, 按 sprite 精确切 */
-.pgPrev, .pgNext, .pgText { display: block !important; }
-.pgPrev {
-  position:absolute; bottom: 46px; left: calc(50% - 145px);
-  width: 34px; height: 44px; cursor:pointer;
-  background: url("assets/ui/pg_prev.png") 0 0 / 100% 100% no-repeat;
-}
-.pgNext {
-  position:absolute; bottom: 46px; left: calc(50% + 111px);
-  width: 34px; height: 44px; cursor:pointer;
-  background: url("assets/ui/pg_next.png") 0 0 / 100% 100% no-repeat;
-}
-.pgText {
-  position:absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
-  width: 230px; height: 48px; pointer-events:none;
-  background: url("assets/ui/pg_text.png") 0 0 / 100% 100% no-repeat;
-}
+
+
+
+
 
 /* 标签页: 尺寸对齐游戏 */
 .optTabs { left: 430px !important; top: 44px !important; width: 340px !important; height: 42px !important; }
@@ -326,24 +287,17 @@
 .optPanel .sbar { gap: 2px !important; }
 .optPanel .sbar i { border-width: 1px !important; }
 /* 翻页文字块: 恢复素材比例 288:119 */
-.pgText { width: 214px !important; height: 88px !important; bottom: 40px !important; }
-.pgPrev, .pgNext { bottom: 58px !important; height: 52px !important; width: 38px !important; }
+
+
 /* 底栏左侧 BGM 名 */
 .optFootL { font-size: 9px !important; bottom: 8px !important; }
 
 
 /* 训练图表: 坐标轴 + 预览区 */
-.chartBox { position: relative; margin-top: 6px; }
-.chartBox canvas { display: block; width: 100%; height: 130px; }
-.axisY {
-  position: absolute; left: 2px; top: -2px;
-  font-size: 6.5px; color: rgba(150,220,250,.65);
-  letter-spacing: .5px;
-}
-.axisX {
-  position: absolute; right: 4px; bottom: -2px;
-  font-size: 6.5px; color: rgba(150,220,250,.65);
-}
+
+
+
+
 .preview {
   margin-top: 8px; padding: 7px 9px;
   border: 1px solid rgba(110,200,255,.22);
@@ -351,24 +305,11 @@
   background: rgba(4,20,34,.55);
   font-size: 7.2px; line-height: 1.55; color: #cfeeff;
 }
-.pvH {
-  font-size: 7.6px; color: #8fe0ff; letter-spacing: .6px;
-  margin-bottom: 4px;
-}
-.pvRow { display: flex; gap: 6px; margin: 3px 0; }
-.pvRow b {
-  flex: 0 0 auto; font-weight: normal;
-  color: #7fd4ff; min-width: 24px;
-}
-.pvRow span {
-  flex: 1 1 auto; color: #e6f7ff;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.pvMeta {
-  margin-top: 4px; font-size: 6.8px;
-  color: rgba(150,220,250,.7);
-}
+
+
+
+
+
 
 /* 左栏两张卡: 保持自然高度, 不互相挤压 */
 .trCol.left { overflow-y: auto; }
@@ -392,19 +333,11 @@
 .trCol.left { justify-content: stretch; }
 .trCol.left .trCard { flex: 1 1 0 !important; min-height: 0; overflow: hidden; }
 /* 图表加高, 填满卡片 */
-.chartBox { flex: 1 1 auto; min-height: 190px; display: flex; flex-direction: column; }
-.chartBox canvas { flex: 1 1 auto; height: 100% !important; min-height: 170px; }
+
+
 /* 坐标轴标注: 放大 + 移到画布外侧 */
-.axisY {
-  position: absolute; left: -14px; top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-  font-size: 8px !important; color: rgba(160,225,250,.85) !important;
-  letter-spacing: 1px;
-}
-.axisX {
-  position: absolute; right: 2px; bottom: -13px;
-  font-size: 8px !important; color: rgba(160,225,250,.85) !important;
-}
+
+
 /* 按钮禁用态 */
 .trBtn.disabled { opacity: .42; pointer-events: none; filter: grayscale(.5); }
 /* 题头更保险: 额外顶部留白 */

@@ -85,17 +85,11 @@
 .slot .d2 { font-size:7px; color:#8fd0ef; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .slot.empty .d1 { color:#78aec8; }
 
-.qsaveBar {
-  position:absolute; left:12px; bottom:26px; width:300px; height:34px;
-  display:flex; align-items:center; gap:5px;
-  background:linear-gradient(90deg, rgba(20,95,140,.6), rgba(10,55,90,.3));
-  border:1px solid rgba(120,205,250,.45); border-radius:2px;
-  padding:3px 8px; cursor:pointer;
-}
-.qsaveBar .lbl { font-size:7.5px; color:#9fd8f5; }
-.qsaveBar .thumb { flex:0 0 52px; height:24px; background:rgba(4,30,52,.9); overflow:hidden; }
-.qsaveBar .thumb img { width:100%; height:100%; object-fit:cover; }
-.qsaveBar .txt { font-size:7.5px; color:#d8f4ff; }
+
+
+
+
+
 
 .pagerBtn {
   position:absolute; bottom:30px; width:34px; height:26px; cursor:pointer;
@@ -144,52 +138,36 @@
   pointer-events:none;
   filter:drop-shadow(0 1px 3px rgba(0,15,35,.85));
 }
-.trCol { display:flex; flex-direction:column; gap:5px; }
-.trCol.left { flex:0 0 246px; }
-.trCol.right { flex:1 1 auto; }
 
-.trCard {
-  border:6px solid transparent;
-  border-image:url("assets/ui/frame_clean.png") 12 fill stretch;
-  background:rgba(4,26,46,.5);
-  padding:0 5px 4px 5px; overflow:hidden;
-}
-.trCard.grow { flex:1 1 auto; display:flex; flex-direction:column; }
-.trCard.logCard { flex:0 0 96px; display:flex; flex-direction:column; }
-.trH {
-  margin-top:-2px;
-  font-size:8px; letter-spacing:2px; color:#8fe4ff;
-  padding-bottom:3px; margin-bottom:3px;
-  border-bottom:1px solid rgba(110,205,250,.22);
-}
-.trH2 { font-size:7px; color:#6f9ab5; margin:4px 0 2px; letter-spacing:1px; }
+
+
+
+
+
+
+
+
 
 .kv { display:flex; justify-content:space-between; font-size:7.5px; line-height:1.62; color:#a9cde4; }
 .kv b { color:#eaf9ff; font-weight:500; }
 
-.stat4 { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:4px; }
-.stat4 .box {
-  background:rgba(2,20,38,.65); border:1px solid rgba(110,205,250,.2);
-  border-radius:2px; padding:3px 5px;
-}
-.stat4 .lbl { font-size:6.5px; color:#6f9ab5; letter-spacing:1px; }
-.stat4 .val { font-size:11px; color:#eaf9ff; font-family: inherit !important; line-height:1.25; }
-.stat4 .val small { font-size:7px; color:#7fa8c4; }
 
-.barwrap {
-  height:6px; background:rgba(2,20,38,.9); border:1px solid rgba(110,205,250,.22);
-  border-radius:3px; overflow:hidden; margin:2px 0 2px;
-}
+
+
+
+
+
+
 .bar { height:100%; width:0%; background:linear-gradient(90deg,#1b6fa8,#4fc3ff);
        box-shadow:0 0 8px rgba(80,190,255,.6); transition:width .4s; }
-.pinfo { display:flex; justify-content:space-between; font-size:6.5px; color:#7fa8c4; }
+
 
 #chart { width:100%; height:72px; display:block; margin:3px 0 2px; }
-.ckptRow { font-size:6.5px; color:#7fa8c4; white-space:nowrap; overflow:hidden; }
-.ckptRow span { color:#bfe6ff; }
+
+
 .state { font-size:7.5px; letter-spacing:1px; padding:2px 0 0; }
 .state.run { color:#7dffb0; }
-.state.idle { color:#7fa8c4; }
+
 .state.warn { color:#ffd479; }
 
 .log {
@@ -202,24 +180,12 @@
 .log::-webkit-scrollbar-thumb { background:rgba(120,210,255,.45); border-radius:2px; }
 .log div { white-space:pre-wrap; }
 
-.route { display:flex; gap:4px; flex-wrap:wrap; }
-.route span {
-  font-size:6.5px; padding:1px 5px; border-radius:2px;
-  background:rgba(30,90,140,.55); color:#bfe6ff;
-}
 
-.trBtns {
-  position:absolute; right:18px; bottom:27px; display:flex; gap:8px;
-}
-.trBtn {
-  padding:3px 18px; cursor:pointer; font-size:9px; letter-spacing:2px;
-  color:#eafcff; text-align:center; line-height:13px;
-  border:5px solid transparent;
-  border-image:url("assets/ui/frame_clean.png") 12 fill stretch;
-  background:rgba(8,48,80,.55);
-  text-shadow:0 1px 2px rgba(0,12,26,.9);
-}
-.trBtn:hover { filter:brightness(1.35); }
+
+
+
+
+
 
 .trX {
   position:absolute; right:8px; top:28px; width:16px; height:16px;
@@ -229,8 +195,8 @@
 }
 .trX:hover { background:rgba(40,120,170,.85); color:#fff; }
 
-.trEmpty { text-align:center; color:#9fd8f5; padding:20px 0; font-size:9px; }
-.trEmpty span { font-size:7px; color:#6fa6c4; }
+
+
 
 
 .uiLogo {
