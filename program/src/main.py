@@ -1445,6 +1445,11 @@ def serve_only(prefer_port=None):
 
 def main():
     _clear_text_cache()
+    try:
+        import tts_client as _tc
+        _tc.clear_tts_cache()
+    except Exception:
+        pass
     os.environ.setdefault("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
                       "--autoplay-policy=no-user-gesture-required")
     import webview

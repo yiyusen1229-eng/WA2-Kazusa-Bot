@@ -298,10 +298,39 @@ def translate_via_service(text, to="ja", timeout=30):
         return ""
 
 
+_TTS_CACHE_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                "..", "cache", "tts"))
+
+
+def _tts_cache_path(text, lang, emo):
+    """语速/音色等参数都固定的前提下，文本+语种+情绪唯一决定一段音频"""
+    import hashlib
+    key = "%s|%s|%s" % (text, lang, emo)
+    h = hashlib.md5(key.encode("utf-8")).hexdigest()[:20]
+    return os.path.join(_TTS_CACHE_DIR, h + ".wav")
+
+
+def clear_tts_cache():
+    """启动时清空语音缓存（与字模缓存同策略：本次运行有效，退出即弃）"""
+    try:
+        import shutil
+        if os.path.isdir(_TTS_CACHE_DIR):
+            shutil.rmtree(_TTS_CACHE_DIR, ignore_errors=True)
+    except Exception:
+        pass
+
+
 def synthesize(text, lang="zh", timeout=60, emo="neutral"):
     """返回 wav 字节；失败返回 None"""
     if not _ready:
         return None
+    try:
+        _cp = _tts_cache_path(text, lang, emo)
+        if os.path.exists(_cp):
+            with open(_cp, 'rb') as _f:
+                return _f.read()
+    except Exception:
+        _cp = None
     # 按情绪随机挑参考音频；参数也跟着情绪走
     ref_path, ref_text = pick_ref(emo)
     if not ref_path:
@@ -327,7 +356,15 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
     })
     try:
         # 第一次合成要加载模型，给足时间
-        return _post("/tts?" + q, timeout=timeout)
+        _data = _post("/tts?" + q, timeout=timeout)
+        try:
+            if _data and _cp:
+                os.makedirs(os.path.dirname(_cp), exist_ok=True)
+                with open(_cp, 'wb') as _f:
+                    _f.write(_data)
+        except Exception:
+            pass
+        return _data
     except Exception as e:
         global _last_err
         _last_err = "合成失败: %s" % e
