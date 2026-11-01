@@ -277,4 +277,8 @@
 .uiExit:active img.s3 { opacity: 1; }
 
 /* 字模图片：按 18px 行高显示，保持原始比例，不被容器拉伸 */
-#saveScreen .dlgToast .txt img { height: 17.1px !important; width: auto !important; display: inline-block; vertical-align: middle; }
+#saveScreen .dlgToast .txt img { height: 15.5px !important; width: auto !important; display: inline-block; vertical-align: middle; }
+
+/* 确认框字模：与 15px 正文等高 */
+#saveScreen .dlgConfirm .txt img { height: 15.5px !important; width: auto !important; display: inline-block; vertical-align: middle; }
+#saveScreen .dlgConfirm .t2 button img { height: 12.5px !important; width: auto !important; }

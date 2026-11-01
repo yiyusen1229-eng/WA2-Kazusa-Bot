@@ -236,9 +236,20 @@ window.__renderSaveSlots = function (page) {
     var d = document.getElementById("dlgConfirm");
     if (!d) return;
     d.classList.add("on");
-    if (window.__uiTextScan) {
-      window.__uiTextScan(document.getElementById("dlgConfirmT1"));
-      window.__uiTextScan(document.getElementById("dlgConfirmT2"));
+    /* 覆盖确认文案用预先烤好的字模，避免每次弹出都渲染一遍 */
+    var t1 = document.getElementById("dlgConfirmT1");
+    if (t1 && t1.dataset.baked !== "save_over") {
+      t1.dataset.baked = "save_over";
+      t1.innerHTML = '<img src="assets/ui/text/save_over.png" alt="">';
+    }
+    var t2 = document.getElementById("dlgConfirmT2");
+    if (t2) {
+      var bs = t2.querySelectorAll("button");
+      for (var i = 0; i < bs.length; i++) {
+        if (bs[i].dataset.baked) continue;
+        bs[i].dataset.baked = "1";
+        bs[i].innerHTML = '<img src="assets/ui/text/' + (i === 0 ? "save_yes" : "save_no") + '.png" alt="">';
+      }
     }
   }
   function closeConfirm() {
