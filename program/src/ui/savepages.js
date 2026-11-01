@@ -166,14 +166,30 @@ window.__renderSaveSlots = function (page) {
 
   /* 「存档已保存」提示：sys_00110 的框 + /api/text 渲染的字，1.4 秒后自己消失 */
   var toastTimer = null;
+  /* 固定提示文案 → 预先烤好的字模，避免弹一次渲染一次 */
+  var BAKED_TOAST = {
+    "存档已保存": "save_done",
+    "这个槽位没有存档": "load_empty",
+    "对话不足两条不能存档": "save_short"
+  };
+
   function showToast(msg) {
     var t = document.getElementById("dlgToast");
     if (!t) return;
     t.classList.add("on");
     var txt = document.getElementById("dlgToastTxt");
     if (txt) {
-      txt.textContent = msg;
-      if (window.__uiTextScan) window.__uiTextScan(txt);
+      var bk = BAKED_TOAST[msg];
+      if (bk) {
+        if (txt.dataset.baked !== bk) {
+          txt.dataset.baked = bk;
+          txt.innerHTML = '<img src="assets/ui/text/' + bk + '.png" alt="">';
+        }
+      } else {
+        delete txt.dataset.baked;
+        txt.textContent = msg;
+        if (window.__uiTextScan) window.__uiTextScan(txt);
+      }
     }
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { t.classList.remove("on"); }, 1000);

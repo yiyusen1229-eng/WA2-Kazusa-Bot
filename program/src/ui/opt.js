@@ -456,12 +456,23 @@
     xhr.send(body ? JSON.stringify(body) : null);
   }
 
+  /* 按钮标签优先用「预先烤好的字模」（assets/ui/text/*.png），
+     没有对应图片时才退回 /api/text 实时渲染。
+     好处：点击切换状态时图片已存在，不会出现一瞬间的空字。 */
+  var BAKED = {
+    "切换模型": "mgr_switch",
+    "连接": "mgr_connect",
+    "已连接": "mgr_ok",
+    "连接失败": "mgr_fail"
+  };
+
   function setConnLabel(btn, text) {
     var old = btn.querySelector("img");
     if (old) old.remove();
     if (!text) return;
     var im = new Image();
-    im.src = txtUrl(text);
+    var key = BAKED[text];
+    im.src = key ? ("assets/ui/text/" + key + ".png") : txtUrl(text);
     btn.appendChild(im);
   }
 
