@@ -175,6 +175,14 @@ window.__renderSaveSlots = function (page) {
     "这个槽位读不出来": "slot_bad"
   };
 
+  /* 把元素内容换成烤好的字模图片；key 为空则不动 */
+  function bakeTxt(el, key) {
+    if (!el || !key) return;
+    if (el.dataset.baked === key) return;
+    el.dataset.baked = key;
+    el.innerHTML = '<img src="assets/ui/text/' + key + '.png" alt="">';
+  }
+
   function showToast(msg) {
     var t = document.getElementById("dlgToast");
     if (!t) return;
@@ -236,22 +244,13 @@ window.__renderSaveSlots = function (page) {
     var d = document.getElementById("dlgConfirm");
     if (!d) return;
     d.classList.add("on");
-    /* 覆盖确认文案用预先烤好的字模，避免每次弹出都渲染一遍 */
-    var t1 = document.getElementById("dlgConfirmT1");
-    if (t1 && t1.dataset.baked !== "save_over") {
-      t1.dataset.baked = "save_over";
-      t1.innerHTML = '<img src="assets/ui/text/save_over.png" alt="">';
-    }
-    var t2 = document.getElementById("dlgConfirmT2");
-    if (t2) {
-      var bs = t2.querySelectorAll("button");
-      for (var i = 0; i < bs.length; i++) {
-        if (bs[i].dataset.baked) continue;
-        bs[i].dataset.baked = "1";
-        bs[i].innerHTML = '<img src="assets/ui/text/' + (i === 0 ? "save_yes" : "save_no") + '.png" alt="">';
-      }
-    }
+    /* 两行文案都用预先烤好的字模（分别对应 index.html 里的两行） */
+    bakeTxt(document.getElementById("dlgConfirmT1"), "confirm_t1");
+    bakeTxt(document.getElementById("dlgConfirmT2"), "confirm_t2");
+    /* 是/否 按钮本身是三态图，不改；文字由 uitext 渲染 */
+    try { if (window.__uiTextScan) { window.__uiTextScan(document.getElementById("dlgYes")); window.__uiTextScan(document.getElementById("dlgNo")); } } catch (e) {}
   }
+
   function closeConfirm() {
     var d = document.getElementById("dlgConfirm");
     if (d) d.classList.remove("on");
