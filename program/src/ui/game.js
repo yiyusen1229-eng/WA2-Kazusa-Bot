@@ -1346,3 +1346,20 @@ window.__applyVolumes = function () {
 document.addEventListener("DOMContentLoaded", function () {
   try { window.__applyVolumes(); } catch (e) {}
 });
+
+/* 一组元素做淡出→改动→淡入（切标签页/切存档页时用，和实机一致约 0.2s） */
+window.fadeEls = function (els, fn, ms) {
+  if (!els || !els.length) { try { fn && fn(); } catch (e) {} return; }
+  ms = ms || 200;
+  var half = ms / 2;
+  Array.prototype.forEach.call(els, function (el) {
+    el.style.transition = "opacity " + half + "ms ease";
+    el.style.opacity = "0";
+  });
+  setTimeout(function () {
+    try { fn && fn(); } catch (e) {}
+    Array.prototype.forEach.call(els, function (el) {
+      el.style.opacity = "1";
+    });
+  }, half);
+};

@@ -83,10 +83,18 @@
         el.addEventListener("click", function (e) {
           e.stopPropagation();
           if (n === current) return;
+          var cur = document.getElementById("optContent" + (current === 1 ? "" : current));
+          var nxt = document.getElementById("optContent" + (n === 1 ? "" : n));
           var run = function () { current = n; refreshTabs(); };
-          var target = document.getElementById("optContent" + (n === 1 ? "" : n));
-          if (window.fadeSwap && target) window.fadeSwap(target, run);
-          else run();
+          if (window.fadeEls && cur && nxt) {
+            window.fadeEls([cur], function () {
+              run();
+              nxt.style.transition = "opacity 100ms ease";
+              nxt.style.opacity = "0";
+              nxt.style.display = "block";
+              requestAnimationFrame(function () { nxt.style.opacity = "1"; });
+            }, 200);
+          } else run();
         });
       })(i);
     }
