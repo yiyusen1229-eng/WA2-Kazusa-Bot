@@ -119,14 +119,20 @@
 
   function fetchList() {
     return fetch("/api/session/list", { cache: "no-store" })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        try { if (window.__dbg) window.__dbg("LIST", "HTTP " + r.status); } catch (e) {}
+        return r.json();
+      })
       .then(function (d) {
         state = {};
         ((d && d.slots) || []).forEach(function (x) {
           if (x && x.slot !== undefined) state[String(x.slot)] = x;
         });
       })
-      .catch(function () { state = {}; });
+      .catch(function (err) {
+        state = {};
+        try { if (window.__dbg) window.__dbg("LIST!", String(err).slice(0, 46)); } catch (e) {}
+      });
   }
 
   /* 翻页 / 打开存档界面时调用：先用旧数据占位，再按服务器结果重画一次 */
