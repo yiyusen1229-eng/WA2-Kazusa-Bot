@@ -73,8 +73,11 @@
         });
         el.addEventListener("click", function (e) {
           e.stopPropagation();
-          current = n;
-          refreshTabs();
+          if (n === current) return;
+          var run = function () { current = n; refreshTabs(); };
+          var target = document.getElementById("optContent" + (n === 1 ? "" : n));
+          if (window.fadeSwap && target) window.fadeSwap(target, run);
+          else run();
         });
       })(i);
     }

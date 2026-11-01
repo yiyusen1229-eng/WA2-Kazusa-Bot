@@ -48,6 +48,6 @@
   document.addEventListener("click", function (e) {
     var el = hit(e, INTERACTIVE);
     if (!el) return;
-    se(el.closest(PAGE) ? "page" : "click");
+    se(el.closest(".uiExit") ? "exit" : (el.closest(PAGE) ? "page" : "click"));
   }, true);
 })();

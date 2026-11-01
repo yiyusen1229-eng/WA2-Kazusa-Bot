@@ -171,7 +171,8 @@ const seCache = {};
 function playSE(kind) {
   const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
   const C = (window.App && window.App.catalogGet) ? window.App.catalogGet() : { se: [] };
-  const key = kind === "page" ? (P.sePage || 57)
+  const key = kind === "exit" ? (P.seExit || 58)
+                 : kind === "page" ? (P.sePage || 57)
                  : (kind === "click" ? P.seClick : (kind === "cancel" ? P.seCancel : P.seHover));
   const item = C.se && C.se[key || 0];
   if (!item) return;
@@ -1283,4 +1284,35 @@ function syncHistThumb() {
       try { rebuildBacklog(); } catch (e) {}
     })
     .catch(function () { window.__voiceOk = false; });
+})();
+/* 内容淡入淡出：换页/换标签时统一走这里，时长和实机一致（约 0.2s 出 + 0.2s 入） */
+window.fadeSwap = function (el, fn, ms) {
+  if (!el) { try { fn && fn(); } catch (e) {} return; }
+  ms = ms || 200;
+  el.style.transition = "opacity " + (ms * 0.5) + "ms ease";
+  el.style.opacity = "0";
+  setTimeout(function () {
+    try { fn && fn(); } catch (e) {}
+    el.style.opacity = "1";
+  }, ms * 0.5);
+};
+''
+/* 回想（历史对话）面板滚轮翻动时播翻页音 */
+(function () {
+  function attach() {
+    var box = document.getElementById("histBox") || document.getElementById("backlog") ||
+              document.querySelector(".histBox") || document.querySelector(".backlog");
+    if (!box || box.dataset.seWheel) return;
+    box.dataset.seWheel = "1";
+    var acc = 0;
+    box.addEventListener("wheel", function (e) {
+      acc += Math.abs(e.deltaY);
+      if (acc < 60) return;          /* 累积一点再响，避免一滑响一串 */
+      acc = 0;
+      try { if (window.playSE) window.playSE("page"); } catch (err) {}
+    }, { passive: true });
+  }
+  document.addEventListener("DOMContentLoaded", attach);
+  window.addEventListener("load", attach);
+  setInterval(attach, 1500);
 })();

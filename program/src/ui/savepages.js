@@ -131,6 +131,18 @@
 
   /* 翻页 / 打开存档界面时调用：先用旧数据占位，再按服务器结果重画一次 */
   window.__renderSaveSlots = function (page) {
+    /* 翻页时整片槽位淡入淡出 */
+    try {
+      var grid = document.querySelector("#saveScreen .saveSlots") || document.querySelector("#saveScreen .slotWrap");
+      if (grid && window.fadeSwap && page !== window.__savePage) {
+        window.fadeSwap(grid, function () { window.__renderSaveSlotsNow(page); }, 200);
+        window.__savePage = page;
+        return;
+      }
+    } catch (e) {}
+    window.__renderSaveSlotsNow(page);
+  };
+  window.__renderSaveSlotsNow = function (page) {
     page = page || window.__savePage || 1;
     page = Math.max(1, Math.min(PAGES, page));
     paint(page);
