@@ -5,8 +5,7 @@
   background:rgba(2,12,24,.72);
 }
 .uiScreen.show { display:block !important; }
-  /* 与实机一致：切换界面整屏淡入（0.22s），关闭淡出 */
-  .uiScreen.fading { opacity:0 !important; }
+  /* 入场淡入统一在 screens.js 的 fadeIn 里做 */
 
 
 .uiHead {

@@ -74,7 +74,6 @@
     var el = typeof elOrId === "string" ? $(elOrId) : elOrId;
     if (!el) return null;
     closeAll(el);
-    el.classList.remove("fading");
     el.classList.add("show");
     return el;
   };
@@ -115,10 +114,8 @@
         var bc = $("blogScreen");
         if (bc) bc.classList.add("show");
       }
-      /* uiOpen 已回滚 */
     } catch (e) {
       console.warn("openScreen failed", e);
-      /* uiOpen 已回滚 */
     }
   };;
   /* 有没有任意浮层开着？（ESC 关闭用，覆盖全部 .uiScreen，不只是存读档） */
