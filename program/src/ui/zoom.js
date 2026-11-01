@@ -67,3 +67,57 @@
       }, inMs + 60);
     }, outMs);
   }})();
+
+/* ---------- WAAPI 换页动画（交叉缩放淡入淡出） ----------
+   实测：这台机器的 WebView2 上 CSS transition / @keyframes 驱动 transform 会被丢弃，
+   但 element.animate()（WAAPI）完全有效 —— 容器和槽位子元素都验证过。
+
+   旧页：scale 1 -> 0.94，blur 0 -> 5px，opacity 1 -> 0   （175ms）
+   新页：scale 1.06 -> 1，blur 4px -> 0，opacity 0.15 -> 1（215ms）
+   总 390ms，与翻页音 SE_9213 等长。 */
+window.waapiSwap = function (olds, news, fn, ms) {
+  ms = ms || 390;
+  var outMs = Math.round(ms * 0.45);
+  var inMs = ms - outMs;
+  var olds_ = olds ? [].concat(olds) : [];
+  var anims = [];
+
+  olds_.forEach(function (el) {
+    try {
+      anims.push(el.animate(
+        [{ transform: "scale(1)", filter: "blur(0px)", opacity: 1 },
+         { transform: "scale(0.94)", filter: "blur(5px)", opacity: 0 }],
+        { duration: outMs, easing: "ease-in", fill: "forwards" }
+      ));
+    } catch (e) {}
+  });
+
+  setTimeout(function () {
+    try { fn && fn(); } catch (e) {}
+
+    var news_ = news ? [].concat(news) : [];
+    news_.forEach(function (el) {
+      try {
+        var a = el.animate(
+          [{ transform: "scale(1.06)", filter: "blur(4px)", opacity: 0.15 },
+           { transform: "scale(1)", filter: "blur(0px)", opacity: 1 }],
+          { duration: inMs, easing: "cubic-bezier(.2,.9,.25,1)", fill: "forwards" }
+        );
+        a.onfinish = function () {
+          try {
+            a.cancel();
+            el.style.transform = "";
+            el.style.filter = "";
+            el.style.opacity = "";
+          } catch (e) {}
+        };
+      } catch (e) {}
+    });
+
+    setTimeout(function () {
+      olds_.forEach(function (el) {
+        try { el.style.transform = ""; el.style.filter = ""; el.style.opacity = ""; } catch (e) {}
+      });
+    }, inMs + 40);
+  }, outMs);
+};
