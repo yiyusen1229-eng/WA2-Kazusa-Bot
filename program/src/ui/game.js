@@ -1537,12 +1537,13 @@ document.addEventListener("contextmenu", function (e) {
 
 /* ---------- 右下角：本条 / 累计 token 与花费 ----------
    数字来自后端 /api/usage（按官网价格表算钱），文字走统一字模接口 /api/text */
-function moneyText(v) {
+function moneyText(v, cur) {
+  var sym = (cur === "USD") ? "$" : "\u00a5";   /* 默认人民币 */
   v = Number(v) || 0;
-  if (v === 0) return "$0";
-  if (v < 0.01) return "$" + v.toFixed(6);
-  if (v < 1) return "$" + v.toFixed(4);
-  return "$" + v.toFixed(3);
+  if (v === 0) return sym + "0";
+  if (v < 0.01) return sym + v.toFixed(6);
+  if (v < 1) return sym + v.toFixed(4);
+  return sym + v.toFixed(3);
 }
 
 function costLine(el, text) {
@@ -1558,10 +1559,10 @@ function renderCost(u) {
   if (!u) return;
   if (u.tokens !== undefined) {
     costLine(document.getElementById("costNow"),
-      "本条对话 token " + u.tokens + " · 花费 " + moneyText(u.cost));
+      "本条对话 token " + u.tokens + " · 花费 " + moneyText(u.cost, u.currency));
   }
   costLine(document.getElementById("costTotal"),
-    "累计 token " + (u.cumTokens || 0) + " · 花费 " + moneyText(u.cumCost || 0));
+    "累计 token " + (u.cumTokens || 0) + " · 花费 " + moneyText(u.cumCost || 0, u.currency));
 }
 window.__renderCost = renderCost;
 
@@ -1570,7 +1571,9 @@ window.__refreshCost = function () {
   try {
     fetch("/api/usage", { cache: "no-store" })
       .then(function (r) { return r.json(); })
-      .then(function (d) { if (d && d.ok) renderCost({ cumTokens: d.tokens, cumCost: d.cost }); })
+      .then(function (d) {
+        if (d && d.ok) renderCost({ cumTokens: d.tokens, cumCost: d.cost, currency: d.currency });
+      })
       .catch(function () {});
   } catch (e) {}
 };

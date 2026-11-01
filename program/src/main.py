@@ -780,7 +780,8 @@ def _record_usage(model, usage):
             "cost": round(c, 6),
             "model": model,
             "cumTokens": cum_t,
-            "cumCost": round(cum_c, 6)}
+            "cumCost": round(cum_c, 6),
+            "currency": _pricing.currency()}
 
 
 def _usage_snapshot():
@@ -791,9 +792,11 @@ def _usage_snapshot():
         _t, src = _pricing.table()
         d["priceSource"] = src
         d["peak"] = _pricing.is_peak()
+        d["currency"] = _pricing.currency()
     except Exception:
         d["priceSource"] = "builtin"
         d["peak"] = False
+        d["currency"] = "CNY"
     d["ok"] = True
     return d
 
@@ -1109,8 +1112,9 @@ class Handler(SimpleHTTPRequestHandler):
             m = (q.get("model") or [""])[0]
             try:
                 p, src = _pricing.prices_for(m)
-                return self._json({"ok": True, "model": m, "price": p,
-                                   "source": src, "peak": _pricing.is_peak()})
+                return self._json({"ok": True, "model": m, "price": p, "source": src,
+                                   "peak": _pricing.is_peak(),
+                                   "currency": _pricing.currency()})
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)})
         if self.path == "/api/prefs":
