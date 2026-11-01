@@ -117,11 +117,16 @@
   }
 
   function toggleFullscreen() {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(function () {});
-    }
+    /* 不要用浏览器的 document.documentElement.requestFullscreen()：
+       在无边框 WebView2 上会把窗口铺成一层“点不动”的透明层（实测会把整个桌面挡住）。
+       改走 pywebview 自己的全屏开关（后端 /api/window?action=togglefull）。 */
+    try {
+      if (window.__dbg) window.__dbg("FULL", "togglefull");
+      fetch("/api/window?action=togglefull", { cache: "no-store" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { if (window.__dbg) window.__dbg("FULL", JSON.stringify(d).slice(0, 40)); })
+        .catch(function () {});
+    } catch (e) {}
   }
 
   // 窗口控制（无边框窗口需要自己实现）
@@ -272,7 +277,7 @@
     });
 
     document.addEventListener("click", closeAll);
-    document.addEventListener("fullscreenchange", updateChecks);
+  /* fullscreenchange 监听已移除：不再使用浏览器全屏 API */
 
     updateChecks();
     applyRes(getRes());
@@ -343,6 +348,6 @@
   })();
 
 // 全屏模式下禁止拖窗口（没有窗口边框可拖）
-document.addEventListener("fullscreenchange", function () {
+  /* fullscreenchange 监听已移除：不再使用浏览器全屏 API */
   document.body.classList.toggle("isFull", !!document.fullscreenElement);
 });

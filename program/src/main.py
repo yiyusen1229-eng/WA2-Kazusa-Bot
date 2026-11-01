@@ -952,6 +952,18 @@ class Handler(SimpleHTTPRequestHandler):
                     return self._json({"ok": True, "maxed": w._wa2_maxed})
                 except Exception as e:
                     return self._json({"ok": False, "error": str(e)})
+            elif action == "togglefull":
+                # 浏览器 Fullscreen API 在无边框 WebView2 上会让窗口变成
+                # “铺满屏幕但点不动”的透明层，所以改走 pywebview 自己的全屏开关
+                try:
+                    w.toggle_fullscreen()
+                    return self._json({"ok": True})
+                except Exception as e:
+                    try:
+                        w.maximize()
+                        return self._json({"ok": True, "fallback": "maximize"})
+                    except Exception:
+                        return self._json({"ok": False, "error": str(e)})
             elif action == "state":
                 u = _user32()
                 hw = _win_hwnd()
