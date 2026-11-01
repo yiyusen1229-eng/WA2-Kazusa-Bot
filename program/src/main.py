@@ -379,6 +379,7 @@ from winutil import _win_hwnd, _user32, _quiet_act
 from sessions import session_save, session_load, session_list, session_thumb
 import sessions as _sessions
 import memory as _memory
+import pricing as _pricing
 
 
 def qs(q, names, default=""):
@@ -750,6 +751,52 @@ def worldbook_context(messages, depth=None, max_entries=None, max_chars=None):
     return "\n\n".join(parts), names
 
 
+# ---------------- token / 花费统计 ----------------
+_USAGE = {"tokens": 0, "cost": 0.0, "calls": 0,
+          "since": time.strftime("%Y-%m-%d %H:%M:%S")}
+_USAGE_LOCK = _th.Lock()
+
+
+def _record_usage(model, usage):
+    """记一次模型调用，返回这次的花费信息（给界面显示用）。
+
+    usage 直接用接口返回的 usage 字段（有 prompt_cache_hit_tokens 就更准）；
+    拿不到 usage 时记 0 —— 统计不准也不能影响对话。
+    """
+    usage = usage or {}
+    try:
+        c = _pricing.cost(model, usage)
+    except Exception:
+        c = 0.0
+    tokens = int(usage.get("total_tokens") or 0)
+    with _USAGE_LOCK:
+        _USAGE["tokens"] += tokens
+        _USAGE["cost"] += c
+        _USAGE["calls"] += 1
+        cum_t, cum_c = _USAGE["tokens"], _USAGE["cost"]
+    return {"tokens": tokens,
+            "in": int(usage.get("prompt_tokens") or 0),
+            "out": int(usage.get("completion_tokens") or 0),
+            "cost": round(c, 6),
+            "model": model,
+            "cumTokens": cum_t,
+            "cumCost": round(cum_c, 6)}
+
+
+def _usage_snapshot():
+    with _USAGE_LOCK:
+        d = dict(_USAGE)
+        d["cost"] = round(d["cost"], 6)
+    try:
+        _t, src = _pricing.table()
+        d["priceSource"] = src
+        d["peak"] = _pricing.is_peak()
+    except Exception:
+        d["priceSource"] = "builtin"
+        d["peak"] = False
+    d["ok"] = True
+    return d
+
 # ---------------- 记忆书（见 memory.py） ----------------
 _MEM_PACK_LOCK = _th.Lock()
 
@@ -785,6 +832,10 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
     try:
         with urllib.request.urlopen(rq, timeout=timeout) as r:
             d = json.loads(r.read().decode("utf-8"))
+        try:
+            _record_usage(model, d.get("usage") or {})
+        except Exception:
+            pass
         return (d["choices"][0]["message"].get("content") or "").strip()
     except Exception as e:
         detail = ""
@@ -1051,6 +1102,17 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"ok": False, "error": str(e)})
         if self.path == "/api/ollama":
             return self._json({"models": ollama_models()})
+        if self.path == "/api/usage":
+            return self._json(_usage_snapshot())
+        if self.path.startswith("/api/price"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            m = (q.get("model") or [""])[0]
+            try:
+                p, src = _pricing.prices_for(m)
+                return self._json({"ok": True, "model": m, "price": p,
+                                   "source": src, "peak": _pricing.is_peak()})
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)})
         if self.path == "/api/prefs":
             return self._json({"ok": True, "prefs": prefs_load()})
         if self.path == "/api/modelcfg":
@@ -1582,6 +1644,7 @@ class Handler(SimpleHTTPRequestHandler):
             with urllib.request.urlopen(rq, timeout=300) as r:
                 d = json.loads(r.read().decode("utf-8"))
             raw = (d["choices"][0]["message"].get("content") or "").strip()
+            _uinfo = _record_usage(model, d.get("usage") or {})
             raw, emo = split_emotion(raw)
             raw, scene_now, outfit_now = split_scene(raw)
             acts, raw = split_action(raw)
@@ -1607,6 +1670,7 @@ class Handler(SimpleHTTPRequestHandler):
 
             self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                         "action": action, "action_zh": action_zh,
+                        "usage": _uinfo,
                         "model": model,
                         "ms": int((time.time() - t0) * 1000),
                         "worldbook": wb_names})

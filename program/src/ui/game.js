@@ -1077,6 +1077,7 @@ async function send() {
   })()),
     });
     const d = await r.json();
+    if (d && d.usage) { try { renderCost(d.usage); } catch (e) {} }
     if (d.error) { $("msgText").textContent = "[错误] " + d.error; return; }
     const reply = (d.reply || "").trim();
       const replyZh = (d.reply_zh || "").trim();
@@ -1532,6 +1533,51 @@ document.addEventListener("contextmenu", function (e) {
     return;
   }
   try { if (window.__openScreen) window.__openScreen("save", "save"); } catch (err) {}
+});
+
+/* ---------- 右下角：本条 / 累计 token 与花费 ----------
+   数字来自后端 /api/usage（按官网价格表算钱），文字走统一字模接口 /api/text */
+function moneyText(v) {
+  v = Number(v) || 0;
+  if (v === 0) return "$0";
+  if (v < 0.01) return "$" + v.toFixed(6);
+  if (v < 1) return "$" + v.toFixed(4);
+  return "$" + v.toFixed(3);
+}
+
+function costLine(el, text) {
+  if (!el) return;
+  if (el.dataset.t === text) return;
+  el.dataset.t = text;
+  /* chars_per_line 必须给足，否则默认 20 字会折成两行，再按 8px 高显示就糊成一团 */
+  el.innerHTML = '<img src="/api/text?text=' + encodeURIComponent(text) +
+                 '&plain=1&chars_per_line=80&max_width=4000" alt="">';
+}
+
+function renderCost(u) {
+  if (!u) return;
+  if (u.tokens !== undefined) {
+    costLine(document.getElementById("costNow"),
+      "本条对话 token " + u.tokens + " · 花费 " + moneyText(u.cost));
+  }
+  costLine(document.getElementById("costTotal"),
+    "累计 token " + (u.cumTokens || 0) + " · 花费 " + moneyText(u.cumCost || 0));
+}
+window.__renderCost = renderCost;
+
+/* 只刷新累计（程序启动时、以及后台总结之后） */
+window.__refreshCost = function () {
+  try {
+    fetch("/api/usage", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.ok) renderCost({ cumTokens: d.tokens, cumCost: d.cost }); })
+      .catch(function () {});
+  } catch (e) {}
+};
+
+document.addEventListener("DOMContentLoaded", function () {
+  window.__refreshCost();
+  setInterval(function () { window.__refreshCost(); }, 20000);
 });
 
 /* 隐藏界面：只留背景与立绘

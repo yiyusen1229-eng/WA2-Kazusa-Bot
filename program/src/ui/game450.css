@@ -842,3 +842,18 @@ body.histOpen #toolbar { display:none !important; }
 }
 #thinkBtn:active::before, #sendBtn:active::before { background-position: 0 50%; }
 #thinkBtn.released::before, #sendBtn.released::before { background-position: 0 100%; }
+
+/* ===== 右下角：本条 / 累计 token 与花费 =====
+   位置按用户框的位置：对话框上方、发送按钮右侧
+   字走统一字模接口（/api/text），两条各一张图 */
+#costBar {
+  position: absolute;
+  right: 93px;
+  bottom: 127px;
+  text-align: right;
+  z-index: 24;
+  pointer-events: none;
+  opacity: .92;
+}
+#costBar .row { height: 9px; margin-top: 1px; }
+#costBar .row img { height: 8px; width: auto; display: inline-block; }
