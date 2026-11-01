@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 聊天界面架构</title>
-<link rel="stylesheet" href="screens-base.css?v=11011440">
-<link rel="stylesheet" href="opt-screen.css?v=11011440">
-<link rel="stylesheet" href="save-screen.css?v=11011440">
-<link rel="stylesheet" href="game450.css?v=11011440">
-<link rel="stylesheet" href="unifont.css?v=11011440">
-<link rel="stylesheet" href="opt.css?v=11011440">
-  <link rel="stylesheet" href="menubar.css?v=11011440">
+<link rel="stylesheet" href="screens-base.css?v=11011442">
+<link rel="stylesheet" href="opt-screen.css?v=11011442">
+<link rel="stylesheet" href="save-screen.css?v=11011442">
+<link rel="stylesheet" href="game450.css?v=11011442">
+<link rel="stylesheet" href="unifont.css?v=11011442">
+<link rel="stylesheet" href="opt.css?v=11011442">
+  <link rel="stylesheet" href="menubar.css?v=11011442">
 </head>
 <body>
 <div id="stage">
@@ -103,7 +103,7 @@
     <div class="optPage"><img src="assets/ui/opt/page.png" alt=""></div>
     <div class="optContent" id="optContent"><img class="optLayer ctBase" src="assets/ui/opt/opt1_base.png" alt=""></div>
     <div class="optContent" id="optContent2"><img class="optLayer ctBase" src="assets/ui/opt/opt2_base.png" alt=""></div>
-    <div class="optContent optContent3" id="optContent3"><div class="o3sec o3sec1"><div class="o3title">聊天模型</div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="chat.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="chat.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="chat.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div><div class="o3sec o3sec2"><div class="o3title">语音模型</div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="voice.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="voice.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="voice.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div><div class="o3sec o3sec3"><div class="o3title">翻译模型</div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="mt.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="mt.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="mt.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div></div><div class="optPagerText"><img src="assets/ui/opt/pager_text.png" alt=""></div>
+    <div class="optContent optContent3" id="optContent3"><div class="o3sec o3sec1"><div class="o3title"><img src="assets/ui/text/mgr_chat.png" alt=""></div><div class="o3row"><span class="o3label"><img src="assets/ui/text/mgr_endpoint.png" alt=""></span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="chat.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label"><img src="assets/ui/text/mgr_apikey.png" alt=""></span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="chat.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label"><img src="assets/ui/text/mgr_model.png" alt=""></span><span class="o3field" data-k="chat.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div><div class="o3sec o3sec2"><div class="o3title"><img src="assets/ui/text/mgr_voice.png" alt=""></div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="voice.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="voice.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="voice.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div><div class="o3sec o3sec3"><div class="o3title"><img src="assets/ui/text/mgr_mt.png" alt=""></div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="mt.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="mt.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="mt.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div></div><div class="optPagerText"><img src="assets/ui/opt/pager_text.png" alt=""></div>
     <div class="optPagerBtn" id="optPrev"><img src="assets/ui/opt/pager_l1.png" alt=""></div>
     <div class="optPagerBtn" id="optNext"><img src="assets/ui/opt/pager_r1.png" alt=""></div>
         <div class="optFoot"><img src="assets/ui/opt/footbar.png" alt=""></div>
@@ -189,20 +189,20 @@
 </div>
 
 <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
-<script src="atlas.js?v=11011440"></script>
-<script src="config.js?v=11011440"></script>
-<script src="modelmgr.js?v=11011440"></script>
-<script src="opt.js?v=11011440"></script>
-  <script src="savetabs4.js?v=11011440"></script>
-  <script src="savepages.js?v=11011440"></script>
-  <script src="screens.js?v=11011440"></script>
-<script src="game.js?v=11011440"></script>
-<script src="sound.js?v=11011440"></script>
-<script src="zoom.js?v=11011440"></script>
-<script src="debug.js?v=11011440"></script>
-<script src="scale.js?v=11011440"></script>
-<script src="menubar.js?v=11011440"></script>
-<script src="uitext.js?v=11011440"></script>
+<script src="atlas.js?v=11011442"></script>
+<script src="config.js?v=11011442"></script>
+<script src="modelmgr.js?v=11011442"></script>
+<script src="opt.js?v=11011442"></script>
+  <script src="savetabs4.js?v=11011442"></script>
+  <script src="savepages.js?v=11011442"></script>
+  <script src="screens.js?v=11011442"></script>
+<script src="game.js?v=11011442"></script>
+<script src="sound.js?v=11011442"></script>
+<script src="zoom.js?v=11011442"></script>
+<script src="debug.js?v=11011442"></script>
+<script src="scale.js?v=11011442"></script>
+<script src="menubar.js?v=11011442"></script>
+<script src="uitext.js?v=11011442"></script>
 <script>
 /* __hashRoute: 用 #opt / #save / #model 直接打开界面(调试/对比用) */
 window.addEventListener("load", function () {
