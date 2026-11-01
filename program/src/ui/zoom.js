@@ -76,6 +76,12 @@
         el.style.transform = "scale(1)";
         el.style.filter = "blur(0)";
         el.style.opacity = "1";
+        setTimeout(function () {
+          el.style.transition = "";
+          el.style.transform = "";
+          el.style.filter = "";
+          el.style.opacity = "";
+        }, ms + 60);
       });
     });
   };
@@ -133,14 +139,30 @@
   /* 用 @keyframes 做换页：给元素加 pgOut / pgIn 类，动画结束自动移除 */
   window.pgSwap = function (el, fn, ms) {
     if (!el) { try { fn && fn(); } catch (e) {} return; }
-    el.classList.remove("pgIn");
+    /* 关键：先清掉之前 zoomIn / 上次动画留在元素上的内联 transform/filter/transition，
+       否则内联值优先级高于关键帧，动画被完全压住（这就是前几版一直"没效果"的原因） */
+    el.style.transform = "";
+    el.style.filter = "";
+    el.style.transition = "";
+    el.style.opacity = "";
+    el.classList.remove("pgIn", "pgOut");
+    void el.offsetWidth;
     el.classList.add("pgOut");
     var outMs = 175, inMs = 215;
     setTimeout(function () {
       try { fn && fn(); } catch (e) {}
+      el.style.transform = "";
+      el.style.filter = "";
+      el.style.transition = "";
+      el.style.opacity = "";
       el.classList.remove("pgOut");
       void el.offsetWidth;
       el.classList.add("pgIn");
-      setTimeout(function () { el.classList.remove("pgIn"); }, inMs + 60);
+      setTimeout(function () {
+        el.classList.remove("pgIn");
+        el.style.transform = "";
+        el.style.filter = "";
+        el.style.opacity = "";
+      }, inMs + 60);
     }, outMs);
-  };})();
+  }})();
