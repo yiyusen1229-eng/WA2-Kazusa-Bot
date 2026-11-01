@@ -1536,33 +1536,39 @@ document.addEventListener("contextmenu", function (e) {
 });
 
 /* ---------- 右下角：本条 / 累计 token 与花费 ----------
-   数字来自后端 /api/usage（按官网价格表算钱），文字走统一字模接口 /api/text */
-function moneyText(v, cur) {
-  var sym = (cur === "USD") ? "$" : "\u00a5";   /* 默认人民币 */
-  v = Number(v) || 0;
-  if (v === 0) return sym + "0";
-  if (v < 0.01) return sym + v.toFixed(6);
-  if (v < 1) return sym + v.toFixed(4);
-  return sym + v.toFixed(3);
+   文案与 0~9 都是烤好的字模（tools/bake_cost_ui.py），这里只负责拼图，
+   不再请求 /api/text —— 那个渲染器是中文网格，拉丁字母会被撑开。 */
+var COST_EL = {};
+function costNum(el, str) {
+  if (!el) return;
+  if (el.dataset.v === str) return;
+  el.dataset.v = str;
+  var html = "";
+  for (var i = 0; i < str.length; i++) {
+    var ch = str.charAt(i);
+    var key = (ch === ".") ? "cost_dot" : ("cost_d" + ch);
+    html += '<img src="assets/ui/text/' + key + '.png" alt="">';
+  }
+  el.innerHTML = html;
 }
 
-function costLine(el, text) {
-  if (!el) return;
-  if (el.dataset.t === text) return;
-  el.dataset.t = text;
-  /* chars_per_line 必须给足，否则默认 20 字会折成两行，再按 8px 高显示就糊成一团 */
-  el.innerHTML = '<img src="/api/text?text=' + encodeURIComponent(text) +
-                 '&plain=1&chars_per_line=80&max_width=4000" alt="">';
+/* 金额转成"纯数字串"（币种符号已经是一张固定的 ¥ 图） */
+function moneyStr(v) {
+  v = Number(v) || 0;
+  if (v === 0) return "0";
+  if (v < 0.01) return v.toFixed(6);
+  if (v < 1) return v.toFixed(4);
+  return v.toFixed(3);
 }
 
 function renderCost(u) {
   if (!u) return;
   if (u.tokens !== undefined) {
-    costLine(document.getElementById("costNow"),
-      "本条对话 token " + u.tokens + " · 花费 " + moneyText(u.cost, u.currency));
+    costNum(COST_EL.nowT, String(Math.round(u.tokens)));
+    costNum(COST_EL.nowC, moneyStr(u.cost));
   }
-  costLine(document.getElementById("costTotal"),
-    "累计 token " + (u.cumTokens || 0) + " · 花费 " + moneyText(u.cumCost || 0, u.currency));
+  costNum(COST_EL.totT, String(Math.round(u.cumTokens || 0)));
+  costNum(COST_EL.totC, moneyStr(u.cumCost));
 }
 window.__renderCost = renderCost;
 
@@ -1572,13 +1578,17 @@ window.__refreshCost = function () {
     fetch("/api/usage", { cache: "no-store" })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d && d.ok) renderCost({ cumTokens: d.tokens, cumCost: d.cost, currency: d.currency });
+        if (d && d.ok) renderCost({ cumTokens: d.tokens, cumCost: d.cost });
       })
       .catch(function () {});
   } catch (e) {}
 };
 
 document.addEventListener("DOMContentLoaded", function () {
+  COST_EL.nowT = document.getElementById("costNowT");
+  COST_EL.nowC = document.getElementById("costNowC");
+  COST_EL.totT = document.getElementById("costTotalT");
+  COST_EL.totC = document.getElementById("costTotalC");
   window.__refreshCost();
   setInterval(function () { window.__refreshCost(); }, 20000);
 });
@@ -1591,7 +1601,8 @@ document.addEventListener("DOMContentLoaded", function () {
   css.textContent =
     "body.uiHidden #msgWrap,body.uiHidden #inputBar,body.uiHidden #toolbar," +
     "body.uiHidden #menuBar,body.uiHidden #glowBottom,body.uiHidden #historyPanel," +
-    "body.uiHidden #thinkBox,body.uiHidden #choiceScreen,body.uiHidden .uiScreen," +
+    "body.uiHidden #thinkBox,body.uiHidden #choiceScreen,body.uiHidden #costBar," +
+    "body.uiHidden .uiScreen," +
     "body.uiHidden #dbgPanel{" +
     "opacity:0!important;pointer-events:none!important}";
   document.head.appendChild(css);

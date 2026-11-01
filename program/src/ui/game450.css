@@ -844,16 +844,25 @@ body.histOpen #toolbar { display:none !important; }
 #thinkBtn.released::before, #sendBtn.released::before { background-position: 0 100%; }
 
 /* ===== 右下角：本条 / 累计 token 与花费 =====
-   位置按用户框的位置：对话框上方、发送按钮右侧
-   字走统一字模接口（/api/text），两条各一张图 */
+   文案和数字都是烤好的字模（tools/bake_cost_ui.py），前端只拼图，不再请求 /api/text
+   位置：发送按钮下方偏右（用户指定） */
 #costBar {
   position: absolute;
-  right: 93px;
-  bottom: 127px;
-  text-align: right;
+  right: 72px;
+  bottom: 101px;
   z-index: 24;
   pointer-events: none;
-  opacity: .92;
+  opacity: .95;
 }
-#costBar .row { height: 9px; margin-top: 1px; }
-#costBar .row img { height: 8px; width: auto; display: inline-block; }
+#costBar .row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 12px;
+  margin-top: 2px;
+  gap: 3px;
+}
+#costBar .row img { height: 12px; width: auto; display: block; }
+#costBar .num { display: inline-flex; align-items: center; margin: 0 1px; }
+#costBar .row img.lb { margin: 0 .5px; }
+#costBar .num img { height: 12px; width: auto; display: block; margin: 0 .4px; }
