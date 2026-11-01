@@ -7,7 +7,9 @@
 .uiScreen.show { display:block !important; }
   /* 与实机一致：切换界面整屏淡入（0.22s），关闭淡出 */
   .uiScreen { opacity:0; transition:opacity .22s ease; }
-  .uiScreen.show { opacity:1; }
+  .uiScreen.show { opacity:1; animation:uiFadeIn .22s ease both; }
+  @keyframes uiFadeIn { from { opacity:0 } to { opacity:1 } }
+  @keyframes uiFadeOut { from { opacity:1 } to { opacity:0 } }
   .uiScreen.fading { opacity:0 !important; }
 
 

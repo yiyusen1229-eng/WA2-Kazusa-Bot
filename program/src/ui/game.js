@@ -1301,8 +1301,8 @@ window.fadeSwap = function (el, fn, ms) {
 /* 回想（历史对话）面板滚轮翻动时播翻页音 */
 (function () {
   function attach() {
-    var box = document.getElementById("histBox") || document.getElementById("backlog") ||
-              document.querySelector(".histBox") || document.querySelector(".backlog");
+    var box = document.getElementById("historyBox") || document.getElementById("blogList") ||
+              document.getElementById("histBox") || document.querySelector(".historyBox");
     if (!box || box.dataset.seWheel) return;
     box.dataset.seWheel = "1";
     var acc = 0;
