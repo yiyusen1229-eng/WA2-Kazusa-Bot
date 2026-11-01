@@ -1190,6 +1190,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
 /* ---------- 按钮三态: 松开时闪现第三帧 ---------- */
 document.addEventListener("DOMContentLoaded", function () {
+  (function bakeSend() {
+    var b = document.getElementById("sendBtn");
+    if (b && b.dataset.baked !== "log_send") {
+      b.dataset.baked = "log_send";
+      b.innerHTML = '<img src="assets/ui/text/log_send.png" alt="">';
+    }
+  })();
   ["thinkBtn", "sendBtn"].forEach(function (id) {
     const b = document.getElementById(id);
     if (!b) return;

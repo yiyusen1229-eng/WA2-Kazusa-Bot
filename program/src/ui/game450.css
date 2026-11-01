@@ -793,3 +793,5 @@ body.histOpen #toolbar { display:none !important; }
   filter: sepia(1) saturate(2.05) brightness(1);
 }
 .hline .ico { cursor: default; }
+/* 对话界面按钮里的字模：按各自 CSS 字号换算高度 */
+#thinkBtn img, #sendBtn img { height: 8.5px !important; width: auto !important; display: inline-block; vertical-align: middle; }
