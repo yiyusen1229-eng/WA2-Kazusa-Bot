@@ -1,4 +1,4 @@
-﻿# ===== 依赖与虚拟环境 =====
+# ===== 依赖与虚拟环境 =====
 build_env/
 */venv/
 __pycache__/
@@ -29,7 +29,10 @@ logs/
 cache/
 config.json
 prefs.json
+memory.json
 ui2/
+# 特别模式导入的角色资源（立绘 / 提示词 / 世界书 / 记忆书 / 参考音频）
+char/
 
 # 过程产物
 work/

@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 聊天界面架构</title>
-<link rel="stylesheet" href="screens-base.css?v=11011955">
-<link rel="stylesheet" href="opt-screen.css?v=11011955">
-<link rel="stylesheet" href="save-screen.css?v=11011955">
-<link rel="stylesheet" href="game450.css?v=11011955">
-<link rel="stylesheet" href="unifont.css?v=11011955">
-<link rel="stylesheet" href="opt.css?v=11011955">
-  <link rel="stylesheet" href="menubar.css?v=11011955">
+<link rel="stylesheet" href="screens-base.css?v=11012150">
+<link rel="stylesheet" href="opt-screen.css?v=11012150">
+<link rel="stylesheet" href="save-screen.css?v=11012150">
+<link rel="stylesheet" href="game450.css?v=11012150">
+<link rel="stylesheet" href="unifont.css?v=11012150">
+<link rel="stylesheet" href="opt.css?v=11012150">
+  <link rel="stylesheet" href="menubar.css?v=11012150">
+<link rel="stylesheet" href="special.css?v=11012150">
 </head>
 <body>
 <div id="stage">
@@ -63,34 +64,6 @@
 
   <!-- ===== 设置 ===== -->
 
-  <!-- 模型管理 -->
-  <div id="modelScreen" class="uiScreen">
-    <div class="uiHead"><img src="assets/ui/sys_01000.png" alt=""></div>
-    <img class="uiLogo" src="assets/ui_logo.png" alt="">
-    <div class="uiPageLbl">MODEL</div>
-    <div class="slotWrap" id="modelWrap"></div>
-    <div class="pagerBtn prev"></div>
-    <div class="pagerBtn next"></div>
-    <div class="pagerLabel" id="modelPageLabel">PAGE 1</div>
-    <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
-    <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
-    <div class="mClose" title="返回">×</div>
-
-    <div id="modelDetail">
-      <div class="mdCard">
-        <div class="mdHead">
-          <span class="mdName">—</span>
-          <button class="mdBack">返回</button>
-        </div>
-        <div class="mdBody">
-          <div><span>API 地址</span><b class="mdUrl">—</b></div>
-          <div><span>当前模型</span><b class="mdModel">—</b></div>
-          <div><span>类型</span><b class="mdType">—</b></div>
-          <div class="mdStat">—</div>
-        </div>
-      </div>
-    </div>
-  </div>
   <!-- ===== 系统设置 ===== -->
   <div id="optScreen" class="uiScreen">
     <div class="optLogo"><img src="assets/ui/opt/logo.png" alt=""></div>
@@ -110,11 +83,76 @@
   </div>
 
   <!-- ===== 特别模式 =====
-       只有外框（顶栏 / 底栏 / EXIT / 雪花 logo），位置和布局与存读档、回想一致。
-       内容以后往里加：上下文限制设置、角色配置等（见 special.js）。 -->
+       外框与存读档、回想一致；内容是两栏（样式见 special.css，逻辑见 special.js）。
+       标签交给 uitext.js 转字模；滑条的百分比/ token 读数由 special.js 用同一个接口实时渲染。 -->
   <div id="specialScreen" class="uiScreen">
     <div class="uiHead"><img src="assets/ui/sys_05000.png" alt=""></div>
     <img class="uiLogo" src="assets/ui_logo.png" alt="">
+
+    <!-- 左栏：上下文 / 记忆书限制 -->
+    <div class="spCol spLeft">
+      <div class="spTitle"><img src="assets/ui/text/sp_title_save.png" alt=""></div>
+      <div class="spReset" id="spReset" role="button" title="恢复默认设置"></div>
+
+      <div class="spSet" data-k="ctx">
+        <div class="spLine"><span class="spLabel"><img src="assets/ui/text/sp_ctx.png" alt=""></span><span class="spVal" id="spv-ctx"></span></div>
+        <div class="spSlider" id="sps-ctx" data-k="ctx"><span class="spTrack"></span><span class="spKnob"></span></div>
+      </div>
+
+      <div class="spSet" data-k="trigger">
+        <div class="spLine"><span class="spLabel"><img src="assets/ui/text/sp_trigger.png" alt=""></span><span class="spVal" id="spv-trigger"></span></div>
+        <div class="spSlider" id="sps-trigger" data-k="trigger"><span class="spTrack"></span><span class="spKnob"></span></div>
+      </div>
+
+      <div class="spSet" data-k="recent">
+        <div class="spLine"><span class="spLabel"><img src="assets/ui/text/sp_recent.png" alt=""></span><span class="spVal" id="spv-recent"></span></div>
+        <div class="spSlider" id="sps-recent" data-k="recent"><span class="spTrack"></span><span class="spKnob"></span></div>
+      </div>
+
+      <div class="spSet" data-k="entries">
+        <div class="spLine"><span class="spLabel"><img src="assets/ui/text/sp_entries.png" alt=""></span><span class="spVal" id="spv-entries"></span></div>
+        <div class="spSlider" id="sps-entries" data-k="entries"><span class="spTrack"></span><span class="spKnob"></span></div>
+      </div>
+
+      <div class="spTitle"><img src="assets/ui/text/sp_title_consume.png" alt=""></div>
+      <div class="spLine spStat"><span class="spLabel spTurnLabel"><img src="assets/ui/text/sp_turn_pre.png" alt=""><img class="spTok" src="assets/ui/text/cost_token.png" alt=""><img src="assets/ui/text/sp_turn_post.png" alt=""></span><span class="spVal" id="spv-turn"></span></div>
+      <div class="spLine spStat"><span class="spLabel"><img src="assets/ui/text/sp_cost_label.png" alt=""></span><span class="spVal" id="spv-cost"></span></div>
+    </div>
+
+    <!-- 右栏：角色配置（底框就是每一项的底，文字压在框上） -->
+    <div class="spCol spRight">
+      <div class="spTitle"><img src="assets/ui/text/sp_title_char.png" alt=""></div>
+
+      <div class="spLine"><span class="spLabel"><img src="assets/ui/text/sp_name_label.png" alt=""></span></div>
+      <div class="spNameRow">
+        <span class="spNameView" id="spNameView" title="点击修改"></span>
+        <input class="spInput" id="spName" type="text" maxlength="12" autocomplete="off" style="display:none">
+        <button class="spSave" id="spSave" type="button"><img src="assets/ui/text/sp_save_btn.png" alt=""></button>
+      </div>
+      <div class="spSaved" id="spSaved"></div>
+
+      <div class="spItem" data-item="portrait">
+        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+        <span class="spItemLabel"><img src="assets/ui/text/sp_item_portrait.png" alt=""></span>
+      </div>
+      <div class="spItem" data-item="prompt">
+        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+        <span class="spItemLabel"><img src="assets/ui/text/sp_item_prompt.png" alt=""></span>
+      </div>
+      <div class="spItem" data-item="worldbook">
+        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+        <span class="spItemLabel"><img src="assets/ui/text/sp_item_world.png" alt=""></span>
+      </div>
+      <div class="spItem" data-item="memory">
+        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+        <span class="spItemLabel"><img src="assets/ui/text/sp_item_memory.png" alt=""></span>
+      </div>
+      <div class="spItem" data-item="voice">
+        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+        <span class="spItemLabel"><img src="assets/ui/text/sp_item_voice.png" alt=""></span>
+      </div>
+    </div>
+
     <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
     <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
   </div>
@@ -199,23 +237,22 @@
 </div>
 
 <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
-<script src="atlas.js?v=11011955"></script>
-<script src="config.js?v=11011955"></script>
-<script src="modelmgr.js?v=11011955"></script>
-<script src="opt.js?v=11011955"></script>
-  <script src="savetabs4.js?v=11011955"></script>
-  <script src="savepages.js?v=11011955"></script>
-  <script src="screens.js?v=11011955"></script>
-  <script src="special.js?v=11011955"></script>
-<script src="game.js?v=11011955"></script>
-<script src="sound.js?v=11011955"></script>
-<script src="zoom.js?v=11011955"></script>
-<script src="debug.js?v=11011955"></script>
-<script src="scale.js?v=11011955"></script>
-<script src="menubar.js?v=11011955"></script>
-<script src="uitext.js?v=11011955"></script>
+<script src="atlas.js?v=11012150"></script>
+<script src="config.js?v=11012150"></script>
+<script src="opt.js?v=11012150"></script>
+  <script src="savetabs4.js?v=11012150"></script>
+  <script src="savepages.js?v=11012150"></script>
+  <script src="screens.js?v=11012150"></script>
+  <script src="special.js?v=11012150"></script>
+<script src="game.js?v=11012150"></script>
+<script src="sound.js?v=11012150"></script>
+<script src="zoom.js?v=11012150"></script>
+<script src="debug.js?v=11012150"></script>
+<script src="scale.js?v=11012150"></script>
+<script src="menubar.js?v=11012150"></script>
+<script src="uitext.js?v=11012150"></script>
 <script>
-/* __hashRoute: 用 #opt / #save / #model 直接打开界面(调试/对比用) */
+/* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
 window.addEventListener("load", function () {
   var h = (location.hash || "").replace("#", "");
   if (!h) return;
@@ -224,7 +261,7 @@ window.addEventListener("load", function () {
     var st = document.querySelector('[data-act="start"]');
     if (st) { try { st.click(); } catch (e) {} }
     setTimeout(function () {
-      if (h === "model" && window.__openModel) window.__openModel();
+      if (h === "special" && window.__openSpecial) window.__openSpecial();
       else if (window.__openScreen) window.__openScreen(h);
     }, 700);
   }, 900);

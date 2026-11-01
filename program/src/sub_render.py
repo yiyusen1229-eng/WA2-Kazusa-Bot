@@ -33,6 +33,8 @@ FONT_SIZE = 28
 FONT_STROKE = 2
 FONT_OCCUPATION = FONT_SIZE + 2 * FONT_STROKE      # 32
 FONT_ADVANCE = FONT_SIZE                           # 28
+# 半角字符的紧凑步进（tight 模式）：数字/字母不再占满 28px 全角格
+TIGHT_ADVANCE = 16
 FONT_PER_LINE = 20
 SUBTITLE_TOP = 40
 SCREEN_WIDTH = 1280
@@ -106,9 +108,15 @@ def _render_char(ch):
     return cell
 
 
-def _draw_line_strict(text):
+def _draw_line_strict(text, tight=False):
     _load_atlas()
-    w = FONT_ADVANCE * max(1, len(text)) + FONT_STROKE * 2
+    xs = []
+    x = 0
+    for ch in text:
+        xs.append(x)
+        # tight：半角字符（数字/字母/符号）不走 28px 全角格子，挤紧一点
+        x += TIGHT_ADVANCE if (tight and ord(ch) < 128) else FONT_ADVANCE
+    w = x + FONT_STROKE * 2
     canvas = Image.new("RGBA", (max(1, w), FONT_OCCUPATION), (0, 0, 0, 0))
     for i, ch in enumerate(text):
         hit = _CHARMAP.get(ch)
@@ -118,8 +126,9 @@ def _draw_line_strict(text):
             cell = _cell(idx, cols, atlas)
         else:
             cell = _render_char(ch)
-        canvas.alpha_composite(cell, (i * FONT_ADVANCE, 0))
+        canvas.alpha_composite(cell, (xs[i], 0))
     return canvas
+
 
 
 def _draw_line_soft(text, font_path=FONT_PATH, stroke=True):
@@ -155,12 +164,12 @@ def tint_rgba(img, hexcolor):
     return out
 
 
-def render_line(text, font_path=FONT_PATH, stroke=True, margin=None):
+def render_line(text, font_path=FONT_PATH, stroke=True, margin=None, tight=False):
     text = text.replace("\r", "")
     if not text:
         text = " "
     if STRICT:
-        return _draw_line_strict(text)
+        return _draw_line_strict(text, tight)
 
     canvas = _draw_line_soft(text, font_path, stroke)
     canvas = canvas.resize((canvas.width, max(1, int(canvas.height * 0.97))), Image.BILINEAR)
@@ -173,7 +182,7 @@ def render_line(text, font_path=FONT_PATH, stroke=True, margin=None):
     return canvas
 
 
-def render_block(text, maxw=1200, stroke=True, margin=None, per_line=None, color=None):
+def render_block(text, maxw=1200, stroke=True, margin=None, per_line=None, color=None, tight=False):
     lines, cur = [], ""
     for ch in text:
         if ch == "\n":
@@ -186,7 +195,7 @@ def render_block(text, maxw=1200, stroke=True, margin=None, per_line=None, color
         cur += ch
     lines.append(cur)
 
-    imgs = [render_line(ln, FONT_PATH, stroke, margin) for ln in lines]
+    imgs = [render_line(ln, FONT_PATH, stroke, margin, tight) for ln in lines]
     W = max(i.width for i in imgs)
     line_h = FONT_OCCUPATION if STRICT else max(i.height for i in imgs)
     out = Image.new("RGBA", (W, line_h * len(imgs)), (0, 0, 0, 0))

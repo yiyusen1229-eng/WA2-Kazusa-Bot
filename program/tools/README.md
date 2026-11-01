@@ -11,6 +11,7 @@
 | `build_story_index_v2.py` | 从剧本构建检索索引 `story_index.json` | 换了剧本数据 |
 | `check_assets.py` | 检查素材是否齐全 | 换机器 / 缺素材时 |
 | `make_placeholder_assets.py` | 生成占位素材（纯色块） | 没有游戏素材也想跑起来 |
+| `make_special_ui.py` | 从解包素材生成特别模式用图：横向滑条（`sys_00030`）+ 恢复默认按钮（`sys_03030`，裁掉左边的 DEFAULT） | 换了素材 / 换机器后 `assets/ui/special/` 缺图时 |
 | `preview_assets.py` | 预览素材与坐标 | 调界面坐标 |
 | `setup_assets.py` | 下载可自动获取的部分素材 | 首次部署 |
 | `ui_probe.py` | 用真实 WebView2 打开界面、跑 JS、截图（自测用） | 改完界面要验证「JS 真的跑了」时 |

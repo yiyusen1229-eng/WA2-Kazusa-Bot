@@ -14,7 +14,7 @@
     ".uiExit,.mbBtn,.mbItem,.optTab,.optPagerBtn,#optPrev,#optNext,.ctHot,.ctBar,#saveTabs,.saveTabs," +
     "#pagerPrev,#pagerNext,.pagerL,.pagerR,.saveTab,.pageTab,.saveSlot," +
     "[data-act],[data-pg],.cfgRow button,.o3btn,.dlgToast,.dlgConfirm button," +
-    ".blogItem,.modelRow,.mgrBtn,button,select";
+    ".blogItem,button,select";
 
   // 这些的“点击”用翻页音（切页/切页签/翻页键）
   var PAGE =

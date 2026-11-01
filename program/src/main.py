@@ -39,6 +39,8 @@ try:
     import story_rag as STORY
 except Exception:
     STORY = None
+import special_cfg
+import special_files
 try:
     import gdi_text as GLIB
 except Exception:
@@ -83,6 +85,8 @@ UI_DIR = os.path.join(BASE, "ui2")
 # 界面素材目录：开发时直接用 program/res/assets（run_dev.py 用环境变量指过来），
 # 免得每次都把 200MB 素材复制进 ui2；打包版没有这个变量，就用 ui2/assets。
 ASSETS_DIR = os.environ.get("WA2_ASSETS_DIR") or os.path.join(UI_DIR, "assets")
+# 特别模式的立绘要直接放进 assets/sprites/<衣服>/，把这个目录告诉它
+special_files.set_assets_dir(ASSETS_DIR)
 PERSONA_FILE = os.path.join(BASE, "persona.txt")
 PERSONA_CORE_FILE = os.path.join(BASE, "persona_core.txt")
 # 用户可改的文件放 exe 同目录（打包后 BASE 是临时解包目录，不能放这里）
@@ -634,32 +638,6 @@ def train_info():
             "meta": prog.get("meta", {})}
 
 
-def model_probe(url):
-    """探测模型服务: 先试 Ollama, 再试 OpenAI 兼容"""
-    out = {"ok": False, "type": "", "models": [], "latency_ms": 0}
-    u = (url or "").strip().rstrip("/")
-    if not u:
-        out["error"] = "地址为空"
-        return out
-    if not (u.startswith("http://") or u.startswith("https://")):
-        out["error"] = "只支持 http/https"
-        return out
-    t0 = time.time()
-    try:
-        with urllib.request.urlopen(u + "/api/tags", timeout=6) as r:
-            d = json.loads(r.read().decode("utf-8", "ignore"))
-        names = [m.get("name") or m.get("model") for m in d.get("models", [])]
-        out.update(ok=True, type="Ollama", models=[x for x in names if x])
-    except Exception as e1:
-        try:
-            with urllib.request.urlopen(u + "/v1/models", timeout=6) as r:
-                d = json.loads(r.read().decode("utf-8", "ignore"))
-            names = [m.get("id") for m in d.get("data", [])]
-            out.update(ok=True, type="OpenAI", models=[x for x in names if x])
-        except Exception as e2:
-            out["error"] = str(e1)[:80] + " / " + str(e2)[:80]
-    out["latency_ms"] = int((time.time() - t0) * 1000)
-    return out
 
 def train_start(extra=None):
     # 已在训练则拒绝重复启动(避免双开爆显存)
@@ -1113,6 +1091,21 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({"models": ollama_models()})
         if self.path == "/api/usage":
             return self._json(_usage_snapshot())
+        if self.path == "/api/special/cfg":
+            # 没有 memory.json 就按当前默认值生成一份，再读回来（特别模式的滑条用）
+            try:
+                special_cfg.ensure()
+                return self._json({"ok": True, "cfg": special_cfg.current(),
+                                   "ctx_max": special_cfg.CTX_MAX,
+                                   "defaults": special_cfg.defaults()})
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)})
+        if self.path == "/api/special/name":
+            # 对话框左上角显示的名字（char/name.txt）
+            try:
+                return self._json({"ok": True, "name": special_cfg.get_name()})
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)})
         if self.path.startswith("/api/price"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             m = (q.get("model") or [""])[0]
@@ -1168,9 +1161,6 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(train_status())
         if self.path == "/api/train/info":
             return self._json(train_info())
-        if self.path.startswith("/api/model/probe"):
-            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            return self._json(model_probe((q.get("url") or [""])[0]))
         return super().do_GET()
 
     def do_POST(self):
@@ -1185,6 +1175,31 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({"ok": prefs_save(body)})
         if self.path == "/api/modelcfg":
             return self._modelcfg()
+        if self.path == "/api/special/cfg":
+            try:
+                body = self._body()
+            except Exception as e:
+                return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
+            return self._json(special_cfg.save(body))
+        if self.path == "/api/special/name":
+            try:
+                body = self._body()
+            except Exception as e:
+                return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
+            return self._json(special_cfg.set_name((body or {}).get("name")))
+        if self.path.startswith("/api/special/upload"):
+            # 特别模式的角色资源：原始字节流，文件名走 query（前端 encodeURIComponent）
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            kind = (q.get("kind") or [""])[0]
+            name = (q.get("name") or [""])[0]
+            try:
+                n = int(self.headers.get("Content-Length", 0) or 0)
+                if n > special_files.MAX_BYTES:
+                    return self._json({"ok": False, "error": "文件太大（上限 25MB）"}, 413)
+                data = self.rfile.read(n) if n > 0 else b""
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)}, 400)
+            return self._json(special_files.save_upload(kind, name, data))
         if self.path.startswith("/api/session/save"):
             try:
                 body = self._body()
@@ -1488,6 +1503,7 @@ class Handler(SimpleHTTPRequestHandler):
             size            / s            兼容旧参数的兜底字号（仅 GLIB 回退用）
             embolden        / e            兼容旧参数的加粗（仅 GLIB 回退用）
             color           / c            染色，RRGGBB
+            tight           /              1 = 半角字符（数字/字母/符号）走紧凑步进
         """
         from urllib.parse import urlparse, parse_qs
         try:
@@ -1503,11 +1519,12 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 chars_per_line = None
             color = qs(q, ("color", "c")).strip().lstrip("#") or None
+            tight = qs(q, ("tight",), "0") == "1"
             size = int(qs(q, ("size", "s"), "56") or 56)
             embolden = int(qs(q, ("embolden", "e"), "0") or 0)
             if not text:
                 text = " "
-            _key = (text, plain, max_width, chars_per_line, color)
+            _key = (text, plain, max_width, chars_per_line, color, tight)
             _disk = _text_disk_path(_key)
             _TEXT_DISK = _disk
             if os.path.exists(_disk):
@@ -1528,7 +1545,8 @@ class Handler(SimpleHTTPRequestHandler):
                     with _RENDER_LOCK:
                         img = sub_render.render_block(
                             text, maxw=max_width, stroke=not plain,
-                            margin=(None if not plain else 0), per_line=chars_per_line, color=color)
+                            margin=(None if not plain else 0), per_line=chars_per_line,
+                            color=color, tight=tight)
                         _buf = _io.BytesIO()
                         img.save(_buf, "PNG")
                         data = _buf.getvalue()

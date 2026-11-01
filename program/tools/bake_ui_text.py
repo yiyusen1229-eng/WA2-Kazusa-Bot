@@ -46,25 +46,60 @@ ITEMS = {
     "log_act_on":   ("动作：开", 11, True, None),
     "log_act_off":  ("动作：关", 11, True, None),
     "log_send":     ("发送", 11, True, None),
+
+    # ---- 特别模式（都是无描边的界面字） ----
+    # 数字/字母不在这里重烤：数字用 cost_d0~cost_d9，字母（token）用 cost_token，
+    # ¥ 和 . 用 cost_yen / cost_dot；这里只补「%」「=」「≈」这三个符号。
+    "sp_title_save":    ("存读档设置", 15, False, None),
+    "sp_title_consume": ("每轮消耗参考", 15, False, None),
+    "sp_title_char":    ("配置角色", 15, False, None),
+    "sp_ctx":           ("发送到的模型上下文大小：", 12, False, None),
+    "sp_trigger":       ("触发记忆书打包的阈值：", 12, False, None),
+    "sp_recent":        ("读档时最多上下文保留长度：", 12, False, None),
+    "sp_entries":       ("记忆条目上限：", 12, False, None),
+    # 「每轮 token 预估：」= sp_turn_pre + cost_token + sp_turn_post
+    "sp_turn_pre":      ("每轮", 12, False, None),
+    "sp_turn_post":     ("预估：", 12, False, None),
+    "sp_cost_label":    ("每轮费用预估：", 12, False, None),
+    "sp_name_label":    ("角色名称：", 12, False, None),
+    "sp_item_portrait": ("配置角色立绘", 12, False, None),
+    "sp_item_prompt":   ("配置角色提示词", 12, False, None),
+    "sp_item_world":    ("配置角色世界书", 12, False, None),
+    "sp_item_memory":   ("配置角色记忆书", 12, False, None),
+    "sp_item_voice":    ("配置语音模型参考音频", 12, False, None),
+    "sp_saved":         ("已保存", 11, False, None),
+    "sp_save_btn":      ("保存", 9, False, None),
+    "sp_pct":           ("%", 12, False, None),
+    "sp_eq":            ("=", 12, False, None),
+    "sp_approx":        ("≈", 12, False, None),
 }
 
 
 def main():
     if "--list" in sys.argv:
         for k, (t, fs, stroke, _c) in ITEMS.items():
-            print("%-14s %s（%dpx）" % (k, t, fs))
+            print("%-18s %s（%dpx）" % (k, t, fs))
         return
+
+    # 只烤指定前缀的（例：python tools/bake_ui_text.py sp_），不给就全烤
+    only = ""
+    for a in sys.argv[1:]:
+        if not a.startswith("--"):
+            only = a
+            break
 
     import sub_render
     os.makedirs(OUT, exist_ok=True)
     made = 0
     for key, (text, fs, stroke, color) in ITEMS.items():
+        if only and not key.startswith(only):
+            continue
         path = os.path.join(OUT, key + ".png")
         img = sub_render.render_block(text, maxw=2000, stroke=bool(stroke),
                                       margin=None if stroke else 0, color=color)
         img.save(path)
         made += 1
-        print("%-14s %-22s %dx%d" % (key, text, img.width, img.height))
+        print("%-18s %-24s %dx%d" % (key, text, img.width, img.height))
     print("\n共生成 %d 张 → %s" % (made, OUT))
 
 

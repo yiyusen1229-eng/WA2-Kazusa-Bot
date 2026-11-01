@@ -24,12 +24,17 @@
 """
 import json
 import os
+import sys
 import time
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(BASE, "cache")
 RUNTIME_FILE = os.path.join(CACHE_DIR, "memory_runtime.json")
-CFG_FILE = os.path.join(BASE, "memory.json")
+# 用户可改的参数放 exe 同目录（和 prefs.json / config.json 一个规矩）。
+# 打包后 BASE 是临时解包目录，写进去程序一退出就没了。
+USER_DIR = (os.path.dirname(os.path.abspath(sys.executable))
+            if getattr(sys, "frozen", False) else BASE)
+CFG_FILE = os.path.join(USER_DIR, "memory.json")
 
 # ------------------------------------------------------------------ 参数
 # 都可以用 program/memory.json 覆盖（没有就用这里的默认值）

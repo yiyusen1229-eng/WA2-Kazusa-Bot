@@ -30,9 +30,10 @@
     return true;
   }
 
-  function makeImg(text, fs, cb, perLine) {
+  function makeImg(text, fs, cb, perLine, tight) {
     var url = "/api/text?text=" + encodeURIComponent(text) + "&plain=1&v=" + VER +
-              (perLine ? ("&chars_per_line=" + perLine) : "");
+              (perLine ? ("&chars_per_line=" + perLine) : "") +
+              (tight ? "&tight=1" : "");
     var img = new Image();
     img.onload = function () {
       img.style.cssText =
@@ -48,7 +49,7 @@
     while (running < MAX_CONCURRENT && queue.length) {
       var job = queue.shift();
       running++;
-      (function (el, text, fs, perLine) {
+      (function (el, text, fs, perLine, tight) {
         makeImg(text, fs, function (img) {
           running--;
           pending.delete(el);
@@ -59,8 +60,10 @@
             el.style.lineHeight = "1";
           }
           pump();
-        }, perLine);
-      })(job.el, job.text, job.fs, job.el.dataset ? job.el.dataset.uitxtPerLine : "");
+        }, perLine, tight);
+      })(job.el, job.text, job.fs,
+         job.el.dataset ? job.el.dataset.uitxtPerLine : "",
+         job.el.dataset ? job.el.dataset.uitxtTight : "");
     }
   }
 

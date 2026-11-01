@@ -8,6 +8,8 @@ let turnCount = 0;
 let backlogOpen = false;
 let currentBgm = null;
 let bgmEnabled = true;
+/* 角色名：存在 char/name.txt，特别模式里改的就是它 */
+let CHAR_NAME = "和纱";
 
 /* ---------- 素材表 ---------- */
 const SPR = {
@@ -346,7 +348,7 @@ window.__loadSession = function (data) {
     if (meta.bg) { currentBg = null; setBg(meta.bg); } else { setBg("classroom"); }
     if (meta.outfit) { currentOutfit = meta.outfit; }
     setSpriteByScene(meta.bg || "classroom", "cold", true, meta.outfit || "");
-    gdiRenderName("和纱", $("namePlate"));
+    gdiRenderName(CHAR_NAME, $("namePlate"));
     setBgm("calm", 600);
     let last = "";
     for (let i = history.length - 1; i >= 0; i--) {
@@ -1091,14 +1093,13 @@ $("mainMenu").addEventListener("click", (e) => {
         if (act === "config") { if (window.__openOptions) window.__openOptions(); return; }
         if (act === "special") { if (window.__openSpecial) window.__openSpecial(); return; }
 
-  if (window.__closeTrain) window.__closeTrain();
-  /* 进游戏前关掉所有浮层（统一走 screens.js，别在这里各自 remove("show")） */
+    /* 进游戏前关掉所有浮层（统一走 screens.js，别在这里各自 remove("show")） */
   if (window.__closeScreens) window.__closeScreens();
   showScreen("gameScreen");
   titleBgmStarted = true;
   setBg("classroom");
   setSpriteByScene("classroom", "cold", true);
-  gdiRenderName("和纱", $("namePlate"));
+  gdiRenderName(CHAR_NAME, $("namePlate"));
   setBgm("calm", 600);
   if (window.__wantRestore) {
     window.__wantRestore = false;
@@ -1556,3 +1557,15 @@ document.addEventListener("click", function (e) {
     "opacity:0!important;pointer-events:none!important}";
   document.head.appendChild(css);
 })();
+
+/* ---------- 角色名：存在 char/name.txt，特别模式里改的就是它 ---------- */
+window.__setCharName = function (n) {
+  if (!n) return;
+  CHAR_NAME = n;
+  var el = document.getElementById("namePlate");
+  if (el && typeof gdiRenderName === "function") gdiRenderName(n, el);
+};
+fetch("/api/special/name", { cache: "no-store" })
+  .then(function (r) { return r.json(); })
+  .then(function (d) { if (d && d.ok && d.name) window.__setCharName(d.name); })
+  .catch(function () {});

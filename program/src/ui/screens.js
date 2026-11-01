@@ -38,11 +38,10 @@
     return Array.prototype.slice.call(document.querySelectorAll(".uiScreen"));
   }
 
-  /* 关一个：模型管理的关闭还带自己的收尾（退出详情卡），交给它自己处理 */
+  /* 关一个浮层 */
   function hideScreen(el) {
     if (!el) return;
-    if (el.id === "modelScreen" && window.__closeModel) { window.__closeModel(); return; }
-    el.classList.remove("show", "fading");
+    el.classList.remove("show");
     el.style.transition = "none";
     el.style.opacity = "";
   }
@@ -121,9 +120,6 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".optTabs .t").forEach(t => t.addEventListener("click", () => {
-      window.__setOptPage && window.__setOptPage(+t.dataset.opt); playSE && playSE("click");
-    }));
     // ESC 关闭
     document.addEventListener("keydown", e => {
       if (e.key === "Escape" && window.__isScreenOpen()) closeAll();
