@@ -347,7 +347,3 @@
     }
   })();
 
-// 全屏模式下禁止拖窗口（没有窗口边框可拖）
-  /* fullscreenchange 监听已移除：不再使用浏览器全屏 API */
-  document.body.classList.toggle("isFull", !!document.fullscreenElement);
-});
