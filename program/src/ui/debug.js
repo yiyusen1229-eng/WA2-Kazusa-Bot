@@ -178,3 +178,50 @@ window.addEventListener("unhandledrejection", function (e) {
     if (el && el.classList.contains("show")) { clearInterval(timer); setTimeout(function(){ run(el); }, 400); }
   }, 300);
 })();
+
+
+/* ---------- 第二组验证：WAAPI 在「槽位子元素」上是否同样生效 ----------
+   容器能动画不代表子元素能动画（合成层不同），所以单独测一次。 */
+(function () {
+  var done = false;
+
+  function run() {
+    if (done) return;
+    var slots = document.querySelectorAll("#saveScreen .saveSlot");
+    if (!slots || !slots.length) return;
+    done = true;
+    var el = slots[0];
+
+    __dbg("S", "测试 .saveSlot  共 " + slots.length + " 个");
+
+    var a = null;
+    try {
+      a = el.animate([{ transform: "scale(1)" }, { transform: "scale(0.9)" }],
+                     { duration: 900, fill: "both", easing: "linear" });
+      __dbg("S", "anim=" + (a ? "ok" : "null") + " state=" + (a ? a.playState : "-"));
+    } catch (e) { __dbg("S!", String(e.message).slice(0, 40)); }
+
+    var vals = [], i = 0;
+    var iv = setInterval(function () {
+      vals.push(getComputedStyle(el).transform);
+      if (++i >= 6) {
+        clearInterval(iv);
+        var u = {}; vals.forEach(function (v) { u[v] = 1; });
+        __dbg("S", "transform 值种类=" + Object.keys(u).length);
+        __dbg("S", "首=" + vals[0].slice(0, 22));
+        __dbg("S", "末=" + vals[vals.length - 1].slice(0, 22));
+        __dbg("S", Object.keys(u).length > 1 ? "子元素可用 ✓ 可直接写换页动画"
+              : "子元素被吞 ✗ 需换做法");
+        try { a && a.cancel(); } catch (e) {}
+      }
+    }, 150);
+  }
+
+  var timer = setInterval(function () {
+    var sc = document.getElementById("saveScreen");
+    if (sc && sc.classList.contains("show")) {
+      clearInterval(timer);
+      setTimeout(run, 2600);   /* 等第一组测试打完，避免争抢 */
+    }
+  }, 300);
+})();
