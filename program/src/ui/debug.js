@@ -138,33 +138,33 @@ window.addEventListener("unhandledrejection", function (e) {
   function run(el) {
     if (done) return;
     done = true;
-    log("WAAPI", "开始测试 #" + el.id);
+    __dbg("WAAPI", "开始测试 #" + el.id);
 
     var a1 = null, a2 = null;
     try {
       a1 = el.animate([{ transform: "scale(1)" }, { transform: "scale(0.5)" }],
                       { duration: 1200, fill: "both", easing: "linear" });
-      log("T  anim=" + (a1 ? "ok" : "null") + " state=" + (a1 ? a1.playState : "-") +
+      __dbg("T  anim=" + (a1 ? "ok" : "null") + " state=" + (a1 ? a1.playState : "-") +
           " n=" + el.getAnimations().length);
-    } catch (e) { log("T!  " + e.message.slice(0, 40)); }
+    } catch (e) { __dbg("T!  " + e.message.slice(0, 40)); }
 
     try {
       a2 = el.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 1200, fill: "both" });
-    } catch (e) { log("O!  " + e.message.slice(0, 40)); }
+    } catch (e) { __dbg("O!  " + e.message.slice(0, 40)); }
 
     sample(el, "transform", 8, 150, function (tv) {
       var u = {}; tv.forEach(function (v) { u[v] = 1; });
-      log("T  transform 值种类=" + Object.keys(u).length);
-      log("T  首=" + tv[0].slice(0, 22));
-      log("T  末=" + tv[tv.length - 1].slice(0, 22));
-      log("T  currentTime=" + (a1 ? Math.round(a1.currentTime) : "-") +
+      __dbg("T  transform 值种类=" + Object.keys(u).length);
+      __dbg("T  首=" + tv[0].slice(0, 22));
+      __dbg("T  末=" + tv[tv.length - 1].slice(0, 22));
+      __dbg("T  currentTime=" + (a1 ? Math.round(a1.currentTime) : "-") +
           " state=" + (a1 ? a1.playState : "-"));
 
       sample(el, "opacity", 8, 150, function (ov) {
         var u2 = {}; ov.forEach(function (v) { u2[v] = 1; });
-        log("O  opacity 值种类=" + Object.keys(u2).length +
+        __dbg("O  opacity 值种类=" + Object.keys(u2).length +
             "  (" + ov[0] + " -> " + ov[ov.length - 1] + ")");
-        log("结论", Object.keys(u).length > 1 ? "T 可用 -> 换页动画走 WAAPI"
+        __dbg("结论", Object.keys(u).length > 1 ? "T 可用 -> 换页动画走 WAAPI"
               : (Object.keys(u2).length > 1 ? "T 被吞 / O 正常 -> 渲染层问题，需 canvas"
                  : "两者都不动 -> 动画没执行"));
         try { a1 && a1.cancel(); } catch (e) {}
