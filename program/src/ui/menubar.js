@@ -167,9 +167,7 @@
       { label: "配音语言", sub: [
           { label: "日文（贴近原版声线）", w: 0, h: 0, act: "ja" },
           { label: "中文", w: 0, h: 0, act: "zh" },
-        ] },
-      { label: "背景音乐音量" },
-      { label: "界面音效" }
+        ] }
     ]));
     bar.appendChild(makeMenu("系统", [
       { label: "系统设置", action: function () {
@@ -177,6 +175,17 @@
       } },
       { label: "返回标题", action: function () { location.reload(); } }
     ]));
+
+    /* 调试面板开关：不放子菜单，点一下直接开/关左上角那块绿字 */
+    var dbgBtn = el("div", "mbItem", "调试");
+    dbgBtn.title = "显示 / 隐藏左上角调试面板";
+    dbgBtn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      closeAll();
+      var p = document.getElementById("dbgPanel");
+      if (p) p.style.display = (p.style.display === "none") ? "block" : "none";
+    });
+    bar.appendChild(dbgBtn);
 
     var spacer = el("div", "mbSpacer");
     bar.appendChild(spacer);

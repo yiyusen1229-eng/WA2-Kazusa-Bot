@@ -1216,9 +1216,10 @@ document.querySelectorAll("#toolbar .tb").forEach(el => {
         if (a === "config") { window.__openOptions && window.__openOptions(); return; }
     if (a === "rew")   toggleBacklog(true);          // 浏览本次对话历史
     if (a === "close") {
-      const open = document.querySelector(".uiScreen.show");
-      if (open) { open.classList.remove("show"); if (window.__closeTrain) window.__closeTrain(); }
-      else if (confirm("回到主菜单吗？")) backToTitle();
+      /* 右下角那个 ✕ = 隐藏窗口（只留 CG 与立绘），和右键「隐藏窗口」同一套；
+         再点一次右键或这个按钮就回来 */
+      document.body.classList.toggle("uiHidden");
+      return;
     }
   });
   el.addEventListener("mouseenter", () => {
