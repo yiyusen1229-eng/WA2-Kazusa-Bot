@@ -126,16 +126,20 @@
 
   // 窗口控制（无边框窗口需要自己实现）
   function winCtrl(act) {
-  try { if (window.__dbg) window.__dbg("WIN", act); } catch (e) {}
-    // 走本地接口最可靠（不依赖 pywebview 的 js_api 注入时机）
-    try {
-      fetch("/api/window?act=" + act, { cache: "no-store" });
-      return;
-    } catch (e) {}
+    try { if (window.__dbg) window.__dbg("WIN", act); } catch (e) {}
+    /* 双通道：先走 pywebview 桥接（不经过 HTTP），同时发一条 HTTP 兜底。
+       哪条通就用哪条，避免一条链路坏掉就完全动不了窗口。 */
     try {
       if (window.pywebview && window.pywebview.api && window.pywebview.api.win) {
         window.pywebview.api.win(act);
+        try { if (window.__dbg) window.__dbg("BRIDGE", act); } catch (e) {}
       }
+    } catch (e) {}
+    try {
+      fetch("/api/window?act=" + act, { cache: "no-store" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { try { if (window.__dbg) window.__dbg("HTTP", JSON.stringify(d).slice(0, 40)); } catch (e) {} })
+        .catch(function (err) { try { if (window.__dbg) window.__dbg("HTTP!", String(err).slice(0, 40)); } catch (e) {} });
     } catch (e) {}
   }
 
