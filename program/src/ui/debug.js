@@ -80,6 +80,7 @@
   /* ---- 滚轮：document 捕获阶段，元素被重建也不受影响 ---- */
   var BACKLOG = "#historyBox,#blogList,.historyBox,.backlog,.hlineBox";
   var acc = 0;
+  var lastWheelSE = 0;
 
   document.addEventListener("wheel", function (e) {
     var t = e.target;
@@ -89,6 +90,10 @@
     acc += Math.abs(e.deltaY);
     if (acc >= 60) {
       acc = 0;
+      /* 高速滚动时限流：260ms 内只响一次，低速正常触发 */
+      var now = performance.now();
+      if (now - lastWheelSE < 260) return;
+      lastWheelSE = now;
       log("PAGE", "滚轮触发");
       try { if (window.playSE) window.playSE("page"); } catch (err) {}
     }
