@@ -1,56 +1,61 @@
-# 第三方内容说明 / Notice on Third-Party Content
+# 素材与第三方内容归属说明 / Notice on Third-Party Assets
 
-**本文件不属于许可证的一部分。**
+**本文件不属于许可证的一部分，只说明版权归属与责任边界。**
 
-[MIT License](LICENSE) 覆盖本仓库内的**源代码与文档**。
+[MIT License](LICENSE) 仅覆盖本仓库内的**源代码与文档**。
 
-## 一、仓库里没有素材
+## 一、本仓库不包含、不分发的东西
 
-本仓库**只包含代码与文档**，不包含、不分发：
-
-| 类别 | 是否在仓库 | 说明 |
+| 类别 | 归属 | 是否在仓库中 |
 |---|---|---|
-| 图片、立绘、CG、背景、图标 | ❌ | 由使用者自行接入 |
-| 音频、语音、BGM、音效 | ❌ | 由使用者自行接入 |
-| 字体、字模图集 | ❌ | 由使用者自行接入 |
-| 模型权重（对话 / 翻译 / 语音） | ❌ | 全部通过外部服务或本地目录调用 |
-| 任何作品的角色、剧本、台词 | ❌ | 仓库不含任何作品内容 |
+| 《WHITE ALBUM 2》角色、剧本、台词 | Leaf / Aquaplus | ❌ 不包含 |
+| 立绘、CG、UI 图集、背景图 | Leaf / Aquaplus | ❌ 不包含 |
+| 语音、BGM、音效 | Leaf / Aquaplus | ❌ 不包含 |
+| 汉化补丁的字体图集与字形映射 | 汉化组 | ❌ 不包含 |
+| `Touma_Kazusa` GPT-SoVITS 音色权重 | 该权重的训练者 | ❌ 不包含、不转存、不镜像 |
+| 翻译模型（Hy-MT2 等） | 模型作者 | ❌ 不包含 |
+| 游戏本体 | Leaf / Aquaplus | ❌ 不包含 |
 
-## 二、责任边界
+## 二、语音模型的边界（重要）
 
-- 本项目是**界面框架**：它只定义「资源怎么放、文字怎么渲染、窗口怎么控制、接口怎么调」。
-- **放什么资源进这个框架，是使用者自己的选择和行为。**
-- 资源从哪来、是否有权使用、是否符合当地法律与软件许可，**由使用者自行负责**。
-- 本项目不提供素材下载、不提供素材获取手段、不推荐任何具体的素材来源。
+- 本项目使用的**和纱音色 TTS 权重（`Touma_Kazusa`）不是本项目训练的**，
+  是第三方作者训练并公开分享的权重。
+- 本项目在该环节**只做调用方**：把文本发给本地的 GPT-SoVITS 服务，取回音频播放。
+- 本项目**不提供该权重的下载**，不转存、不镜像、不二次分发。
+- 该权重的训练、来源、使用范围与授权问题，均由该权重的训练者与使用者各自负责，
+  与本项目无关。
 
-## 三、模型与外部服务
+## 三、本项目的义务声明
 
-| 组件 | 性质 |
-|---|---|
-| 对话模型 | 通过 OpenAI 兼容接口调用，模型由使用者自行选择与配置 |
-| 翻译模型 | 同上，可选；不配置则不做翻译 |
-| TTS | 需提供 `文本 → wav` 的本地或远程服务；权重与音色由使用者自行准备 |
+- **不提供绕过版权保护的任何手段**：仓库中不含解密、反调试、DRM 绕过相关内容
+- **不提供素材下载**：运行所需素材需用户自行从正版游戏中提取
+- **非商业**：本项目不销售、不接受付费分发
+- **可下架承诺**：若权利方认为本项目的任何部分不妥，通过 issue 联系后会立即处理
 
-本项目**不训练模型**，仓库不含任何权重，也不转让或托管他人权重。
+## 四、MIT 许可证覆盖范围
 
-## 四、兼容与下架
+MIT 覆盖：`program/src/` 下的源代码、`program/tools/` 下的脚本、`other/docs/` 下的文档、根目录文档。
 
-若权利方认为本项目的任何部分不妥（包括文档中的任何示例描述），
-请通过 issue 联系，会立即调整或移除相关部分。
+MIT **不覆盖**：上表列出的任何第三方内容（它们不在本仓库中）。
 
 ---
 
-# Notice on Third-Party Content
+# Notice on Third-Party Assets
 
-**This file is not part of the license.** The MIT License covers the **source code and
-documentation** in this repository.
+**This file is not part of the license.** It only clarifies copyright ownership and responsibility boundaries.
 
-This repository contains **code and documentation only**. It does not include or distribute
-any images, audio, fonts, model weights, or content from any work.
+The MIT License covers the **source code and documentation** in this repository.
 
-This project is a **UI framework**: it defines how resources are loaded, how text is rendered,
-how the window is controlled, and how services are called. What resources a user places into
-it — and whether they have the right to use them — is entirely the user's responsibility.
+Not included, not distributed:
 
-This project does not train models, does not host weights, and does not provide or point to
-any source of third-party assets.
+- All characters, script, dialogue, sprites, CGs, UI atlases, backgrounds, voice, BGM, SFX
+  from *WHITE ALBUM 2* — copyright **Leaf / Aquaplus**
+- The fan-translation font atlas and glyph mapping — copyright its authors
+- The `Touma_Kazusa` GPT-SoVITS voice weights — **trained by a third party, not by this project**.
+  This project only *calls* a local TTS service; it does not host, mirror, or redistribute
+  those weights.
+- Translation models (Hy-MT2 etc.)
+- The game itself
+
+This project does not provide any means to bypass copy protection, does not distribute
+game assets, and is non-commercial.
