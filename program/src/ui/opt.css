@@ -4,17 +4,9 @@
      底栏 sys_09000  1280x56  截图 y 1417  → 舞台 0, 415.2  800x35
    换算：舞台 = 截图 ÷ 3.4125，素材尺寸 = 原始像素 × 0.625 */
 
-#optScreen {
-  background: transparent;
-}/* 背景：标题画面 × brightness(0.50)
-   实测游戏对背景做的是「乘法变暗 0.50」，不是叠黑色半透明——
-   叠 alpha 会让暗部更死黑，亮部反而没压够。 */
-#optScreen .optBg {
-  position: absolute; left: 0; top: 0;
-  width: 800px; height: 450px;
-  pointer-events: none;
-  filter: brightness(0.50);
-}/* 顶栏：1280x36 → 800x22.5 */
+/* 背景：与其它浮层统一，用 .uiScreen 的 rgba(2,12,24,.72)。
+   原来这里铺一张 title.png 再 brightness(0.5)，只有设置界面和别处不一致，已去掉。 */
+/* 顶栏：1280x36 → 800x22.5 */
 #optScreen .optHead {
   position: absolute; left: 0; top: 0;
   width: 800px; height: 22.5px;

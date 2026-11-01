@@ -16,7 +16,9 @@ var CT, CT2;
   }
 
   function open() {
-    var s = byId("optScreen");
+    /* 统一入口：__showUIScreen 会先关掉其它浮层（特别模式/模型管理/存读档），
+       再显示自己 —— 别在这里各自写 classList.add("show")。 */
+    var s = window.__showUIScreen ? window.__showUIScreen("optScreen") : byId("optScreen");
     if (!s) return;
     safe(bindTabs);
     safe(bindPager);

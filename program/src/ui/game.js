@@ -1089,10 +1089,11 @@ $("mainMenu").addEventListener("click", (e) => {
           return;
         }
         if (act === "config") { if (window.__openOptions) window.__openOptions(); return; }
-        if (act === "special") { return; }
+        if (act === "special") { if (window.__openSpecial) window.__openSpecial(); return; }
 
   if (window.__closeTrain) window.__closeTrain();
-  document.querySelectorAll(".uiScreen").forEach(s => s.classList.remove("show"));
+  /* 进游戏前关掉所有浮层（统一走 screens.js，别在这里各自 remove("show")） */
+  if (window.__closeScreens) window.__closeScreens();
   showScreen("gameScreen");
   titleBgmStarted = true;
   setBg("classroom");

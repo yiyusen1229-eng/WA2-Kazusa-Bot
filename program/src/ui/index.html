@@ -1,16 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 聊天界面架构</title>
-<link rel="stylesheet" href="screens-base.css?v=11011910">
-<link rel="stylesheet" href="opt-screen.css?v=11011910">
-<link rel="stylesheet" href="save-screen.css?v=11011910">
-<link rel="stylesheet" href="game450.css?v=11011910">
-<link rel="stylesheet" href="unifont.css?v=11011910">
-<link rel="stylesheet" href="opt.css?v=11011910">
-  <link rel="stylesheet" href="menubar.css?v=11011910">
+<link rel="stylesheet" href="screens-base.css?v=11011955">
+<link rel="stylesheet" href="opt-screen.css?v=11011955">
+<link rel="stylesheet" href="save-screen.css?v=11011955">
+<link rel="stylesheet" href="game450.css?v=11011955">
+<link rel="stylesheet" href="unifont.css?v=11011955">
+<link rel="stylesheet" href="opt.css?v=11011955">
+  <link rel="stylesheet" href="menubar.css?v=11011955">
 </head>
 <body>
 <div id="stage">
@@ -93,7 +93,6 @@
   </div>
   <!-- ===== 系统设置 ===== -->
   <div id="optScreen" class="uiScreen">
-    <img class="optBg" src="assets/title.png" alt="">
     <div class="optLogo"><img src="assets/ui/opt/logo.png" alt=""></div>
     <div class="optHead"><img src="assets/ui/opt/topbar.png" alt=""></div>
     <div class="optPageBar"><img src="assets/ui/opt/pagebar.png" alt=""></div>
@@ -108,6 +107,16 @@
     <div class="optPagerBtn" id="optNext"><img src="assets/ui/opt/pager_r1.png" alt=""></div>
         <div class="optFoot"><img src="assets/ui/opt/footbar.png" alt=""></div>
 <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+  </div>
+
+  <!-- ===== 特别模式 =====
+       只有外框（顶栏 / 底栏 / EXIT / 雪花 logo），位置和布局与存读档、回想一致。
+       内容以后往里加：上下文限制设置、角色配置等（见 special.js）。 -->
+  <div id="specialScreen" class="uiScreen">
+    <div class="uiHead"><img src="assets/ui/sys_05000.png" alt=""></div>
+    <img class="uiLogo" src="assets/ui_logo.png" alt="">
+    <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
+    <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
   </div>
 
   <!-- ===== 回想 ===== -->
@@ -190,20 +199,21 @@
 </div>
 
 <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
-<script src="atlas.js?v=11011910"></script>
-<script src="config.js?v=11011910"></script>
-<script src="modelmgr.js?v=11011910"></script>
-<script src="opt.js?v=11011910"></script>
-  <script src="savetabs4.js?v=11011910"></script>
-  <script src="savepages.js?v=11011910"></script>
-  <script src="screens.js?v=11011910"></script>
-<script src="game.js?v=11011910"></script>
-<script src="sound.js?v=11011910"></script>
-<script src="zoom.js?v=11011910"></script>
-<script src="debug.js?v=11011910"></script>
-<script src="scale.js?v=11011910"></script>
-<script src="menubar.js?v=11011910"></script>
-<script src="uitext.js?v=11011910"></script>
+<script src="atlas.js?v=11011955"></script>
+<script src="config.js?v=11011955"></script>
+<script src="modelmgr.js?v=11011955"></script>
+<script src="opt.js?v=11011955"></script>
+  <script src="savetabs4.js?v=11011955"></script>
+  <script src="savepages.js?v=11011955"></script>
+  <script src="screens.js?v=11011955"></script>
+  <script src="special.js?v=11011955"></script>
+<script src="game.js?v=11011955"></script>
+<script src="sound.js?v=11011955"></script>
+<script src="zoom.js?v=11011955"></script>
+<script src="debug.js?v=11011955"></script>
+<script src="scale.js?v=11011955"></script>
+<script src="menubar.js?v=11011955"></script>
+<script src="uitext.js?v=11011955"></script>
 <script>
 /* __hashRoute: 用 #opt / #save / #model 直接打开界面(调试/对比用) */
 window.addEventListener("load", function () {

@@ -15,15 +15,8 @@
   background-image: url("assets/ui/slot_normal.png") !important;
 }
 
-/* 模型管理整屏: 用和纱角色介绍图做背景 */
-#modelScreen {
-  background: #04101d url("assets/ui/sys_07200.png") center/cover no-repeat !important;
-}
-#modelScreen::before {
-  content: ""; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(2,12,22,.82), rgba(2,12,22,.72) 40%, rgba(2,12,22,.86));
-  pointer-events: none;
-}
+/* 模型管理整屏：背景与其它浮层统一（.uiScreen 的 rgba(2,12,24,.72)）。
+   原来这里铺 sys_07200 角色图再叠一层渐变，只有它和别处不一致，已去掉。 */
 
 /* 缩略图区: 游戏框左侧本来就是空的, 直接放图 */
 .mThumb {
@@ -133,8 +126,7 @@
   transform: none !important;
 }
 
-/* 设置界面: 像游戏那样压暗背景, 模型管理按钮挪到右下角 */
-#optScreen { background: rgba(1,8,16,.86) !important; }
+/* 模型管理按钮挪到右下角（背景已统一成 .uiScreen 那一档，不再单独压暗） */
 .mgrBtn {
   right: 16px !important; top: auto !important;
   bottom: 36px !important;

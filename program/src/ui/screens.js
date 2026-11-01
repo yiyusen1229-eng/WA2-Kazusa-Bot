@@ -31,16 +31,38 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  /* ---------- 开关 ---------- */
-  function closeAll() {
-    ["saveScreen", "blogScreen", "optScreen"].forEach(function (id) {
-      var el = $(id);
-      if (!el) return;
-      el.classList.remove("show", "fading");
-      el.style.transition = "none";
-      el.style.opacity = "";
-    });
+  /* ---------- 浮层界面统一开关 ----------
+     所有 .uiScreen（存读档 / 回想 / 设置 / 模型管理 / 特别模式）都走这一套，
+     各自模块里不要再直接 classList.add("show") —— 否则关不干净、层级互相盖住。 */
+  function allScreens() {
+    return Array.prototype.slice.call(document.querySelectorAll(".uiScreen"));
   }
+
+  /* 关一个：模型管理的关闭还带自己的收尾（退出详情卡），交给它自己处理 */
+  function hideScreen(el) {
+    if (!el) return;
+    if (el.id === "modelScreen" && window.__closeModel) { window.__closeModel(); return; }
+    el.classList.remove("show", "fading");
+    el.style.transition = "none";
+    el.style.opacity = "";
+  }
+
+  /* 关全部。except：先关别的、再开自己时用，别把自己也关了 */
+  function closeAll(except) {
+    allScreens().forEach(function (el) { if (el !== except) hideScreen(el); });
+  }
+
+  window.__hideUIScreen = hideScreen;
+  window.__closeScreens = function () { closeAll(null); };
+  /* 打开任意浮层：先关掉其它浮层，再显示自己 */
+  window.__showUIScreen = function (elOrId) {
+    var el = typeof elOrId === "string" ? $(elOrId) : elOrId;
+    if (!el) return null;
+    closeAll(el);
+    el.classList.remove("fading");
+    el.classList.add("show");
+    return el;
+  };
   window.__openScreen = function (name, mode) {
     try { closeAll(); } catch (e) {}
     try {
@@ -93,8 +115,10 @@
       /* uiOpen 已回滚 */
     }
   };;
-  window.__closeScreens = closeAll;
-  window.__isScreenOpen = () => ["saveScreen","blogScreen"].some(id => $(id) && $(id).classList.contains("show"));
+  /* 有没有任意浮层开着？（ESC 关闭用，覆盖全部 .uiScreen，不只是存读档） */
+  window.__isScreenOpen = function () {
+    return allScreens().some(function (el) { return el.classList.contains("show"); });
+  };
 
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".optTabs .t").forEach(t => t.addEventListener("click", () => {
@@ -106,15 +130,15 @@
     });
   });
 
-  /* 右下角 EXIT：点一下退出当前界面（模型界面走它自己的关闭逻辑） */
+  /* 右下角 EXIT：统一走 hideScreen（模型界面由它自己的关闭逻辑收尾） */
   function wireExit() {
     document.querySelectorAll(".uiExit").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
         var sc = btn.closest(".uiScreen");
         if (!sc) return;
-        if (sc.id === "modelScreen" && window.__closeModel) { window.__closeModel(); return; }
-        sc.classList.remove("show");
+        hideScreen(sc);
+        /* 存读档的提示框跟着关掉 */
         var dlg = document.getElementById("dlgConfirm");
         if (dlg) dlg.classList.remove("on");
         var tst = document.getElementById("dlgToast");

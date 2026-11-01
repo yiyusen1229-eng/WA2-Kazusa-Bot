@@ -249,7 +249,8 @@
   function open() {
     const s = $("modelScreen");
     if (!s) return;
-    s.classList.add("show");
+    /* 统一入口：先关掉其它浮层（设置/特别模式/存读档） */
+    if (window.__showUIScreen) window.__showUIScreen(s); else s.classList.add("show");
     render();
     list.forEach((m, i) => {
       if (m.url) {

@@ -30,6 +30,7 @@ input::placeholder, textarea::placeholder {
 
 /* 深色面板：同字体同白 */
 #trainScreen, #trainScreen *,
+#specialScreen, #specialScreen *,
 #modelScreen, #modelScreen *,
 #cfgScreen, #cfgScreen *,
 #optScreen, #optScreen *,
@@ -41,7 +42,7 @@ input::placeholder, textarea::placeholder {
 }
 
 /* 强调项更亮 */
-#trainScreen b, #modelScreen b, #cfgScreen b, #optScreen b {
+#trainScreen b, #specialScreen b, #modelScreen b, #cfgScreen b, #optScreen b {
   color: #ffffff !important;
   font-weight: 700 !important;
 }

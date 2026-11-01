@@ -210,13 +210,9 @@
   text-shadow:0 1px 2px rgba(0,15,35,.9);
 }
 
-/* ---------- 模型管理 ---------- */
-#modelScreen { z-index: 130; background: linear-gradient(160deg, #04101d 0%, #071c30 55%, #04121f 100%); }
-#modelScreen::before {
-  content: ""; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 30% 10%, rgba(30,110,170,.22), transparent 60%);
-  pointer-events: none;
-}
+/* ---------- 模型管理 ----------
+   背景不再单独画：和其它浮层一样用 .uiScreen 的 rgba(2,12,24,.72)，这里只留层级 */
+#modelScreen { z-index: 130; }
 #modelScreen .slotWrap { top: 84px; bottom: 60px; }
 .modelSlot { cursor: pointer; }
 .mThumb {
