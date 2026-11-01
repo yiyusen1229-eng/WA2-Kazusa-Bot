@@ -1290,12 +1290,28 @@ function syncHistThumb() {
 window.fadeSwap = function (el, fn, ms) {
   if (!el) { try { fn && fn(); } catch (e) {} return; }
   ms = ms || 200;
-  el.style.transition = "opacity " + (ms * 0.5) + "ms ease";
+  el.style.transition = "none";
   el.style.opacity = "0";
-  setTimeout(function () {
+  requestAnimationFrame(function () {
     try { fn && fn(); } catch (e) {}
+    el.style.transition = "opacity " + ms + "ms ease";
     el.style.opacity = "1";
-  }, ms * 0.5);
+  });
+};
+
+/* 整屏淡入：给界面上 .show 后，用两帧把 opacity 推上去（display 切换时 CSS transition 不会启动） */
+window.fadeInScreen = function (el, ms) {
+  if (!el) return;
+  ms = ms || 220;
+  el.style.transition = "none";
+  el.style.opacity = "0";
+  el.classList.add("show");
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      el.style.transition = "opacity " + ms + "ms ease";
+      el.style.opacity = "1";
+    });
+  });
 };
 ''
 /* 回想（历史对话）面板滚轮翻动时播翻页音 */
