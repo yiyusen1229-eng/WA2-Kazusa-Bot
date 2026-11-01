@@ -32,9 +32,10 @@ shutil.rmtree(ui2, ignore_errors=True)
 os.makedirs(ui2, exist_ok=True)
 for f in os.listdir(os.path.join(SRC, "ui")):
     shutil.copy2(os.path.join(SRC, "ui", f), os.path.join(ui2, f))
-shutil.copytree(os.path.join(RES, "assets"), os.path.join(ui2, "assets"), dirs_exist_ok=True)
-print("  组装 ui2 完成")
+print("  组装 ui2 完成（素材不再复制，运行时直接读 res/assets）")
 
 # 3. 启动
 print("  启动程序…")
-subprocess.Popen([PY, "main.py"], cwd=ENV)
+env = os.environ.copy()
+env["WA2_ASSETS_DIR"] = os.path.join(RES, "assets")   # 界面素材直接读 res/
+subprocess.Popen([PY, "main.py"], cwd=ENV, env=env)

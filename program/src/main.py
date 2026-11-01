@@ -56,6 +56,9 @@ def res_dir():
 
 BASE = res_dir()
 UI_DIR = os.path.join(BASE, "ui2")
+# 界面素材目录：开发时直接用 program/res/assets（run_dev.py 用环境变量指过来），
+# 免得每次都把 200MB 素材复制进 ui2；打包版没有这个变量，就用 ui2/assets。
+ASSETS_DIR = os.environ.get("WA2_ASSETS_DIR") or os.path.join(UI_DIR, "assets")
 PERSONA_FILE = os.path.join(BASE, "persona.txt")
 PERSONA_CORE_FILE = os.path.join(BASE, "persona_core.txt")
 # 用户可改的文件放 exe 同目录（打包后 BASE 是临时解包目录，不能放这里）
@@ -984,6 +987,10 @@ class Handler(SimpleHTTPRequestHandler):
         import posixpath, urllib.parse
         p = urllib.parse.unquote(p)
         p = posixpath.normpath(p).lstrip("/")
+        # /game/assets/** 走素材目录（开发时指向 program/res/assets）
+        if p.split("/")[0] == "assets" and os.path.isdir(ASSETS_DIR):
+            parts = p.split("/")[1:]
+            return os.path.join(ASSETS_DIR, *parts)
         return os.path.join(UI_DIR, *p.split("/"))
 
     def _json(self, obj, code=200):
@@ -1701,15 +1708,6 @@ def ollama_models():
     return v
 
 
-def _warm_story():
-    try:
-        if STORY is not None:
-            STORY.get_index()
-            log("剧情索引预热完成")
-    except Exception as e:
-        log("剧情索引预热失败: %s" % e)
-
-
 def _warm_font():
     try:
         import sub_render
@@ -1719,7 +1717,6 @@ def _warm_font():
         log("字模预热失败: %s" % e)
 
 
-threading.Thread(target=_warm_story, daemon=True).start()
 threading.Thread(target=_warm_font, daemon=True).start()
 if not NO_MODELS:
     threading.Thread(target=lambda: tts_client.start_translate(), daemon=True).start()

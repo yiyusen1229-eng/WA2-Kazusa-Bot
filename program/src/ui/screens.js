@@ -1,9 +1,6 @@
 // 存读档 / 设置 / 回想 三个界面
 (function () {
   const $ = (id) => document.getElementById(id);
-  // 元素被移走时不要抛错
-  function need(id) { return document.getElementById(id); }
-
   /* 统一音效：翻页/切页 —— 页签、EXIT、OPTION 标签、回想滚轮都用它 */
   function playPageSE() {
     try { if (window.playSE) window.playSE("page"); } catch (e) {}

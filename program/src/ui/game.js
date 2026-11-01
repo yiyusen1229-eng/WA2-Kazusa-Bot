@@ -416,14 +416,6 @@ window.__grabThumb = function () {
 };
 
 /* ---------- 场景切换 ---------- */
-function detectScene(text) {
-  const t = text || "";
-  if (/钢琴|音乐室|练习|琴房|演奏/.test(t)) return "music";
-  if (/走廊|楼梯|放学|校门/.test(t)) return "corridor";
-  if (/晚上|夜|回家|街|雪/.test(t)) return "street";
-  return "classroom";
-}
-
 let currentBg = null;
 function setBg(name) {
   if (currentBg === name) return;
@@ -534,15 +526,6 @@ function setSpriteByScene(scene, mood, force, wantOutfit) {
   }
 })();
 
-function backToTitle() {
-  if (window.__closeTrain) window.__closeTrain();
-  if (window.__closeScreens) window.__closeScreens();
-  document.querySelectorAll(".uiScreen").forEach(s => s.classList.remove("show"));
-  showScreen("titleScreen");
-  setSprite(null);
-  if (!titleBgmStarted) { setBgm("menu", 900); titleBgmStarted = true; }
-}
-
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   $(id).classList.add("active");
@@ -587,42 +570,6 @@ function __gdiFallback(text, el, size, maxw, emb) {
   });
 }
 
-
-/* ---------- 句末翻页图标 ---------- */
-const PAGE_ICON_SRC = "assets/ui/page_icon.png?v=1";
-const PAGE_ADV = 28;      // 每字步进（渲染坐标）
-const PAGE_LH = 32;       // 行高（渲染坐标）
-const PAGE_GAP = 26;      // 与最后一个字的间距（渲染坐标, 实测 0.93em）
-
-function pageLines(text) {
-  const out = [];
-  let cur = "";
-  for (const ch of String(text || "")) {
-    if (ch === "\n") { out.push(cur); cur = ""; continue; }
-    if (cur.length >= 20) { out.push(cur); cur = ""; }
-    cur += ch;
-  }
-  out.push(cur);
-  return out;
-}
-
-function placePageIcon(el, text) {
-  if (!el) return;
-  let ic = el.querySelector(".pageIcon");
-  if (!ic) {
-    ic = document.createElement("img");
-    ic.className = "pageIcon";
-    ic.src = PAGE_ICON_SRC;
-    el.appendChild(ic);
-  }
-  const lines = pageLines(text);
-  const last = lines[lines.length - 1] || "";
-  const sc = TEXT_SCALE;
-  ic.style.width = (PAGE_ADV * 0.9 * sc).toFixed(1) + "px";   // 实测 0.9em
-  ic.style.height = "auto";
-  ic.style.left = ((last.length * PAGE_ADV + PAGE_GAP) * sc).toFixed(1) + "px";
-  ic.style.top = (((lines.length - 1) * PAGE_LH + 2) * sc).toFixed(1) + "px";
-}
 
 /* ---------- 语音 ---------- */
 let ttsAudio = null;
@@ -1403,21 +1350,6 @@ function syncHistThumb() {
     .catch(function () { window.__voiceOk = false; });
 })();
 /* 内容淡入淡出：换页/换标签时统一走这里，时长和实机一致（约 0.2s 出 + 0.2s 入） */
-
-/* 整屏淡入：给界面上 .show 后，用两帧把 opacity 推上去（display 切换时 CSS transition 不会启动） */
-window.fadeInScreen = function (el, ms) {
-  if (!el) return;
-  ms = ms || 220;
-  el.style.transition = "none";
-  el.style.opacity = "0";
-  el.classList.add("show");
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () {
-      el.style.transition = "opacity " + ms + "ms ease";
-      el.style.opacity = "1";
-    });
-  });
-};
 
 /* 回想（历史对话）面板滚轮翻动时播翻页音 */
 (function () {
