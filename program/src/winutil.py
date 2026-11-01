@@ -7,11 +7,28 @@ import ctypes
 import os
 
 
+def _main_module():
+    """取“主程序模块”。
+
+    直接跑 `python main.py` 时，主模块在 sys.modules 里的名字是 "__main__"，
+    不是 "main" —— 所以两个都要查，否则拆出来的模块取不到 main 的全局变量。
+    """
+    import sys
+    for name in ("main", "__main__"):
+        m = sys.modules.get(name)
+        if m is not None and getattr(m, "_WINDOW", None) is not None:
+            return m
+    for name in ("main", "__main__"):
+        m = sys.modules.get(name)
+        if m is not None:
+            return m
+    return None
+
+
 def _win_hwnd():
     """取主窗口句柄：优先 pywebview 的原生对象，兜底 FindWindow"""
-    # _WINDOW 挂在 main 模块上，拆出来后必须跨模块取，否则句柄恒为 0
-    import sys as _sys
-    _m = _sys.modules.get("main")
+    # _WINDOW 挂在主模块上（可能是 __main__），必须跨模块取，否则句柄恒为 0
+    _m = _main_module()
     w = getattr(_m, "_WINDOW", None) if _m is not None else None
     try:
         h = int(w.native.Handle)
@@ -25,8 +42,7 @@ def _win_hwnd():
         u = ctypes.WinDLL("user32", use_last_error=True)
         u.FindWindowW.restype = wintypes.HWND
         u.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
-        import sys as _s2
-        _m2 = _s2.modules.get("main")
+        _m2 = _main_module()
         _title = getattr(_m2, "WINDOW_TITLE", "") if _m2 is not None else ""
         return int(u.FindWindowW(None, _title) or 0)
     except Exception:
