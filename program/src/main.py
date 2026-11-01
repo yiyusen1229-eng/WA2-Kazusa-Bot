@@ -374,6 +374,16 @@ def qs(q, names, default=""):
     return default
 _RENDER_LOCK = _th.Lock()
 _TEXT_CACHE = {}
+
+
+def _text_disk_path(key):
+    """文字渲染的磁盘缓存路径（同参数只渲染一次，之后直接读文件）"""
+    import hashlib
+    h = hashlib.md5(repr(key).encode("utf-8")).hexdigest()[:16]
+    d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "res", "assets", "ui", "text_cache")
+    d = os.path.normpath(d)
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, h + ".png")
 _TEXT_CACHE_MAX = 2000
 
 
@@ -1146,6 +1156,17 @@ class Handler(SimpleHTTPRequestHandler):
             if not text:
                 text = " "
             _key = (text, plain, max_width, chars_per_line, color)
+            _disk = _text_disk_path(_key)
+            _TEXT_DISK = _disk
+            if os.path.exists(_disk):
+                data = open(_disk, "rb").read()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                self.wfile.write(data)
+                return
             if _key in _TEXT_CACHE:
                 data = _TEXT_CACHE[_key]
             else:
@@ -1171,6 +1192,12 @@ class Handler(SimpleHTTPRequestHandler):
                     data = GLIB.render_cached(text, maxw=max_width, size=size, embolden=embolden)
                 if len(_TEXT_CACHE) < _TEXT_CACHE_MAX:
                     _TEXT_CACHE[_key] = data
+                try:
+                    if not os.path.exists(_disk):
+                        with open(_disk, "wb") as _f:
+                            _f.write(data)
+                except Exception:
+                    pass
         except Exception as e:
             import traceback
             try:
