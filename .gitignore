@@ -39,3 +39,7 @@ program/src/worldbook.json
 program/src/persona*.txt
 program/src/fewshot.json
 
+
+# 备份文件
+*.bak
+*.bak.*
