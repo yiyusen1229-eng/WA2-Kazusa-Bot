@@ -377,6 +377,8 @@ WORLDBOOK_FILE = os.path.join(BASE, "worldbook.json")
 import threading as _th
 from winutil import _win_hwnd, _user32, _quiet_act
 from sessions import session_save, session_load, session_list, session_thumb
+import sessions as _sessions
+import memory as _memory
 
 
 def qs(q, names, default=""):
@@ -748,6 +750,159 @@ def worldbook_context(messages, depth=None, max_entries=None, max_chars=None):
     return "\n\n".join(parts), names
 
 
+# ---------------- 记忆书（见 memory.py） ----------------
+_MEM_PACK_LOCK = _th.Lock()
+
+
+def _mem_llm(prompt, max_tokens=1200, timeout=90):
+    """给记忆书用的模型调用：不加载人设，只让它把一段对话压成条目。"""
+    cc = cloud_cfg()
+    if cc:
+        base_url = (cc.get("base_url") or OLLAMA).rstrip("/")
+        key = cc.get("api_key") or ""
+        model = cc.get("model") or DEFAULT_MODEL
+        headers = {"Content-Type": "application/json", "Authorization": "Bearer " + key}
+    else:
+        base_url = OLLAMA.rstrip("/")
+        model = DEFAULT_MODEL
+        headers = {"Content-Type": "application/json"}
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": _memory.SUM_SYSTEM},
+                     {"role": "user", "content": prompt}],
+        "stream": False,
+        "max_tokens": max_tokens,
+        "temperature": 0.2,
+    }
+    if not cc:
+        payload["reasoning_effort"] = "none"
+    if cc and "pro" in model:
+        payload["thinking"] = {"type": "disabled"}
+    rq = urllib.request.Request(
+        base_url + "/v1/chat/completions",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers=headers)
+    try:
+        with urllib.request.urlopen(rq, timeout=timeout) as r:
+            d = json.loads(r.read().decode("utf-8"))
+        return (d["choices"][0]["message"].get("content") or "").strip()
+    except Exception as e:
+        detail = ""
+        try:
+            detail = e.read().decode("utf-8", "replace")[:200]
+        except Exception:
+            pass
+        log("记忆书：模型调用失败 %s: %s %s" % (type(e).__name__, e, detail))
+        raise
+
+
+def _memory_context(msgs, cloud):
+    """按 token 预算决定这一轮发什么。
+
+    没超阈值：原样全发（和以前一样）。
+    超了阈值：只发「最近一段原文」，更早的压成记忆条目一起注入。
+
+    **不会留空洞**：`covered`（已总结到哪）如果落后于「最近段起点」，
+    窗口就往前拉到 covered，宁可多发几句，也不让中间那段两头不着。
+    """
+    try:
+        trig, recent_b, entries_b = _memory.budget(cloud)
+        total = _memory.est_messages(msgs)
+        if total <= trig or len(msgs) < 4:
+            return msgs, ""
+        r = _memory.runtime()
+        aligned = _memory.recent_start(msgs, recent_b, 0)
+        if aligned <= 0:
+            return msgs, ""
+        covered = int(r.get("covered") or 0)
+        # 历史变短了（"开始游戏"清空 / 换了存档）→ 记忆书作废，别把上一段对话的印象带过来
+        if covered > len(msgs):
+            _memory.reset_for_load([], 0, "")
+            r = _memory.runtime()
+            covered = 0
+        # 第一次跨过阈值：必须先把旧的那段压成条目，否则就只能整段拒发
+        if not r.get("entries"):
+            ok, n = _memory.pack_span(msgs, 0, aligned, _mem_llm,
+                                      max_chunks=int(_memory.cfg()["sync_chunks"]))
+            covered = int(_memory.runtime().get("covered") or 0) if ok else 0
+            log("记忆书：首次压缩%s（%d 条，覆盖到第 %d 条）"
+                % ("成功" if ok else "失败", n, covered))
+        start = min(aligned, covered) if covered else 0
+        r = _memory.runtime()
+        note = _memory.render_note(r.get("entries") or [], entries_b)
+        turn = int(r.get("turns") or 0) + 1
+        _memory.runtime_set(turns=turn, window_start=start)
+        repack = int(_memory.cfg()["repack_turns"])
+        if covered and aligned > covered and repack > 0 and turn % repack == 0:
+            _repack_async(msgs, covered, aligned)
+        log("记忆书：估算 %d / 阈值 %d，发最近 %d 条（共 %d 条，%d 条记忆）"
+            % (total, trig, len(msgs) - start, len(msgs), len(r.get("entries") or [])))
+        return (msgs[start:], note) if start > 0 else (msgs, note)
+    except Exception as e:
+        log("记忆书失败（本轮按全量发送）: %s" % e)
+        return msgs, ""
+
+
+def _repack_async(msgs, a, b):
+    """后台重新打包被折叠的那一段；同时在跑就跳过（不排队）。"""
+    def work():
+        if not _MEM_PACK_LOCK.acquire(blocking=False):
+            return
+        try:
+            ok, n = _memory.pack_span(msgs, a, b, _mem_llm,
+                                      max_chunks=int(_memory.cfg()["async_chunks"]))
+            if ok:
+                log("记忆书：后台打包 %d~%d（%d 条）" % (a, b, n))
+        except Exception as e:
+            log("记忆书：后台打包失败 %s" % e)
+        finally:
+            _MEM_PACK_LOCK.release()
+    _th.Thread(target=work, daemon=True).start()
+
+
+def _pack_until(msgs, target, slot="", budget_sec=45):
+    """一直打包到 covered >= target（或超时）。只给后台线程用。"""
+    t0 = time.time()
+    while True:
+        cur = int(_memory.runtime().get("covered") or 0)
+        if cur >= target or (time.time() - t0) > budget_sec:
+            return cur
+        ok, n = _memory.pack_span(msgs, cur, target, _mem_llm, slot,
+                                  max_chunks=int(_memory.cfg()["async_chunks"]))
+        if not ok:
+            log("记忆书：打包中断（%d/%d）" % (cur, target))
+            return int(_memory.runtime().get("covered") or 0)
+
+
+def _finalize_save_memory(slot, saved_at, msgs):
+    """存档后的后台任务：把会被折叠的那段压成条目，写回同一个存档文件。
+
+    写回前会核对 saved_at：期间玩家又存过档就放弃，绝不覆盖新内容。
+    """
+    try:
+        trig, recent_b, entries_b = _memory.budget(bool(cloud_cfg()))
+        aligned = _memory.recent_start(msgs, recent_b, 0)
+        r = _memory.runtime()
+        covered = int(r.get("covered") or 0)
+        if aligned > covered:
+            with _MEM_PACK_LOCK:
+                cur = _pack_until(msgs, aligned, slot)
+            log("记忆书：存档 %s 覆盖到 %d/%d" % (slot, cur, aligned))
+        r = _memory.runtime()
+        mem = {
+            "enabled": True,
+            "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "covered_upto": int(r.get("covered") or 0),
+            "entries": list(r.get("entries") or []),
+        }
+        if _sessions.session_patch_memory(slot, mem, expect_saved_at=saved_at):
+            log("记忆书：已写入存档 %s（%d 条）" % (slot, len(mem["entries"])))
+        else:
+            log("记忆书：存档 %s 已被覆盖，丢弃这次总结" % slot)
+    except Exception as e:
+        log("记忆书：存档后台任务失败 %s" % e)
+
+
 # ---------------- HTTP 服务 ----------------
 
 
@@ -902,7 +1057,22 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(model_cfg_all())
         if self.path.startswith("/api/session/load"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            return self._json(session_load((q.get("slot") or ["auto"])[0]))
+            slot = (q.get("slot") or ["auto"])[0]
+            d = session_load(slot)
+            # 读档：看到 memory 标记就把记忆书接到运行时缓存上
+            try:
+                mem = (d or {}).get("memory") or {}
+                if mem.get("enabled"):
+                    _memory.reset_for_load(mem.get("entries") or [],
+                                           mem.get("covered_upto") or 0, slot)
+                    log("记忆书：读档 %s，带 %d 条记忆" % (slot, len(mem.get("entries") or [])))
+                else:
+                    _memory.reset_for_load([], 0, slot)
+            except Exception as e:
+                log("记忆书：读档恢复失败 %s" % e)
+            if isinstance(d, dict):
+                d.pop("memory", None)          # 记忆书对前端不可见
+            return self._json(d)
         if self.path.startswith("/api/session/list"):
             return self._json(session_list())
         if self.path.startswith("/api/session/thumb"):
@@ -945,9 +1115,31 @@ class Handler(SimpleHTTPRequestHandler):
             return self._modelcfg()
         if self.path.startswith("/api/session/save"):
             try:
-                return self._json(session_save(self._body()))
+                body = self._body()
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)}, 400)
+            if not isinstance(body, dict):
+                return self._json({"ok": False, "error": "bad body"}, 400)
+            msgs = body.get("messages") or []
+            over = False
+            try:
+                trig, _rb, _eb = _memory.budget(bool(cloud_cfg()))
+                over = _memory.est_messages(msgs) > trig
+            except Exception:
+                pass
+            if over:
+                # 先写"生成中"的标记：读档立刻能用，条目由后台补
+                r = _memory.runtime()
+                body["memory"] = {"enabled": True, "generated_at": None,
+                                  "covered_upto": int(r.get("covered") or 0),
+                                  "entries": list(r.get("entries") or [])}
+            res = session_save(body)
+            if res.get("ok") and over:
+                _th.Thread(target=_finalize_save_memory,
+                           args=(body.get("slot") or "auto", res.get("saved_at"),
+                                 list(msgs)),
+                           daemon=True).start()
+            return self._json(res)
         if self.path == "/api/chat":
             return self._chat()
         if self.path == "/api/train/start":
@@ -1325,8 +1517,13 @@ class Handler(SimpleHTTPRequestHandler):
             model = FALLBACK_MODEL if FALLBACK_MODEL in ollama_models() else model
         msgs = req.get("messages") or []
 
+        # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
+        msgs, mem_note = _memory_context(msgs, bool(cc))
+
         wb_ctx, wb_names = worldbook_context(msgs)
         system = persona_text()
+        if mem_note:
+            system = system + "\n\n" + mem_note
         if wb_ctx:
             system = system + "\n\n" + wb_ctx
 
@@ -1494,6 +1691,7 @@ def serve_only(prefer_port=None):
     """
     os.environ.setdefault("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
                           "--autoplay-policy=no-user-gesture-required")
+    _memory.clear_runtime()          # 后端模式也当作一次"新启动"
 
     port_holder = []
     t = threading.Thread(target=serve, args=(port_holder, prefer_port), daemon=True)
@@ -1532,6 +1730,7 @@ def serve_only(prefer_port=None):
 
 def main():
     _clear_text_cache()
+    _memory.clear_runtime()          # 记忆缓存只活这一次运行
     try:
         import tts_client as _tc
         _tc.clear_tts_cache()

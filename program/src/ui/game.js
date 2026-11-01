@@ -300,7 +300,7 @@ function sessionSave() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         slot: "auto",
-        messages: (window.__history || history || []).slice(-40),
+        messages: (window.__history || history || []),
         meta: { bg: currentBg || "", outfit: currentOutfit || "", at: Date.now() }
       })
     }).catch(function () {});
@@ -1069,7 +1069,8 @@ async function send() {
     let act = {};
     try { act = JSON.parse(localStorage.getItem("app_active_model") || "{}"); } catch (e) {}
     // 不写死模型: 只有用户在设置里明确选过才传, 否则由后端用 DEFAULT_MODEL
-      const body = { messages: history.slice(-16).map(function (m) { return { role: m.role, content: m.content }; }) };
+      // 注意：整段历史都发给后端 —— 裁剪/记忆书由后端按 token 预算决定（前端不砍）
+      const body = { messages: history.map(function (m) { return { role: m.role, content: m.content }; }) };
       if (act.model) body.model = act.model;
     if (act.url) body.base_url = act.url;
     return body;

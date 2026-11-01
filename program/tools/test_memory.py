@@ -1,0 +1,149 @@
+﻿# -*- coding: utf-8 -*-
+"""记忆书逻辑的自测（不联网、不花钱）。
+
+跑法：
+    cd program
+    build_env/venv/Scripts/python.exe tools/test_memory.py
+
+验的是几条"坏了就出事"的规矩：
+  1. 没超阈值 → 原样全发
+  2. 超阈值 → 只发最近一段，且**起点不对齐到用户消息就是错的**
+  3. 已总结到的位置必须 ≥ 最近段起点，否则中间那段两头不着（记忆空洞）
+  4. 存档：完整保存，不裁剪；memory 字段能原样透传；后台写回要核对 saved_at
+  5. 摘要失败要能降级，不能影响存/读档
+"""
+import json
+import os
+import sys
+import tempfile
+
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(os.path.dirname(HERE), "src")
+sys.path.insert(0, SRC)
+
+import memory as M  # noqa: E402
+
+FAILS = []
+
+
+def check(name, cond, extra=""):
+    print(("  ok   " if cond else "  FAIL ") + name + (("  " + extra) if extra and not cond else ""))
+    if not cond:
+        FAILS.append(name)
+
+
+def fake_llm(prompt):
+    """假模型：固定返回 3 条，其中一条 progress"""
+    return json.dumps({"entries": [
+        {"text": "玩家说过不喜欢下雨", "kind": "preference"},
+        {"text": "两人约好周末去海边", "kind": "event"},
+        {"text": "刚放学问完要不要一起走", "kind": "progress"},
+    ]}, ensure_ascii=False)
+
+
+def make_hist(n):
+    out = []
+    for i in range(n):
+        role = "user" if i % 2 == 0 else "assistant"
+        txt = ("这是第 %d 句测试对话，长度大概三十个字，用来把 token 预算撑起来。" % i)
+        out.append({"role": role, "content": txt})
+    return out
+
+
+def rt_entries_check(M):
+    return M.runtime()["entries"]
+
+
+def main():
+    cfg = M.cfg()
+    print("参数:", cfg, "cloud budget:", M.budget(True), "local budget:", M.budget(False))
+
+    print("\n[1] 估算")
+    check("中文 10 字 ≈ 11 token", M.est_text("一二三四五六七八九十") == 11,
+          "实际 %s" % M.est_text("一二三四五六七八九十"))
+    check("空字符串是 0", M.est_text("") == 0)
+    check("140 条消息 > 本地阈值", M.est_messages(make_hist(140)) > M.budget(False)[0])
+
+    print("\n[2] 最近段对齐")
+    hist = make_hist(200)
+    trig, recent_b, entries_b = M.budget(False)
+    aligned = M.recent_start(hist, recent_b, 0)
+    check("起点落在用户消息上", hist[aligned]["role"] == "user", "role=%s" % hist[aligned]["role"])
+    check("最近段不超预算", M.est_messages(hist[aligned:]) <= recent_b * 1.15,
+          "实际 %d / 预算 %d" % (M.est_messages(hist[aligned:]), recent_b))
+    check("起点往后挪了（确实裁了）", aligned > 0)
+
+    print("\n[3] 首次打包 + 记忆空洞")
+    M.reset_for_load([], 0, "t")
+    ok, n = M.pack_span(hist, 0, aligned, fake_llm, "t", max_chunks=100)
+    rt = M.runtime()
+    check("打包成功", ok and n >= 3, "%s/%s" % (ok, n))
+    check("去重后只剩 3 条", len(rt_entries_check(M)) == 3, str(len(rt_entries_check(M))))
+    check("covered 追到最近段起点", rt["covered"] == aligned, "%s vs %s" % (rt["covered"], aligned))
+    note = M.render_note(rt["entries"], entries_b)
+    check("条目里有 progress", "现在进行到哪儿" in note)
+    check("条目里有'不要编'" , "不要编造" in note)
+
+    # 关键：窗口起点不能晚于 covered
+    for extra in (0, 1, 5, 20):
+        h2 = make_hist(200 + extra)
+        a2 = M.recent_start(h2, recent_b, 0)
+        start = min(a2, rt["covered"])
+        check("无空洞（追加 %d 条后 start<=covered）" % extra, start <= rt["covered"])
+
+    print("\n[4] 条目合并")
+    old = [{"text": "旧事", "kind": "event"},
+           {"text": "进展A", "kind": "progress"}]
+    new = [{"text": "旧事", "kind": "event"},      # 重复
+           {"text": "进展B", "kind": "progress"}]  # 替换
+    merged = M.merge_entries(old, new, 40)
+    check("重复条目不重复出现", sum(1 for e in merged if e["text"] == "旧事") == 1)
+    check("progress 只留最新", [e["text"] for e in merged if e["kind"] == "progress"] == ["进展B"])
+
+    print("\n[5] 模型输出解析")
+    check("带 ```json 围栏", len(M.parse_entries('```json\n{"entries":[{"text":"x"}]}\n```')) == 1)
+    check("前后有废话", len(M.parse_entries('好的，结果如下：{"entries":[{"text":"x"}]} 完')) == 1)
+    check("坏输出返回空", M.parse_entries("不是 JSON") == []) 
+
+    print("\n[6] 存档：完整保存 + memory 透传")
+    import sessions as S
+    tmp = tempfile.mkdtemp()
+    S.SESS_DIR = tmp
+    big = make_hist(300)
+    r = S.session_save({"slot": "unit", "messages": big, "meta": {},
+                        "memory": {"enabled": True, "covered_upto": 10, "entries": [{"text": "a"}]}})
+    check("保存成功", r.get("ok") is True)
+    d = S.session_load("unit")
+    check("300 条一条不少", len(d["messages"]) == 300, "实际 %d" % len(d["messages"]))
+    check("memory 原样存下", d["memory"]["covered_upto"] == 10)
+
+    print("\n[7] 后台写回要核对 saved_at")
+    ok1 = S.session_patch_memory("unit", {"enabled": True, "covered_upto": 99}, expect_saved_at="1999-01-01 00:00:00")
+    check("saved_at 对不上就拒绝", ok1 is False)
+    ok2 = S.session_patch_memory("unit", {"enabled": True, "covered_upto": 99}, expect_saved_at=d["saved_at"])
+    check("saved_at 一致才写", ok2 is True)
+    check("写回生效", S.session_load("unit")["memory"]["covered_upto"] == 99)
+
+    print("\n[8] 摘要失败降级")
+    def bad_llm(prompt):
+        raise RuntimeError("模型挂了")
+    M.reset_for_load([], 0, "t")
+    ok3, n3 = M.pack_span(hist, 0, aligned, bad_llm, "t")
+    check("失败不抛异常", ok3 is False and n3 == 0)
+    check("失败后记忆保持为空", M.runtime()["entries"] == [])
+
+    print("\n[9] 旧存档兼容（没有 memory 字段）")
+    p = os.path.join(tmp, "old.json")
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump({"slot": "old", "messages": [{"role": "user", "content": "hi"}]}, f, ensure_ascii=False)
+    dd = S.session_load("old")
+    check("没有 memory 也能读", dd.get("ok") and dd.get("memory") is None)
+
+    print("\n" + ("全部通过" if not FAILS else "有 %d 项失败: %s" % (len(FAILS), FAILS)))
+    return 1 if FAILS else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

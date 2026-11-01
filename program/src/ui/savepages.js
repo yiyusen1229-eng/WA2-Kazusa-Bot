@@ -235,7 +235,8 @@
     }
     var body = {
       slot: String(idx),
-      messages: (window.__history || []).slice(-40),
+      /* 完整保存：不截断（回想界面要能翻到每一条）。裁剪只发生在"发给模型"那一侧 */
+      messages: (window.__history || []),
       meta: meta
     };
     fetch("/api/session/save", {

@@ -26,6 +26,7 @@ other/dev/
 # ===== 运行时产物 =====
 logs/
 *.log
+cache/
 config.json
 prefs.json
 ui2/

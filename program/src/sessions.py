@@ -27,19 +27,48 @@ def session_save(data):
         payload = {
             "slot": slot,
             "saved_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "messages": (data.get("messages") or [])[-60:],
+            # 日记必须完整：这里**不裁剪**，回想界面翻的就是这份
+            "messages": data.get("messages") or [],
             "meta": data.get("meta") or {},
         }
+        # 记忆书（可选）：有就原样存，没有就不写 —— 旧档照样能读
+        mem = data.get("memory")
+        if isinstance(mem, dict):
+            payload["memory"] = mem
         os.makedirs(SESS_DIR, exist_ok=True)
         path = _sess_path(slot)
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=1)
         os.replace(tmp, path)          # 原子替换，写一半断电不会毁掉旧档
+        _SESS_CACHE.pop(os.path.basename(path), None)
         return {"ok": True, "slot": slot, "count": len(payload["messages"]),
                 "saved_at": payload["saved_at"]}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+def session_patch_memory(slot, mem, expect_saved_at=None):
+    """只更新某个存档的 memory 字段（后台生成摘要后写回）。
+
+    如果期间玩家又存过一次档（saved_at 变了），就放弃这次写回 ——
+    宁可少一次记忆，也不能把新存档的内容覆盖成旧的。
+    """
+    try:
+        path = _sess_path(slot)
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+        if expect_saved_at and d.get("saved_at") != expect_saved_at:
+            return False
+        d["memory"] = mem
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, path)
+        _SESS_CACHE.pop(os.path.basename(path), None)
+        return True
+    except Exception:
+        return False
 
 
 def session_load(slot="auto"):
