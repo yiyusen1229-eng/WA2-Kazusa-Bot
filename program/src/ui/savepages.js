@@ -11,6 +11,9 @@
   var PAGES = 10;    // 总页数
 
   var state = {};    // "61" -> {slot, saved_at, count}
+  /* 列表有没有真正拉回来过。没拉回来时 state 是空的，
+     这时候点槽位会把「已有存档」当成空槽直接写掉（不弹覆盖确认）——必须挡住。 */
+  var listReady = false;
 
   function slotEls() {
     return Array.prototype.slice.call(
@@ -128,18 +131,29 @@
         ((d && d.slots) || []).forEach(function (x) {
           if (x && x.slot !== undefined) state[String(x.slot)] = x;
         });
+        listReady = true;
       })
       .catch(function (err) {
-        state = {};
+        /* 拉失败不要清空 state，也不要标记 ready：
+           清空会把「已经存在的存档」当成空槽，下一次点击就直接覆盖掉了。 */
         try { if (window.__dbg) window.__dbg("LIST!", String(err).slice(0, 46)); } catch (e) {}
       });
   }
 
   /* 翻页 / 打开存档界面时调用：先用旧数据占位，再按服务器结果重画一次 */
-window.__renderSaveSlots = function (page) {
+  window.__renderSaveSlots = function (page) {
     /* 只做重绘（换页动画已撤掉：WAAPI 在实际界面里会把整片槽位弄没） */
     window.__savePage = page;
     window.__renderSaveSlotsNow(page);
+  };
+
+  /* 真正重绘：先用已有 state 画一帧（打开界面不闪空），再拉服务器列表重画 */
+  window.__renderSaveSlotsNow = function (page) {
+    page = page || window.__savePage || 1;
+    page = Math.max(1, Math.min(PAGES, page));
+    window.__savePage = page;
+    paint(page);
+    return fetchList().then(function () { paint(page); });
   };
 
   /* 调试用：当前已知的存档列表 */
@@ -298,6 +312,20 @@ window.__renderSaveSlots = function (page) {
   function onSlotClick(e) {
     var el = e.target && e.target.closest ? e.target.closest(".saveSlot") : null;
     if (!el || busy) return;
+    if (!listReady) {
+      /* 列表还没回来：先拉一次，再拿最新状态处理这次点击 */
+      busy = true;
+      fetchList().then(function () {
+        busy = false;
+        paint(window.__savePage || 1);
+        if (listReady) handleSlot(el);
+      });
+      return;
+    }
+    handleSlot(el);
+  }
+
+  function handleSlot(el) {
     var idx = parseInt(el.dataset.slot, 10);
     if (!idx) return;
     /* 模式以界面上的类为准（比全局变量稳，避免状态过期） */

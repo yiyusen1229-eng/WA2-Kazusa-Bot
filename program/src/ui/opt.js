@@ -1,4 +1,9 @@
 // 系统设置界面（重建中：目前只有顶栏和底栏）
+
+/* CT2（OPTION 2 的控件表）必须在 IIFE 之外可见：
+   文件末尾的 __ct2State / applyCt2 / 启动还原都读它，放在 IIFE 里会 ReferenceError。 */
+var CT2;
+
 (function () {
   function byId(id) { return document.getElementById(id); }
 
@@ -287,13 +292,20 @@
   }
 
 // ---------- OPTION 2 内容区（03101 常态 / 03210 悬停 / 03211 选中）----------
-  var CT2 = {
+/* 控件分组（原始 27 个控件见 assets/ui/opt/ct2/widgets.js.txt）：
+     1 = 是/否确认（0 确认 / 1 不确认）
+     2 = 滑鼠右键功能（2 隐藏窗口 / 3 设置菜单 / 4 存档）
+     0 = 箭头与试听（5/6、9/10、13/14、18/19 四组左右箭头，15/20 试听）
+     3~6 = 四条音量的 音量ON / 音量OFF（7/8、11/12、16/17、21/22）
+     7 = 翻页时中断语音（23/24）—— 用户要求删除，已不再创建
+     8 = 原版的空行（25/26）—— 从未使用 */
+  CT2 = {
     W: 1024, H: 464,
     W_STAGE: 645.27, H_STAGE: 292.45,
     dir: "assets/ui/opt/ct2/",
-    widgets: [[458,14,252,36,1],[714,14,252,36,1],[458,54,164,36,2],[630,54,164,36,2],[802,54,164,36,2],[482,118,52,36,0],[890,118,52,36,0],[390,119,80,14,3],[390,137,80,14,3],[482,158,52,36,0],[890,158,52,36,0],[390,159,80,14,4],[390,177,80,14,4],[482,198,52,36,0],[890,198,52,36,0],[946,198,52,36,0],[390,199,80,14,5],[390,217,80,14,5],[482,238,52,36,0],[890,238,52,36,0],[946,238,52,36,0],[390,239,80,14,6],[390,257,80,14,6],[458,302,252,36,7],[714,302,252,36,7],],
+    widgets: [[458,14,252,36,1],[714,14,252,36,1],[458,54,164,36,2],[630,54,164,36,2],[802,54,164,36,2],[482,118,52,36,0],[890,118,52,36,0],[390,119,80,14,3],[390,137,80,14,3],[482,158,52,36,0],[890,158,52,36,0],[390,159,80,14,4],[390,177,80,14,4],[482,198,52,36,0],[890,198,52,36,0],[946,198,52,36,0],[390,199,80,14,5],[390,217,80,14,5],[482,238,52,36,0],[890,238,52,36,0],[946,238,52,36,0],[390,239,80,14,6],[390,257,80,14,6]],
     sliders: [{x:543,y:119,n:21,pitch:16,h:26},{x:543,y:159,n:21,pitch:16,h:26},{x:543,y:199,n:21,pitch:16,h:26},{x:543,y:239,n:21,pitch:16,h:26}],
-    sel: { 0: 1, 2: 1, 7: 1, 11: 1, 16: 1, 21: 1, 24: 1, 26: 1 },
+    sel: { 0: 1, 2: 1, 7: 1, 11: 1, 16: 1, 21: 1 },
     slideVal: [13, 13, 13, 21]
   };
 
@@ -337,15 +349,63 @@
       }
     }
 
+    /* 全量重画（启动时按 prefs 还原后调用；paint 只重画 sel 里的控件，不够用） */
+    window.__ct2RepaintAll = function () {
+      for (var i = 0; i < imgs.length; i++) paint(i);
+      for (var si = 0; si < CT2.sliders.length; si++) drawFill2(si);
+    };
+
+    /* 箭头 / 音量 ON-OFF 的索引表（控件已固定在 0~22，删掉 23/24 后不会位移） */
+    var ARROWS = { 5: [0, -1], 6: [0, 1], 9: [1, -1], 10: [1, 1],
+                   13: [2, -1], 14: [2, 1], 18: [3, -1], 19: [3, 1] };
+    var PILLS = { 7: [0, 1], 8: [0, 0], 11: [1, 1], 12: [1, 0],
+                  16: [2, 1], 17: [2, 0], 21: [3, 1], 22: [3, 0] };
+    var PILL_IDX = [[7, 8], [11, 12], [16, 17], [21, 22]];
+
+    /* 「音量ON / 音量OFF」跟着滑块走：0% 显示 OFF，其余显示 ON */
+    function syncPill(si) {
+      var pair = PILL_IDX[si];
+      if (!pair) return;
+      var on = (CT2.slideVal[si] || 1) > 1;
+      var want = on ? pair[0] : pair[1], other = on ? pair[1] : pair[0];
+      if (!CT2.sel[want]) {
+        delete CT2.sel[other];
+        CT2.sel[want] = 1;
+        paint(want); paint(other);
+      }
+    }
+
     function clickWidget(idx) {
       var g = CT2.widgets[idx][4];
-      if (g === 0) return;
+      /* 左右箭头：一格 = 5% */
+      var ar = ARROWS[idx];
+      if (ar) {
+        var s = CT2.sliders[ar[0]];
+        CT2.slideVal[ar[0]] = Math.max(1, Math.min(s.n, (CT2.slideVal[ar[0]] || 1) + ar[1]));
+        drawFill2(ar[0]);
+        syncPill(ar[0]);
+        applyCt2();
+        return;
+      }
+      /* 音量 ON / OFF：ON = 满格，OFF = 静音 */
+      var pf = PILLS[idx];
+      if (pf) {
+        CT2.slideVal[pf[0]] = pf[1] ? CT2.sliders[pf[0]].n : 1;
+        drawFill2(pf[0]);
+        syncPill(pf[0]);
+        applyCt2();
+        return;
+      }
+      if (g === 0) return;                     /* 试听按钮：暂未接 */
       if (CT2.sel[idx]) { delete CT2.sel[idx]; paint(idx); applyCt2(); return; }
       for (var k in CT2.sel) {
-        if (+k !== idx && CT2.widgets[+k][4] === g) { delete CT2.sel[k]; paint(+k); }
+        var wk = CT2.widgets[+k];
+        if (+k !== idx && wk && wk[4] === g) { delete CT2.sel[k]; paint(+k); }
       }
       CT2.sel[idx] = 1;
       paint(idx);
+      /* 选中分支原来漏了 applyCt2 —— 于是「是/否确认」「右键功能」只在界面上变，实际不生效 */
+      applyCt2();
     }
 
     CT2.widgets.forEach(function (w, idx) {
@@ -414,6 +474,7 @@
         var n = Math.floor((ax - s2.x) / s2.pitch) + 1;
         CT2.slideVal[si] = Math.max(1, Math.min(s2.n, n));
         drawFill2(si);
+        syncPill(si);
         applyCt2();
       });
       box.appendChild(d);
@@ -428,8 +489,8 @@
     }
 
     for (var k3 in CT2.sel) { if (+k3 >= CT2.widgets.length) delete CT2.sel[k3]; }
-  for (var k2 in CT2.sel) paint(+k2);
-    for (var si2 = 0; si2 < CT2.sliders.length; si2++) drawFill2(si2);
+    for (var k2 in CT2.sel) paint(+k2);
+    for (var si2 = 0; si2 < CT2.sliders.length; si2++) { drawFill2(si2); syncPill(si2); }
   }
 
 // ---------- OPTION 3：三个模型板块 ----------
@@ -787,7 +848,9 @@
 
 /* ---------- OPTION 2 的取值真正生效 ----------
    sliders: 0=全体 1=BGM 2=SE 3=VOICE（1~21 格 → 0~100%）
-   widgets 分组：1=是否确认 2=右键功能（3 选 1） 3~6 未用 7=翻页中断 8=已删
+   widgets 分组：1=是/否确认 2=右键功能（3 选 1）
+   索引以 assets/ui/opt/ct2/widgets.js.txt 的原始顺序为准：
+     0=确认 1=不确认 | 2=隐藏窗口 3=设置菜单 4=存档
 */
 function ct2Pct(i) {
   var n = CT2.slideVal[i] || 1;
@@ -796,7 +859,7 @@ function ct2Pct(i) {
 window.__ct2State = function () {
   return {
     confirm: !!CT2.sel[0],
-    rightClick: CT2.sel[2] ? "hide" : (CT2.sel[7] ? "options" : "save"),
+    rightClick: CT2.sel[2] ? "hide" : (CT2.sel[3] ? "options" : "save"),
     volMaster: ct2Pct(0),
     volBgm: ct2Pct(1),
     volSe: ct2Pct(2),
@@ -819,20 +882,42 @@ function applyCt2() {
 }
 window.__applyCt2 = applyCt2;
 
-/* 启动时按已存的 prefs 还原滑块与选项 */
-document.addEventListener("DOMContentLoaded", function () {
+/* 启动时按已存的 prefs 还原滑块与选项。
+   注意 window.App 要等 config.js 的 catalog.json 加载完才存在，
+   所以 DOMContentLoaded 和 app:ready 各跑一次（重复跑是幂等的）。 */
+function restoreCt2() {
   try {
     var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
-    if (typeof P.volMaster === "number") {
-      var vals = [P.volMaster, P.volBgm, P.seVol, P.volVoice];
-      vals.forEach(function (v, i) {
-        CT2.slideVal[i] = Math.max(1, Math.min(21, Math.round(v / 100 * 20) + 1));
-      });
-    }
-    if (P.confirmAsk) CT2.sel[0] = 1; else delete CT2.sel[0];
-    ["hide", "options", "save"].forEach(function (m, i) { delete CT2.sel[[2, 7, 24][i]]; });
+    /* 旧版只有 bgmVol / seVol，没有 volMaster / volVoice：第一次跑要能接上旧值，
+       否则用户之前的音量设置会被这里的默认值顶掉 */
+    var src = [
+      (typeof P.volMaster === "number" ? P.volMaster : 100),
+      (typeof P.volBgm === "number" ? P.volBgm : (typeof P.bgmVol === "number" ? P.bgmVol : 30)),
+      (typeof P.seVol === "number" ? P.seVol : 35),
+      (typeof P.volVoice === "number" ? P.volVoice : 90)
+    ];
+    src.forEach(function (v, i) {
+      CT2.slideVal[i] = Math.max(1, Math.min(21, Math.round(v / 100 * 20) + 1));
+    });
+    /* 默认「确认」：savepages 只有在 confirmAsk === false 时才跳过二次确认，
+       这里如果默认成「不确认」，界面和实际行为会对不上 */
+    if (P.confirmAsk === false) { delete CT2.sel[0]; CT2.sel[1] = 1; }
+    else { delete CT2.sel[1]; CT2.sel[0] = 1; }
+    /* 右键功能三选一：2=隐藏窗口 3=设置菜单 4=存档（默认存档） */
+    [2, 3, 4].forEach(function (i) { delete CT2.sel[i]; });
     if (P.rightClick === "hide") CT2.sel[2] = 1;
-    else if (P.rightClick === "options") CT2.sel[7] = 1;
-    else CT2.sel[24] = 1;
+    else if (P.rightClick === "options") CT2.sel[3] = 1;
+    else CT2.sel[4] = 1;
+    /* 界面已经建好时立刻重画一次（否则要等下次打开设置才看得到） */
+    if (window.__ct2Bound && window.__ct2RepaintAll) window.__ct2RepaintAll();
+    /* 无论界面建没建好都存一遍：否则第一次进游戏时 prefs 里没有这些键，
+       savepages 拿不到 confirmAsk，界面显示和实际行为会对不上 */
+    if (window.App && window.App.setPref) window.__applyCt2();
   } catch (e) {}
-});
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", restoreCt2);
+} else {
+  restoreCt2();
+}
+window.addEventListener("app:ready", restoreCt2);

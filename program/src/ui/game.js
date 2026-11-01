@@ -43,7 +43,18 @@ function bgmSrc(name) {
 }
 function bgmVolume() {
   const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
-  return (P.bgmVol === undefined ? 28 : P.bgmVol) / 100;
+  /* OPTION 2 的 BGM 滑块优先（volBgm），没有就退回旧的 bgmVol；两者都要乘全体音量 */
+  const b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 28 : P.bgmVol));
+  const m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+  return (b / 100) * m;
+}
+
+/* 语音音量：OPTION 2 的 VOICE 滑块 × 全体音量（原来 playback 里写死 1.0，滑块等于没用） */
+function voiceVolume() {
+  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+  const v = (P.volVoice === undefined ? 90 : P.volVoice);
+  const m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+  return (v / 100) * m;
 }
 
 /* ---------- 开场动画 ---------- */
@@ -671,7 +682,7 @@ function speakReply(text) {
   return fetchVoice(text, 15000).then((a) => {
     if (!a) return false;
     ttsAudio = a;
-    try { a.volume = 1.0; a.play(); } catch (e) {}
+    try { a.volume = voiceVolume(); a.play(); } catch (e) {}
     return true;
   });
 }
@@ -870,6 +881,7 @@ function replayBacklogVoice(row) {
       const u = URL.createObjectURL(b);
       const a = new Audio(u);
       ttsAudio = a;
+      try { a.volume = voiceVolume(); } catch (e) {}
       a.onended = function () { URL.revokeObjectURL(u); done(); };
       a.onerror = function () { URL.revokeObjectURL(u); done(); };
       a.play().catch(function () { done(); });
@@ -1316,7 +1328,7 @@ window.fadeInScreen = function (el, ms) {
     });
   });
 };
-''
+
 /* 回想（历史对话）面板滚轮翻动时播翻页音 */
 (function () {
   function attach() {
@@ -1337,16 +1349,18 @@ window.fadeInScreen = function (el, ms) {
   setInterval(attach, 1500);
 })();
 
-/* ---------- 音量总控：BGM / 语音 / 音效都乘上主音量 ---------- */
+/* ---------- 音量总控：BGM / 语音 / 音效都乘上主音量 ----------
+   注意这里必须用模块内的 bgmAudio / ttsAudio：
+   之前写的是 window.__bgmAudio / window.__voiceAudio，那两个变量从来没被赋值过，
+   所以「全体音量」「BGM」「VOICE」三个滑块都没有实际效果。 */
 window.__applyVolumes = function () {
-  var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
-  var m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
-  var bgm = ((P.volBgm === undefined ? 70 : P.volBgm) / 100) * m;
-  var voice = ((P.volVoice === undefined ? 90 : P.volVoice) / 100) * m;
-  try { if (window.__bgmAudio) window.__bgmAudio.volume = bgm; } catch (e) {}
-  try { if (window.__voiceAudio) window.__voiceAudio.volume = voice; } catch (e) {}
-  window.__volBgm = bgm;
-  window.__volVoice = voice;
+  var bv = 0, vv = 0;
+  try { bv = bgmVolume(); } catch (e) {}
+  try { vv = voiceVolume(); } catch (e) {}
+  try { bgmAudio.volume = bv; } catch (e) {}
+  try { if (ttsAudio) ttsAudio.volume = vv; } catch (e) {}
+  window.__volBgm = bv;
+  window.__volVoice = vv;
 };
 window.__applyVolumesV2 = true;
 document.addEventListener("DOMContentLoaded", function () {
@@ -1385,10 +1399,16 @@ document.addEventListener("contextmenu", function (e) {
   try { if (window.__openScreen) window.__openScreen("save", "save"); } catch (err) {}
 });
 
-/* 隐藏界面：只留背景与立绘 */
+/* 隐藏界面：只留背景与立绘
+   注意选择器必须对得上真实 ID：#menubar / .dialogBox / #quickBar 这三个在 DOM 里根本不存在
+   （菜单栏是 #menuBar，对话框是 #msgWrap），所以之前「隐藏窗口」只隐藏了底部工具栏。 */
 (function () {
   var css = document.createElement("style");
-  css.textContent = "body.uiHidden .dialogBox,body.uiHidden #toolbar,body.uiHidden #menubar," +
-    "body.uiHidden .uiScreen,body.uiHidden #quickBar{opacity:0!important;pointer-events:none!important}";
+  css.textContent =
+    "body.uiHidden #msgWrap,body.uiHidden #inputBar,body.uiHidden #toolbar," +
+    "body.uiHidden #menuBar,body.uiHidden #glowBottom,body.uiHidden #historyPanel," +
+    "body.uiHidden #thinkBox,body.uiHidden #choiceScreen,body.uiHidden .uiScreen," +
+    "body.uiHidden #dbgPanel{" +
+    "opacity:0!important;pointer-events:none!important}";
   document.head.appendChild(css);
 })();

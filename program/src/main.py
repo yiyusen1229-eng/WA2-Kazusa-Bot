@@ -1358,16 +1358,24 @@ applog.start_heartbeat(30)
 applog.log("程序启动: 安全模式=%s 语音依赖=%s 模型=%s" % (NO_MODELS, tts_client.available(), DEFAULT_MODEL))
 
 
-def serve(port_holder):
+class _Server(ThreadingHTTPServer):
+    """Windows 上 SO_REUSEADDR 允许**两个进程同时绑同一个端口**：
+    第二个进程以为自己起来了，但连接都被前一个吃掉 —— 表现就是
+    「--serve-only 启动后进程活着，端口却不响应」。这里必须关掉。"""
+    allow_reuse_address = False
+
+
+def serve(port_holder, prefer_port=None):
+    ports = ([prefer_port] if prefer_port else []) + [8771, 8772, 0]
     srv = None
-    for p in (8771, 8772, 0):
+    for p in ports:
         try:
-            srv = ThreadingHTTPServer(("127.0.0.1", p), Handler)
+            srv = _Server(("127.0.0.1", p), Handler)
             break
         except OSError:
             continue
     if srv is None:
-        srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        srv = _Server(("127.0.0.1", 0), Handler)
     port_holder.append(srv.server_address[1])
     srv.serve_forever()
 
@@ -1382,7 +1390,7 @@ def serve_only(prefer_port=None):
                           "--autoplay-policy=no-user-gesture-required")
 
     port_holder = []
-    t = threading.Thread(target=serve, args=(port_holder,), daemon=True)
+    t = threading.Thread(target=serve, args=(port_holder, prefer_port), daemon=True)
     t.start()
     for _ in range(100):
         if port_holder:
@@ -1390,6 +1398,9 @@ def serve_only(prefer_port=None):
         time.sleep(0.05)
 
     port = port_holder[0] if port_holder else 0
+    if not port:
+        log("启动失败：没有拿到可用端口（8771/8772/随机端口都绑定失败）")
+        return 0
     base = "http://127.0.0.1:%d" % port
 
     log("=" * 60)
