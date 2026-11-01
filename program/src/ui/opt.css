@@ -1,0 +1,240 @@
+/* ================= 系统设置（800x450 舞台） =================
+   坐标全部来自「游戏截图 2730 → 舞台 800」的像素比对：
+     顶栏 sys_03000  1280x36  截图 y 0     → 舞台 0, 0      800x22.5
+     底栏 sys_09000  1280x56  截图 y 1417  → 舞台 0, 415.2  800x35
+   换算：舞台 = 截图 ÷ 3.4125，素材尺寸 = 原始像素 × 0.625 */
+
+#optScreen {
+  background: transparent;
+}/* 背景：标题画面 × brightness(0.50)
+   实测游戏对背景做的是「乘法变暗 0.50」，不是叠黑色半透明——
+   叠 alpha 会让暗部更死黑，亮部反而没压够。 */
+#optScreen .optBg {
+  position: absolute; left: 0; top: 0;
+  width: 800px; height: 450px;
+  pointer-events: none;
+  filter: brightness(0.50);
+}/* 顶栏：1280x36 → 800x22.5 */
+#optScreen .optHead {
+  position: absolute; left: 0; top: 0;
+  width: 800px; height: 22.5px;
+  pointer-events: none;
+}#optScreen .optHead img {
+  width: 100%; height: 100%; display: block;
+}/* 底栏：1280x56 → 800x35，贴底 */
+#optScreen .optFoot {
+  position: absolute; left: 0; top: 415.2px;
+  width: 800px; height: 35px;
+  pointer-events: none;
+}#optScreen .optFoot img {
+  width: 100%; height: 100%; display: block;
+}/* PAGE 条：素材 sys_01020.tga（840x96，裁到 840x42）
+   对齐方式：素材里 PAGE 字形 x141~176 y25~35，
+             截图里对应 x1377~1445 y192~212，
+             推出缩放 1.9714、素材左上角 (1099, 142.7)
+   → 舞台 left 322.06 top 41.82 宽 485.27 高 24.26 */
+#optScreen .optPage {
+  position: absolute;
+  left: 322.06px; top: 41.82px;
+  width: 485.27px; height: 24.26px;
+  pointer-events: none;
+}#optScreen .optPage img {
+  width: 100%; height: 100%; display: block;
+}/* OPTION 标签：素材 sys_03011.tga（576x96 = 3 列 × 3 行，单格 192x32）
+   行 0~32 高亮 · 32~64 悬停 · 64~96 常态
+   截图里 OPTION 1 左上角 (1466,155)，k=2.14
+   单格 411x68.5 → 舞台 120.40x20.07，间距 = 单格宽 */
+#optScreen .optTab {
+  position: absolute;
+  top: 45.42px;
+  width: 120.40px; height: 20.07px;
+  cursor: pointer;
+}#optScreen .optTab img { width: 100%; height: 100%; display: block; }#optScreen #optT1 { left: 429.60px; }#optScreen #optT2 { left: 550.00px; }#optScreen #optT3 { left: 670.41px; }/* 雪花 logo：素材 sys_04010.tga（304x168）
+   截图里缩放 2.13、左上角 (86, 0)，被顶栏压住上半部分
+   → 舞台 left 25.20 top 0 宽 189.89 高 104.91
+   z-index 低于顶栏，所以先于 .optHead 渲染 */
+#optScreen .optLogo {
+  position: absolute;
+  left: 25.20px; top: 0;
+  width: 189.89px; height: 104.91px;
+  pointer-events: none;
+}#optScreen .optLogo img { width: 100%; height: 100%; display: block; }/* 翻页条：素材 gh/gcn_unpack/sys_03020.tga（汉化版，432x128）
+   文字块 x144~432 y2~38，左/右箭头各三态（39x59）
+   模板匹配：左箭头 k=2.16、文字 k=2.12、右箭头 k=2.14 */
+#optScreen .optPagerText {
+  position: absolute;
+  left: 310.62px; top: 381.54px;
+  width: 178.92px; height: 22.36px;
+  pointer-events: none;
+}#optScreen .optPagerText img { width: 100%; height: 100%; display: block; }#optScreen .optPagerBtn {
+  position: absolute;
+  cursor: pointer;
+}#optScreen .optPagerBtn img { width: 100%; height: 100%; display: block; }#optScreen #optPrev { left: 276.04px; top: 375.68px; width: 24.69px; height: 37.35px; }#optScreen #optNext { left: 499.34px; top: 375.68px; width: 24.46px; height: 37.00px; }/* OPTION 1 内容区：素材 gh/gcn_unpack/sys_03100.tga（1024x464）
+   模板匹配 k=2.15，截图左上角 (270,234) → 舞台 79.12, 68.57, 645.27x292.45
+   opt1_highlight.png 是从 sys_03200/03210 拆出来的高亮片，
+   只包含游戏里处于「悬停/选中」状态的那几个控件 */
+#optScreen .optContent {
+  position: absolute;
+  left: 79.12px; top: 68.57px;
+  width: 645.27px; height: 292.45px;
+  pointer-events: none;
+}#optScreen .optContent .optLayer { width: 100%; height: 100%; display: none; }#optScreen .optContent .optLayer.on { display: block; }/* PAGE / OPTION 下的黑色渐变底框：素材 gh/gcn_unpack/sys_03010.tga（取行 0~47）
+   截图里铺满 x 1360~2730, y 150~232 → 舞台 398.5, 44.0, 401.5x24.0
+   z 序在标签和 PAGE 之下 */
+#optScreen .optPageBar {
+  position: absolute;
+  left: 398.5px; top: 44px;
+  width: 401.5px; height: 24px;
+  pointer-events: none;
+}#optScreen .optPageBar img { width: 100%; height: 100%; display: block; }/* ===== OPTION 1 内容区交互 =====
+   每个控件的悬停/选中图按素材矩形精确裁好，和热区同尺寸同位贴上去 */
+#optScreen .optContent { pointer-events: auto; }#optScreen .optLayer {
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
+  display: none;
+  pointer-events: none;
+}#optScreen .optLayer.on { display: block; }#optScreen .ctHot { position: absolute; cursor: pointer; }#optScreen .optContent .ctImg {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}#optScreen .optContent .ctImg.on { display: block; }#optScreen .ctBar {
+  position: absolute;
+  overflow: hidden;
+  display: none;
+  pointer-events: none;
+}#optScreen .ctBar.on { display: block; }#optScreen .ctBar img { position: absolute; left: 0; top: 0; display: block; max-width: none; }/* 右下角 EXIT：素材 gh/gcn_unpack/sys_09100.tga（56x72，三行三态）
+   模板匹配：只匹配 EXIT 文字，相关 0.560，k=2.13，截图 (2483,1468)
+   → 舞台 left 727.62  top 430.18  宽 34.87  高 14.95
+   z-index 高于底栏，否则会被底栏图盖住 */
+/* ===== OPTION 3：三个模型板块 ===== */
+#optScreen .optContent3 { pointer-events: auto; }#optScreen .o3sec {
+  position: absolute;
+  left: 12px;
+  width: 621.27px;
+  height: 88.00px;
+  background-image: url("assets/ui/opt/opt3_box.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  box-sizing: border-box;
+  padding: 4px 16px 4px 18px;
+}#optScreen .o3sec1 { top: 10px; }#optScreen .o3sec2 { top: 104px; }#optScreen .o3sec3 { top: 198px; }#optScreen .o3title {
+  font: 600 11px/1 "Microsoft YaHei", "Segoe UI", sans-serif;
+  color: #eaf7ff;
+  letter-spacing: 1px;
+  height: 14px;
+  line-height: 14px;
+  margin: 0 0 3px 2px;
+}#optScreen .o3row {
+  display: flex;
+  align-items: center;
+  height: 18px;
+  margin-bottom: 2px;
+}#optScreen .o3label {
+  flex: 0 0 62px;
+  font: 400 10px/1 "Microsoft YaHei", "Segoe UI", sans-serif;
+  color: #a9dced;
+  letter-spacing: .5px;
+}#optScreen .o3input {
+  flex: 0 0 auto;
+  width: 300px;
+  max-width: 300px;
+  height: 17px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  background: rgba(4, 22, 34, .62);
+  border: 1px solid rgba(120, 208, 232, .55);
+  border-radius: 2px;
+  color: #eaf7ff;
+  font: 400 10px/17px "Consolas", "Segoe UI", sans-serif;
+  outline: none;
+}#optScreen .o3input::placeholder { color: rgba(140, 190, 210, .40); }#optScreen .o3input:focus {
+  border-color: rgba(150, 232, 252, .95);
+  box-shadow: 0 0 6px rgba(110, 200, 230, .45);
+  background: rgba(6, 30, 46, .8);
+}/* 连接按钮：素材为用户给的 160x40 三态图 */
+#optScreen .o3conn {
+  position: absolute;
+  right: 20px;
+  top: 30px;
+  width: 96px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: url("assets/ui/opt/conn1.png") center / 100% 100% no-repeat;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;              /* 原生文字不显示，改用字模图 */
+  color: transparent;
+  outline: none;
+}#optScreen .o3conn:hover { background-image: url("assets/ui/opt/conn2.png"); }#optScreen .o3conn:active { background-image: url("assets/ui/opt/conn3.png"); }#optScreen .o3conn.on { background-image: url("assets/ui/opt/conn3.png"); }#optScreen .o3conn.fail { background-image: url("assets/ui/opt/conn1.png"); filter: hue-rotate(-40deg); }#optScreen .o3conn img { height: 12px; width: auto; pointer-events: none; }/* 字段：固定宽度的块级容器，提交后只留字模图 */
+#optScreen .o3field {
+  display: inline-block;
+  position: relative;
+  width: 330px;
+  height: 17px;
+  line-height: 17px;
+  vertical-align: middle;
+  overflow: hidden;
+}#optScreen .o3field .o3input { width: 100%; }
+
+/* ===== OPTION 3 字段 =====
+   编辑态：原生 input（可见）
+   提交态：只显示字模图（多行图自动退回单行文本） */
+#optScreen .o3field {
+  display: inline-block;
+  position: relative;
+  width: 330px;
+  height: 17px;
+  line-height: 17px;
+  vertical-align: middle;
+  overflow: hidden;
+}
+#optScreen .o3field .o3input { width: 100%; }
+#optScreen .o3val {
+  display: none;
+  height: 12px;
+  width: auto;
+  max-width: none;
+  vertical-align: middle;
+  pointer-events: none;
+}
+#optScreen .o3val.show { display: inline-block; }
+#optScreen .o3plain {
+  display: none;
+  max-width: 100%;
+  height: 14px;
+  line-height: 14px;
+  font: 400 11px/14px "Consolas", "Microsoft YaHei", monospace;
+  color: #dff3f8;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+#optScreen .o3plain.show { display: inline-block; }
+#optScreen .o3field.committed { cursor: pointer; }
+
+/* 切换模型按钮：放在「连接」左边 */
+#optScreen .o3switch {
+  position: absolute;
+  right: 124px;
+  top: 30px;
+  width: 96px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: url("assets/ui/opt/conn1.png") center / 100% 100% no-repeat;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  color: transparent;
+  outline: none;
+}
+#optScreen .o3switch:hover { background-image: url("assets/ui/opt/conn2.png"); }
+#optScreen .o3switch:active { background-image: url("assets/ui/opt/conn3.png"); }
+#optScreen .o3switch img { height: 12px; width: auto; pointer-events: none; }

@@ -1,0 +1,47 @@
+/* ============================================================
+   全程序统一字体（最终覆盖规则）
+   ------------------------------------------------------------
+   盖掉 screens.css / game450.css 里那条 DroidSansFallback 规则。
+   只用最简单可靠的选择器，不加 custom property，避免解析问题。
+   界面小字不加描边（之前加了会出黑点）。
+   ============================================================ */
+html, body, div, span, b, small, em, p, label, li, a, td, th, table,
+h1, h2, h3, h4, h5, h6,
+input, button, textarea, select, option, canvas {
+  font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif !important;
+  font-weight: 400 !important;
+}
+
+/* 输入框占位符：同字体，不加描边 */
+input::placeholder, textarea::placeholder {
+  font-family: "Microsoft YaHei", "微软雅黑", sans-serif !important;
+  color: rgba(245, 247, 248, 0.72) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* 游戏内按钮与输入框：白字，不加描边 */
+#thinkBtn, #sendBtn, #input, #namePlate,
+.cfgRow, .cfgRow b, .cfgRow button, .cfgBtns button {
+  color: #f5f7f8 !important;
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
+}
+
+/* 深色面板：同字体同白 */
+#trainScreen, #trainScreen *,
+#modelScreen, #modelScreen *,
+#cfgScreen, #cfgScreen *,
+#optScreen, #optScreen *,
+#backlogScreen, #backlogScreen * {
+  font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif !important;
+  font-weight: 400 !important;
+  color: #f5f7f8 !important;
+  text-shadow: none !important;
+}
+
+/* 强调项更亮 */
+#trainScreen b, #modelScreen b, #cfgScreen b, #optScreen b {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}

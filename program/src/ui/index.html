@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 聊天界面架构</title>
+<link rel="stylesheet" href="screens.css?v=1031120550">
+<link rel="stylesheet" href="game450.css?v=1031120550">
+<link rel="stylesheet" href="unifont.css?v=1031120550">
+<link rel="stylesheet" href="opt.css?v=1031182132">
+  <link rel="stylesheet" href="menubar.css?v=1031120550">
+</head>
+<body>
+<div id="stage">
+
+<!-- ================= 标题画面 ================= -->
+<!-- ================= 开场动画 ================= -->
+<div id="introScreen" class="screen active">
+  <video id="introVideo" playsinline preload="none" data-src="assets/opening.mp4"></video>
+  <div id="introHint">点击任意处跳过</div>
+</div>
+<div id="titleScreen" class="screen">
+  <div class="title-bg"></div>
+  <img class="title-logo" src="assets/ui_logo.png" alt="">
+
+  <nav id="mainMenu">
+    <button data-act="start" class="mi"><img class="off" src="assets/menu/start.png" alt=""><img class="on" src="assets/menu/start_on.png" alt=""></button>
+    <button data-act="continue" class="mi"><img class="off" src="assets/menu/continue.png" alt=""><img class="on" src="assets/menu/continue_on.png" alt=""></button>
+    <button data-act="config" class="mi"><img class="off" src="assets/menu/config.png" alt=""><img class="on" src="assets/menu/config_on.png" alt=""></button>
+    <button data-act="special" class="mi"><img class="off" src="assets/menu/special.png" alt=""><img class="on" src="assets/menu/special_on.png" alt=""></button>
+    <button data-act="quit" class="mi last"><img class="off" src="assets/menu/quit.png" alt=""><img class="on" src="assets/menu/quit_on.png" alt=""></button>
+  </nav>
+
+  <div id="titleMenuLabel" data-no-uitext></div>
+  <img id="copyright" src="assets/copyright.png" alt="">
+</div>
+
+  <!-- ===== 浮层界面(直接属于舞台) ===== -->
+<div id="saveScreen" class="uiScreen">
+    <div class="uiHead"><img id="uiHeadImg" src="assets/ui/sys_02000.png" alt=""></div>
+    <img class="uiLogo" src="assets/ui_logo.png" alt="">
+    <div class="savePageBlack"></div>
+    <div class="savePageBar"></div>
+    <div class="saveTabs" id="saveTabs"><img id="saveTabsBase" src="assets/ui/save/tabs_base.png" alt="">
+      <img id="saveTabsHover" src="" alt="" style="display:none"><img id="saveTabsActive" src="assets/ui/save/tab_active_1.png" alt=""><div class="saveTab" data-page="1" style="left:0px"></div><div class="saveTab" data-page="2" style="left:40px"></div><div class="saveTab" data-page="3" style="left:80px"></div><div class="saveTab" data-page="4" style="left:120px"></div><div class="saveTab" data-page="5" style="left:160px"></div><div class="saveTab" data-page="6" style="left:200px"></div><div class="saveTab" data-page="7" style="left:240px"></div><div class="saveTab" data-page="8" style="left:280px"></div><div class="saveTab" data-page="9" style="left:320px"></div><div class="saveTab" data-page="10" style="left:360px"></div></div>
+    <div class="saveSlot slot1" data-slot="1"></div><div class="saveSlot slot2" data-slot="2"></div><div class="saveSlot slot3" data-slot="3"></div><div class="saveSlot slot4" data-slot="4"></div><div class="saveSlot slot5" data-slot="5"></div><div class="saveSlot slot6" data-slot="6"></div><div class="saveSlot slot7" data-slot="7"></div><div class="saveSlot slot8" data-slot="8"></div><div class="saveSlot slot9" data-slot="9"></div><div class="saveSlot slot10" data-slot="10"></div>
+    <div class="pagerL" id="pagerPrev"><img class="s1" src="assets/ui/save/pager_l1.png" alt=""><img class="s2" src="assets/ui/save/pager_l2.png" alt=""><img class="s3" src="assets/ui/save/pager_l3.png" alt=""></div>
+    <div class="pagerBar"><img id="pagerBanner" src="assets/ui/save/banner_load.png" alt=""></div>
+    <div class="pagerR" id="pagerNext"><img class="s1" src="assets/ui/save/pager_r1.png" alt=""><img class="s2" src="assets/ui/save/pager_r2.png" alt=""><img class="s3" src="assets/ui/save/pager_r3.png" alt=""></div>
+    <div class="dlgToast" id="dlgToast"><img class="box" src="assets/ui/save/dlg_toast.png" alt=""><div class="txt" id="dlgToastTxt">存档已保存</div></div>
+    <div class="dlgConfirm" id="dlgConfirm">
+      <img class="box" src="assets/ui/save/dlg_confirm.png" alt="">
+      <div class="txt t1" id="dlgConfirmT1">存档将被覆盖。</div>
+      <div class="txt t2" id="dlgConfirmT2">确定吗？</div>
+      <div class="btn yes" id="dlgYes"><img class="s1" src="assets/ui/save/btn_yes1.png" alt=""><img class="s2" src="assets/ui/save/btn_yes2.png" alt=""><img class="s3" src="assets/ui/save/btn_yes3.png" alt=""></div>
+      <div class="btn no" id="dlgNo"><img class="s1" src="assets/ui/save/btn_no1.png" alt=""><img class="s2" src="assets/ui/save/btn_no2.png" alt=""><img class="s3" src="assets/ui/save/btn_no3.png" alt=""></div>
+    </div>
+    <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
+    <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+  </div>
+
+  <!-- ===== 设置 ===== -->
+
+  <!-- 模型管理 -->
+  <div id="modelScreen" class="uiScreen">
+    <div class="uiHead"><img src="assets/ui/sys_01000.png" alt=""></div>
+    <img class="uiLogo" src="assets/ui_logo.png" alt="">
+    <div class="uiPageLbl">MODEL</div>
+    <div class="slotWrap" id="modelWrap"></div>
+    <div class="pagerBtn prev"></div>
+    <div class="pagerBtn next"></div>
+    <div class="pagerLabel" id="modelPageLabel">PAGE 1</div>
+    <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
+    <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+    <div class="mClose" title="返回">×</div>
+
+    <div id="modelDetail">
+      <div class="mdCard">
+        <div class="mdHead">
+          <span class="mdName">—</span>
+          <button class="mdBack">返回</button>
+        </div>
+        <div class="mdBody">
+          <div><span>API 地址</span><b class="mdUrl">—</b></div>
+          <div><span>当前模型</span><b class="mdModel">—</b></div>
+          <div><span>类型</span><b class="mdType">—</b></div>
+          <div class="mdStat">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ===== 系统设置 ===== -->
+  <div id="optScreen" class="uiScreen">
+    <img class="optBg" src="assets/title.png" alt="">
+    <div class="optLogo"><img src="assets/ui/opt/logo.png" alt=""></div>
+    <div class="optHead"><img src="assets/ui/opt/topbar.png" alt=""></div>
+    <div class="optPageBar"><img src="assets/ui/opt/pagebar.png" alt=""></div>
+    <div class="optTab" id="optT1"><img src="assets/ui/opt/tab1_on.png" alt=""></div>
+    <div class="optTab" id="optT2"><img src="assets/ui/opt/tab2_off.png" alt=""></div>
+    <div class="optTab" id="optT3"><img src="assets/ui/opt/tab3_off.png" alt=""></div>
+    <div class="optPage"><img src="assets/ui/opt/page.png" alt=""></div>
+    <div class="optContent" id="optContent"><img class="optLayer ctBase" src="assets/ui/opt/opt1_base.png" alt=""></div>
+    <div class="optContent" id="optContent2"><img class="optLayer ctBase" src="assets/ui/opt/opt2_base.png" alt=""></div>
+    <div class="optContent optContent3" id="optContent3"><div class="o3sec o3sec1"><div class="o3title">聊天模型</div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="chat.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="chat.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="chat.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div><div class="o3sec o3sec2"><div class="o3title">语音模型</div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="voice.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="voice.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="voice.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div><div class="o3sec o3sec3"><div class="o3title">翻译模型</div><div class="o3row"><span class="o3label">端点</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="mt.endpoint" placeholder="https://..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">API 密钥</span><span class="o3field" data-k=""><input class="o3input" type="text" data-k="mt.key" placeholder="sk-..."><img class="o3val" alt=""></span></div><div class="o3row"><span class="o3label">模型名称</span><span class="o3field" data-k="mt.model"><span class="o3plain" data-no-uitext="1"></span></span></div></div></div><div class="optPagerText"><img src="assets/ui/opt/pager_text.png" alt=""></div>
+    <div class="optPagerBtn" id="optPrev"><img src="assets/ui/opt/pager_l1.png" alt=""></div>
+    <div class="optPagerBtn" id="optNext"><img src="assets/ui/opt/pager_r1.png" alt=""></div>
+        <div class="optFoot"><img src="assets/ui/opt/footbar.png" alt=""></div>
+<div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+  </div>
+
+  <!-- ===== 回想 ===== -->
+  <div id="blogScreen" class="uiScreen">
+    <div class="uiHead"><img src="assets/ui/sys_00032.png" alt=""></div>
+    <img class="uiLogo" src="assets/ui_logo.png" alt="">
+    <div class="blogWrap" id="blogList"></div>
+    <div class="blogBar"><div class="knob"></div></div>
+    <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
+    <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+  </div>
+
+
+
+<!-- ================= 对话画面 ================= -->
+<div id="gameScreen" class="screen">
+  <div id="bgLayer"></div>
+  <div id="lightLayer"></div>
+  <div id="snowLayer"></div>
+
+  <div id="spriteWrap">
+    <img id="sprite" src="assets/kaz_cold.png" alt="">
+  </div>
+
+  <div id="historyPanel">
+    <div id="historyHead"><img src="assets/ui/history/topbar.png" alt=""></div>
+    <div id="historyBox">
+      <div id="historyBody">
+        <div id="historyList"></div>
+      </div>
+    </div>
+    <div id="historyScroll">
+      <button class="hsArrow up" data-dir="-1"><img class="off" src="assets/ui/history/arrow_up_off.png" alt=""><img class="on" src="assets/ui/history/arrow_up_on.png" alt=""></button>
+      <div id="hsTrack"><img class="hsTrackImg" src="assets/ui/history/track.png" alt=""><div id="hsThumb"><img src="assets/ui/history/thumb.png" alt=""></div></div>
+      <button class="hsArrow down" data-dir="1"><img class="off" src="assets/ui/history/arrow_down_off.png" alt=""><img class="on" src="assets/ui/history/arrow_down_on.png" alt=""></button>
+    </div>
+    <div id="historyFoot"><img src="assets/ui/history/bottombar.png" alt=""></div>
+    <button id="historyExit"><img class="off" src="assets/ui/history/exit_off.png" alt=""><img class="on" src="assets/ui/history/exit_on.png" alt=""></button>
+  </div>
+
+  <div id="thinkBox" class="hidden"></div>
+
+  <div id="msgWrap">
+    <div id="msgBox">
+  <div id="moreHint">▼</div>
+      <div class="fill"></div>
+      <div id="namePlate">和纱</div>
+      <div id="msgText"></div>
+      <div class="walogo">AI CHAT UI</div>
+    </div>
+  </div>
+
+  <div id="inputBar">
+    <img id="inputFrame" src="assets/input_frame.png" alt="">
+    <input id="input" type="text" placeholder="对和纱说点什么…（Enter 发送）" autocomplete="off">
+    <button id="thinkBtn" title="显示/隐藏 和纱的动作描写">动作：关</button>
+    <button id="sendBtn">发送</button>
+  </div>
+
+  <div id="glowBottom"><img src="assets/ui/glow_bottom.png" alt=""></div>
+  <div id="toolbar">
+    <div class="tb" data-act="qsave"><img class="nm" src="assets/tb2/save_0.png" alt=""><img class="hv" src="assets/tb2/save_1.png" alt=""></div>
+    <div class="tb" data-act="qload"><img class="nm" src="assets/tb2/qsave_0.png" alt=""><img class="hv" src="assets/tb2/qsave_1.png" alt=""></div>
+    <div class="tb" data-act="config"><img class="nm" src="assets/tb2/config_0.png" alt=""><img class="hv" src="assets/tb2/config_1.png" alt=""></div>
+    <div class="tb" data-act="save"><img class="nm" src="assets/tb2/load_0.png" alt=""><img class="hv" src="assets/tb2/load_1.png" alt=""></div>
+    <div class="tb" data-act="load"><img class="nm" src="assets/tb2/qload_0.png" alt=""><img class="hv" src="assets/tb2/qload_1.png" alt=""></div>
+    <div class="tb" data-act="rew"><img class="nm" src="assets/tb2/rew_0.png" alt=""><img class="hv" src="assets/tb2/rew_1.png" alt=""></div>
+    <div class="tb" data-act="play"><img class="nm" src="assets/tb2/play_0.png" alt=""><img class="hv" src="assets/tb2/play_1.png" alt=""></div>
+    <div class="tb" data-act="ff"><img class="nm" src="assets/tb2/ff_0.png" alt=""><img class="hv" src="assets/tb2/ff_1.png" alt=""></div>
+    <div class="tb close" data-act="close"><img class="nm" src="assets/tb2/close_0.png" alt=""><img class="hv" src="assets/tb2/close_1.png" alt=""></div>
+    <span class="hint" id="tbHint"></span>
+  </div>
+
+<div id="choiceScreen">
+    <div id="choiceList"></div>
+  </div>
+</div>
+
+</div>
+
+<script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
+<script src="atlas.js?v=1031120550"></script>
+<script src="config.js?v=1031120550"></script>
+<script src="modelmgr.js?v=1031120550"></script>
+<script src="opt.js?v=11010930"></script>
+  <script src="savetabs4.js?v=11010820"></script>
+  <script src="savepages.js?v=11010930"></script>
+  <script src="screens.js?v=11010820"></script>
+<script src="game.js?v=11010930"></script>
+<script src="scale.js?v=1031120550"></script>
+<script src="menubar.js?v=11010820"></script>
+<script src="uitext.js?v=11010930"></script>
+<script>
+/* __hashRoute: 用 #opt / #save / #model 直接打开界面(调试/对比用) */
+window.addEventListener("load", function () {
+  var h = (location.hash || "").replace("#", "");
+  if (!h) return;
+  setTimeout(function () {
+    try { window.__endIntro && window.__endIntro(); } catch (e) {}
+    var st = document.querySelector('[data-act="start"]');
+    if (st) { try { st.click(); } catch (e) {} }
+    setTimeout(function () {
+      if (h === "model" && window.__openModel) window.__openModel();
+      else if (window.__openScreen) window.__openScreen(h);
+    }, 700);
+  }, 900);
+});
+</script>
+<div id="__BUILDSTAMP" style="display:none;position:fixed;left:6px;bottom:4px;z-index:99999;font:12px/1.2 'Microsoft YaHei';color:#ffd24a;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px;pointer-events:none">buildup 1028-2132</div>
+<div id="scaleReadout" style="display:none"></div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

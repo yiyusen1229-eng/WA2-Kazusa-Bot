@@ -1,0 +1,6 @@
+{
+  "provider": "deepseek",
+  "base_url": "https://api.deepseek.com",
+  "api_key": "sk-替换成你自己的key",
+  "model": "deepseek-flash"
+}

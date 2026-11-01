@@ -1,0 +1,91 @@
+# ===== 依赖与虚拟环境 =====
+venv/
+*/venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ===== 模型与权重（几十 GB）=====
+train/models/
+train/output/
+tts/
+语音训练集/
+
+# ===== 游戏原始资源（版权归 Leaf/Aquaplus，不随仓库分发）=====
+game_pak/
+dataset/
+# 立绘
+ui2/assets/sprites/
+ui2/assets/kaz_*.png
+# 标题画面与游戏美术
+ui2/assets/title.png
+ui2/assets/copyright.png
+ui2/assets/ui_logo.png
+ui2/assets/ui/
+ui2/assets/menu/
+ui2/assets/tb/
+ui2/assets/tb2/
+# 背景与音乐
+ui2/assets/bg_*.png
+ui2/assets/bgm_*.ogg
+ui2/assets/snd/
+ui2/assets/opening.*
+# 补丁字体图集与字形映射
+app/assets/*.tga
+app/assets/subfont_charset*.json
+app/assets/字体映射表.json
+ui2/assets/font/
+# 字体文件（体积大，公开可下载，不入库）
+**/DroidSansFallback.ttf
+# 由剧本构建的检索索引
+app/story_index.json
+
+# ===== 训练数据（由游戏剧本派生，不入库；生成脚本在 train/）=====
+train/data/*.jsonl
+train/data/_orig/
+prompt_lab/raw_outputs*.jsonl
+
+# ===== 打包时的 ui2 副本（源在根目录 ui2/）=====
+app/ui2/
+
+# ===== 构建产物 =====
+build/
+dist/
+*.spec
+最新版/*.exe
+最新版/logs/
+
+# ===== 运行时产物 =====
+logs/
+work/
+_archive/
+saves/
+*.log
+*.err
+
+# ===== 含密钥/个人配置 =====
+config.json
+最新版/config.json
+app/config.json
+train/config.json
+prompt_lab/config.json
+*.local.json
+.env
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# ===== 第三方代码副本与预编译 DLL =====
+tools/gdi_proxy/
+tools/llama_cpp/
+
+# ===== 游戏美术资源（版权）=====
+ui2/assets/*.png
+ui2/assets/*.jpg
+ui2/assets/*.webp
+
+# ===== 一次性过程脚本（本地保留，不入库）=====
+tools/归档/

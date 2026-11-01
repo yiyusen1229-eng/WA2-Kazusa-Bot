@@ -1,0 +1,41 @@
+﻿# ===== 依赖与虚拟环境 =====
+build_env/
+*/venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ===== 打包产物（几百 MB）=====
+release/
+*.exe
+*.zip
+
+# ===== 模型与权重（几十 GB）=====
+models/
+train/
+tts/
+语音训练集/
+dataset/
+
+# ===== 游戏素材（版权归 Leaf/Aquaplus，一律不入库）=====
+program/res/assets/
+game_pak/
+game_pak_preview/
+other/dev/
+
+# ===== 运行时产物 =====
+logs/
+*.log
+config.json
+ui2/
+
+# 过程产物
+work/
+program/work_geom/
+
+# 使用者自行提供的数据（含他人作品内容，一律不入库）
+program/src/story_index.json
+program/src/worldbook.json
+program/src/persona*.txt
+program/src/fewshot.json
+

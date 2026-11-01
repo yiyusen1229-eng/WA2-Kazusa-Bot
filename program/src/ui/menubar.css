@@ -1,0 +1,165 @@
+/* ============================================================
+   顶部菜单栏 = 窗口标题栏（无边框窗口专用）
+   ============================================================ */
+#menuBar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 4px 0 6px;
+  background: linear-gradient(180deg, #1b3a55, #102639);
+  border-bottom: 1px solid #2f6f96;
+  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+  font-size: 12px;
+  z-index: 2147483000;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-app-region: drag;
+}
+
+#menuBar .mbItem {
+  position: relative;
+  padding: 1px 10px;
+  color: #eaf6ff;
+  cursor: default;
+  border-radius: 2px;
+  -webkit-app-region: no-drag;
+}
+#menuBar .mbItem:hover,
+#menuBar .mbItem.open {
+  background: #2a6f9e;
+}
+#menuBar .mbSpacer { flex: 1; -webkit-app-region: drag; }
+
+/* 窗口按钮 */
+.mbWinBtn {
+  width: 40px;
+  height: 22px;
+  line-height: 30px;
+  text-align: center;
+  color: #cfe6f7;
+  cursor: default;
+  -webkit-app-region: no-drag;
+}
+.mbWinBtn:hover { background: #2a6f9e; }
+.mbWinBtn.mbClose:hover { background: #c0392b; color: #fff; }
+
+/* 下拉 */
+.mbMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  margin-top: 2px;
+  background: #f4f4f4;
+  border: 1px solid #8a8a8a;
+  box-shadow: 2px 2px 8px rgba(0,0,0,.5);
+  padding: 3px 0;
+  display: none;
+  z-index: 2147483001;
+  -webkit-app-region: no-drag;
+}
+.mbItem.open .mbMenu { display: block; }
+
+.mbMenu .mi-row {
+  padding: 5px 26px 5px 28px;
+  font-size: 12px;
+  color: #1c1c1c;
+  position: relative;
+  white-space: nowrap;
+  cursor: default;
+}
+.mbMenu .mi-row:hover { background: #3b8fd0; color: #fff; }
+.mbMenu .mi-row.checked::before {
+  content: "✓";
+  position: absolute;
+  left: 9px;
+  color: #1a6f3a;
+}
+.mbMenu .mi-row:hover.checked::before { color: #fff; }
+.mbMenu .mi-sep { height: 1px; margin: 3px 8px; background: #cfcfcf; }
+.mbMenu .mi-row.has-sub::after {
+  content: "▸";
+  position: absolute;
+  right: 9px;
+}
+
+.mbSub {
+  position: absolute;
+  left: 100%;
+  top: -3px;
+  min-width: 170px;
+  background: #f4f4f4;
+  border: 1px solid #8a8a8a;
+  box-shadow: 2px 2px 8px rgba(0,0,0,.5);
+  padding: 3px 0;
+  display: none;
+}
+.mbMenu .mi-row.has-sub.open .mbSub { display: block; }
+
+body.mbOpen #stage { filter: brightness(.94); }
+
+/* 标题栏里的版本号 */
+.mbBuild {
+  font-size: 11px;
+  color: #ffd24a;
+  opacity: .85;
+  padding: 0 8px;
+  cursor: default;
+  -webkit-app-region: no-drag;
+  white-space: nowrap;
+}
+
+
+/* ===== 标题栏自动隐藏：鼠标不在顶部时收起 ===== */
+#menuBar {
+  transition: transform .22s ease, opacity .22s ease;
+  transform: translateY(0);
+  opacity: 1;
+}
+#menuBar.mbHidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* 顶部留一条 3px 的触发区，鼠标碰到就弹出来 */
+#mbHotZone {
+  position: fixed; left: 0; right: 0; top: 0; height: 3px;
+  z-index: 100000; -webkit-app-region: no-drag;
+}
+
+/* ===== 全屏模式: 不允许拖动窗口 ===== */
+body.isFull #menuBar,
+body.isFull #menuBar .mbSpacer,
+body.isFull #menuBar .mbTitle {
+  -webkit-app-region: no-drag !important;
+}
+
+/* 标题栏：右侧不留内边距，窗口按钮紧贴边缘 */
+#menuBar { padding-right: 0 !important; }
+
+.mbWinBtn {
+  width: 46px;
+  height: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: #cfe6f7;
+  cursor: default;
+  -webkit-app-region: no-drag;
+  flex: 0 0 auto;
+}
+#menuBar .mbWinBtn:last-child { margin-right: 0; }
+.mbWinBtn:hover { background: #2a6f9e; }
+.mbWinBtn.mbClose:hover { background: #c0392b; color: #fff; }
+
+/* 拖动时降低重绘开销，减少迟滞 */
+body.mbDragging #stage { pointer-events: none; }
+body.mbDragging * { transition: none !important; animation: none !important; }

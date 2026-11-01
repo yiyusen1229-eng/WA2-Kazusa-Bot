@@ -1,0 +1,14 @@
+# 后端运行时依赖（按 2026-10 实测版本锁定）
+# 安装：pip install -r requirements.txt
+
+# 窗口与 WebView2
+pywebview==6.2.1
+pythonnet==3.2.1
+bottle==0.13.4
+
+# 图像处理（图集切图、字模渲染、UI 合成）
+pillow==13.0.0
+fonttools==4.68.0
+
+# 打包（可选，只用于生成 exe）
+# pyinstaller>=6.0

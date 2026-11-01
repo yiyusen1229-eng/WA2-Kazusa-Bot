@@ -1,0 +1,795 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  background:#000;
+  font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif;
+  -webkit-font-smoothing:none;
+  font-smooth:never;
+  color:#fff;
+  user-select:none;
+}
+
+.screen { position:fixed; inset:0; opacity:0; pointer-events:none; transition:opacity .5s; }
+.screen.active { opacity:1; pointer-events:auto; }
+
+
+/* ================= 800x450 舞台 ================= */
+#stage {
+  position:fixed; left:50%; top:50%;
+  width:800px; height:450px;
+  transform-origin:center center;
+  overflow:hidden;
+  background:#000;
+}
+.screen { position:absolute; inset:0; }
+
+/* ================= 开场动画 ================= */
+#introScreen { background:#000; cursor:pointer; }
+#introVideo {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  background:#000;
+}
+#introHint {
+  position:absolute; right:26px; bottom:18px;
+  font-family: inherit !important; font-size:7.2px; letter-spacing:0.9px;
+  color:rgba(230,245,255,.55);
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
+  animation:blink 2.4s infinite;
+}
+@keyframes blink { 0%,100%{opacity:.25;} 50%{opacity:.85;} }
+
+/* ================= 标题 ================= */
+#titleScreen { background:#000; }
+
+.title-bg {
+  position:absolute; inset:0;
+  background-image:url("assets/title.png");
+  background-size:cover;
+  background-position:center center;
+  background-repeat:no-repeat;
+}
+
+.title-logo {
+  position:absolute; left:50%; top:11.2%;
+  transform:translateX(-50%);
+  width:50%;
+  max-width:none;
+  pointer-events:none;
+  filter:drop-shadow(0 0 5.4px rgba(90,175,240,.45));
+}
+
+#mainMenu {
+  position:absolute; left:45.9%; top:49.4%;
+  display:flex; flex-direction:column; align-items:flex-start;
+  gap:1.3px; z-index:5;
+}
+
+#mainMenu button {
+  position:relative;
+  background:none; border:none; outline:none; cursor:pointer;
+  padding:0; line-height:0;
+  transition:transform .18s;
+}
+#mainMenu button img { display:block; width:75.2px; height:auto; }
+#mainMenu button .on { display:none; position:absolute; left:0; top:0; }
+#mainMenu button:hover .off { visibility:hidden; }
+#mainMenu button:hover .on { display:block; }
+#mainMenu button:hover { transform:translateX(1.8px); }
+
+/* 按钮底框：游戏原版 T0101（暗态常显，悬停变亮） */
+#mainMenu button::before {
+  content:"";
+  position:absolute; left:-62px; top:50%;
+  transform:translateY(-50%);
+  width:200px; height:17.5px;
+  background-image:url("assets/ui/menu_strip_off.png");
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+  opacity:1;
+  z-index:-1;
+  transition:none;
+}
+#mainMenu button:hover::before {
+  background-image:url("assets/ui/menu_strip_on.png");
+}
+
+#mainMenu button.last { margin-top:35.4px; }
+
+/* Title Menu：游戏原版 T0201 第一格（288x40） */
+#titleMenuLabel {
+  position:absolute; left:310px; width:180px;
+  top:378.9px;
+  height:25px;
+  background-image:url("assets/ui/title_menu.png");
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+  border:0; padding:0;
+  font-size:0; color:transparent; text-shadow:none;
+}
+
+#copyright {
+  position:absolute; right:1.2%; bottom:1.4%;
+  height:11.7px; width:auto;
+  opacity:.95;
+}
+
+/* ================= 对话 ================= */
+#gameScreen { background:#000; }
+
+#bgLayer { position:absolute; inset:0; background-size:cover; background-position:center;
+           transition:opacity .8s; }
+#bgLayer::after { content:""; position:absolute; inset:0;
+  background:linear-gradient(to bottom, rgba(0,8,18,.05) 0%, rgba(0,0,0,0) 55%, rgba(0,6,14,.18) 100%); }
+
+#lightLayer { position:absolute; inset:0; pointer-events:none; }
+#snowLayer { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.flake { position:absolute; top:-12px; border-radius:50%;
+  background:rgba(230,250,255,.9); box-shadow:0 0 8px rgba(170,230,255,.9);
+  animation:fall linear infinite; }
+@keyframes fall {
+  0% { transform:translateY(-20px) translateX(0); opacity:0; }
+  8% { opacity:.85; } 92% { opacity:.4; }
+  100% { transform:translateY(468px) translateX(40px); opacity:0; }
+}
+
+#spriteWrap { position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+  height:450px; display:flex; align-items:flex-end; pointer-events:none; }
+#sprite { height:450px; max-width:768px; object-fit:contain;
+  opacity:0; transform:translateY(16px); transition:opacity .6s, transform .6s; }
+#sprite.show { opacity:1; transform:translateY(0); }
+
+/* ---------- 对话框 ---------- */
+#msgWrap { position:absolute; left:50%; bottom:31px; transform:translateX(-50%);
+  width:768px; height:128px; z-index:20; }   /* 高 128 = 素材 1248x208 按 768 宽的真实比例 */
+
+#namePlate {
+  position:absolute; left:21.8%; top:3.2%;
+  font-size:10.8px; letter-spacing:1.3px; color:#ffffff;
+  text-shadow:0 0.5px 1.1px rgba(0,18,38,.95), 0 0 1.8px rgba(0,10,26,.5);
+  z-index:3;
+}
+
+#msgBox {
+  position:relative; height:100%;
+  background-image:url("assets/msgbox_glow.png");
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+  cursor:pointer;
+}
+#msgBox .fill {
+  position:absolute; left:2.5%; right:2.5%; top:6%; bottom:6%;
+  background:radial-gradient(ellipse at 50% 50%,
+      rgba(190,240,255,.46) 0%, rgba(130,210,250,.30) 45%, rgba(70,160,215,.14) 75%, rgba(0,0,0,0) 100%);
+  border-radius:50%;
+  pointer-events:none;
+}
+#msgText.gdi { -webkit-text-stroke:0; text-shadow:none; }
+#msgText.gdi img { image-rendering:auto; }
+#msgText {
+  position:absolute; left:22.6%; right:8%; top:28.5%;
+  font-size:17px; line-height:1.5; letter-spacing:0;
+  color:#ffffff;
+  -webkit-text-stroke:0.5px rgba(12,40,68,.95);
+  paint-order:stroke fill;
+  text-shadow:0 0.5px 1px rgba(0,10,24,.7);
+  white-space:pre-wrap; word-break:break-word;
+  z-index:2;
+}
+#msgBox .walogo {
+  position:absolute; left:47%; bottom:6%; font-family: inherit !important;
+  font-size:15px; letter-spacing:7px; color:rgba(215,245,255,.30); z-index:1;
+}
+
+/* ---------- 底部工具栏 ---------- */
+#toolbar {
+  position:absolute; right:5.4px; bottom:4.5px; height:19.8px;
+  background:none;
+  display:flex; align-items:center; justify-content:flex-end; gap:6.8px;
+  padding:0; z-index:26;
+  font-size:11px; color:rgba(220,245,255,.9);
+}
+#toolbar .tb {
+  width:18px; height:19.3px;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:none; cursor:pointer;
+  transition:transform .16s, filter .16s;
+}
+#toolbar .tb img {
+  max-width:100%; max-height:100%;
+  display:block; pointer-events:none;
+  filter:drop-shadow(0 0.7px 2px rgba(0,25,50,.8));
+}
+#toolbar .tb img.hv { display:none; }
+#toolbar .tb:hover img.nm { display:none; }
+#toolbar .tb:hover img.hv { display:block; }
+#toolbar .tb:hover { transform:translateY(-1.1px) scale(1.12); filter:brightness(1.25); }
+#toolbar .tb.txt {
+  font-size:8.5px; color:#dff4ff; letter-spacing:0;
+  text-shadow:0 0.7px 1.8px rgba(0,20,40,.85);
+}
+#toolbar .tb.close { filter:none; }
+#toolbar .hint { margin-left:10px; letter-spacing:1px; opacity:.8; }
+
+#inputBar { position:absolute; left:8%; bottom:5.4px;
+  width:33%; height:17.1px; display:flex; align-items:center; gap:0;
+  z-index:25; opacity:.42; transition:opacity .25s; }
+#inputFrame {
+  position:absolute; left:0; top:0; width:100%; height:100%;
+  pointer-events:none; opacity:.55;
+}
+#inputBar:hover, #inputBar:focus-within { opacity:1; }
+#input { flex:1; position:relative; background:none; border:none;
+  padding:0 6% 0 4.5%; color:#eaf9ff;
+  font-family: inherit !important; font-size:7.9px; letter-spacing:0.5px; outline:none; }
+#input:focus { border-color:rgba(160,240,255,.95); }
+#sendBtn {
+  position:relative;
+  background:rgba(30,120,180,.55);
+  border:1px solid rgba(150,230,255,.55); border-radius:1.8px;
+  color:#fff; font-family: inherit !important; font-size:7.6px; letter-spacing:1.3px;
+  height:100%; padding:0 9px; margin-right:0; cursor:pointer; }
+#sendBtn:hover { background:rgba(60,175,235,.8); }
+#backBtn { display:none; }
+#backBtn { padding:0 12px; }
+
+.choice::before, .choice::after {
+  content:""; position:absolute; top:50%; width:34px; height:34px;
+  transform:translateY(-50%);
+  background-image:url("assets/snowflake_right.png");
+  background-size:contain; background-repeat:no-repeat;
+  opacity:.9;
+}
+.choice::before { left:16px; }
+.choice::after { right:16px; }
+.choice:hover { filter:brightness(1.3); transform:scale(1.02); }
+
+
+
+
+/* ---------- 设置面板 ---------- */
+#cfgPanel {
+  position:fixed; inset:0; z-index:60; display:none;
+  align-items:center; justify-content:center;
+  background:rgba(0,6,14,.72);
+}
+#cfgPanel.show { display:flex; }
+.cfgCard {
+  width:min(680px, 736px); max-height:387px; overflow-y:auto;
+  background:linear-gradient(180deg, rgba(8,36,60,.98), rgba(3,16,30,.99));
+  border:1px solid rgba(120,205,250,.4); border-radius:4px;
+  padding:26px 30px; box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.cfgTitle { font-size:19px; letter-spacing:5px; color:#dff6ff; margin-bottom:18px; }
+.cfgSec { margin-bottom:18px; }
+.cfgLbl { font-size:12px; color:#7fd4ff; letter-spacing:2px; margin-bottom:8px; }
+.cfgRow { display:flex; align-items:center; gap:10px; margin:6px 0; font-size:14px; }
+.cfgRow span { width:56px; color:#bfe6ff; }
+.cfgRow select { flex:1; background:rgba(2,20,36,.9); color:#eaf9ff;
+  border:1px solid rgba(120,205,250,.4); border-radius:2px; padding:5px 8px;
+  font-family: inherit !important; font-size:13px; }
+.cfgRow input[type=range] { flex:1; accent-color:#4fc3ff; }
+.cfgRow b { width:44px; text-align:right; color:#9fe0ff; font-weight:400; font-size:12px; }
+.cfgRow button { background:rgba(20,90,140,.7); color:#eaf9ff; font-family: inherit !important;
+  border:1px solid rgba(120,205,250,.45); border-radius:2px; padding:5px 14px;
+  font-size:12px; cursor:pointer; }
+.cfgRow button:hover { background:rgba(40,140,200,.85); }
+.cfgBtns { display:flex; gap:12px; justify-content:flex-end; margin-top:20px; }
+.cfgBtns button { padding:8px 26px; background:linear-gradient(180deg, rgba(40,150,210,.9), rgba(10,70,120,.95));
+  border:1px solid rgba(150,230,255,.6); border-radius:2px; color:#fff;
+  font-family: inherit !important; font-size:14px; letter-spacing:2px; cursor:pointer; }
+
+/* ===== 对话框: 直接用游戏原图 sys_00000 (1248x208) ===== */
+#msgWrap {
+  left: 0 !important; right: 0 !important;
+  bottom: 26px !important;
+  height: 118px !important;
+  padding: 0 8px !important;
+}
+#msgBox {
+  background-image: url("assets/ui/msgbox.png") !important;
+  background-size: 100% 100% !important;
+  background-color: transparent !important;
+}
+#msgBox .fill { display: none !important; }
+#namePlate {
+  left: 12% !important; top: 8% !important;
+  font-size: 11px !important;
+}
+#msgText {
+  left: 13% !important; right: 9% !important;
+  top: 30% !important;
+  font-size: 15px !important;
+}
+#msgBox .walogo { display: none !important; }
+
+/* 对话框位置微调: 丝带贴底, 留出下方工具栏 */
+#msgWrap {
+  left: 0 !important; right: 0 !important;
+  bottom: 8px !important;
+  height: 152px !important;
+  width: auto !important;
+  transform: none !important;
+  padding: 0 6px !important;
+}
+#namePlate { left: 11.5% !important; top: 12% !important; }
+#msgText   { left: 12.5% !important; right: 9% !important; top: 34% !important; }
+
+/* ===== 对话框 = 填充层(sys_00001, 含水印) + 丝带层(sys_00000) ===== */
+#msgBox {
+  background-image: url("assets/ui/msgbox_ribbon.png"), url("assets/ui/msgbox_fill.png") !important;
+  background-size: 100% 100%, 100% 100% !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-position: 0 0, 0 0 !important;
+  opacity: 1 !important;
+}
+#msgBox .fill { display: none !important; }
+/* 水印已经在填充层里, 去掉自绘的 */
+#msgBox .walogo { display: none !important; }
+
+
+/* 思考面板 */
+#thinkBox {
+  position: absolute; left: 13%; right: 9%; top: 6%;
+  font-size: 11px; line-height: 1.45; color: #9fd8f5;
+  font-style: italic; pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,10,24,.9);
+  opacity: .92;
+}
+#thinkBox.hidden { display: none; }
+#thinkBtn {
+  font-family: inherit !important; font-size: 13px;
+  padding: 0 12px; height: 34px; margin-left: 8px;
+  color: #eaf7ff; cursor: pointer;
+  background: rgba(20,90,140,.75);
+  border: 1px solid rgba(150,230,255,.55); border-radius: 3px;
+}
+#thinkBtn:hover { background: rgba(40,130,190,.85); }
+
+/* 输入栏: 加宽放得下"思考"按钮 */
+#inputBar { width: 46% !important; left: 6% !important; }
+#input { font-size: 8.2px !important; }
+#thinkBtn {
+  position: relative;
+  height: 100% !important;
+  padding: 0 6px !important;
+  margin-left: 3px !important;
+  font-size: 7.4px !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+#sendBtn { flex: 0 0 auto; padding: 0 8px !important; }
+/* 思考面板字体再小一点, 避免压到正文 */
+#thinkBox { font-size: 10.5px !important; color: #8fd0ef !important; }
+
+
+/* ===== 对话框对齐游戏原图 (第三轮) ===== */
+#msgWrap {
+  left: 50% !important; right: auto !important;
+  transform: translateX(-50%) !important;
+  width: 780px !important;
+  height: 130px !important;
+  bottom: 34px !important;
+  padding: 0 !important;
+}
+#msgBox {
+  opacity: 1 !important;
+  filter: brightness(1.12) saturate(1.15) contrast(1.03) !important;
+}
+#namePlate {
+  left: 17% !important; top: 6% !important;
+  font-size: 11.5px !important;
+}
+#msgText {
+  left: 19% !important; right: 12% !important;
+  top: 30% !important;
+  font-size: 15.5px !important;
+  line-height: 1.5 !important;
+}
+
+
+/* ===== 对话框第四轮: 位置/尺寸按游戏实测, 填充层加柔和遮罩 ===== */
+#msgWrap {
+  left: 50% !important; right: auto !important;
+  transform: translateX(-50%) !important;
+  width: 780px !important;
+  height: 154px !important;
+  bottom: 19px !important;
+  padding: 0 !important;
+}
+/* 只保留丝带层做背景 */
+#msgBox {
+  background-image: url("assets/ui/msgbox_ribbon.png") !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+/* 填充层(渐变+水印)放成伪元素, 用椭圆遮罩消掉矩形硬边 */
+#msgBox::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: url("assets/ui/msgbox_fill.png") 0 0 / 100% 100% no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse 62% 78% at 50% 52%, #000 62%, transparent 88%);
+  mask-image: radial-gradient(ellipse 62% 78% at 50% 52%, #000 62%, transparent 88%);
+  pointer-events: none;
+  z-index: 0;
+}
+#namePlate, #msgText { z-index: 1; }
+/* 名字/正文位置 */
+#namePlate {
+  left: 17% !important; top: 8% !important;
+  font-size: 11.5px !important;
+}
+#msgText {
+  left: 19% !important; right: 12% !important;
+  top: 32% !important;
+  font-size: 15.5px !important;
+  line-height: 1.5 !important;
+}
+
+
+/* ===== 对话框第五轮: 加法混合, 不要遮罩 ===== */
+#msgBox::before {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  mix-blend-mode: screen !important;
+  opacity: .9 !important;
+  background: url("assets/ui/msgbox_fill.png") 0 0 / 100% 100% no-repeat !important;
+}
+/* 丝带层也用 screen, 让亮线叠加而不是盖住 */
+#msgBox {
+  background-image: url("assets/ui/msgbox_ribbon.png") !important;
+  background-blend-mode: screen !important;
+}
+
+
+/* ===== 对话框第六轮: 按像素测量修正 ===== */
+#msgWrap {
+  bottom: 0px !important;
+  height: 154px !important;
+  width: 780px !important;
+}
+/* 名字: 22.5% / 21% */
+#namePlate {
+  left: 22.5% !important;
+  top: 21% !important;
+  font-size: 11.5px !important;
+}
+/* 正文: 26% / 41% */
+#msgText {
+  left: 26% !important;
+  right: 10% !important;
+  top: 41% !important;
+  font-size: 15.5px !important;
+  line-height: 1.5 !important;
+}
+
+/* ===== 对话框第七轮: 纵向再上提 (按叠加图) ===== */
+#namePlate { top: 12.6% !important; }
+#msgText   { top: 30.8% !important; }
+
+/* ===== 对话框第八轮: 名字再上提 6%, 左移 1.5% ===== */
+#namePlate { top: 6.6% !important; left: 21% !important; }
+
+/* ===== 对话框第九轮(定稿): 名字纵向取中间值 ===== */
+#namePlate { top: 9.6% !important; }
+
+
+/* ===== 对话框第十轮: 按素材原始比例, 消除纵向拉伸 ===== */
+#msgWrap {
+  width: 780px !important;
+  height: 130px !important;   /* 780 * 208/1248 = 130, 与素材 1:1 */
+  bottom: 0px !important;
+}
+/* 绝对位置保持不变: 154/130 = 1.185 */
+#namePlate {
+  left: 21% !important;
+  top: 11.4% !important;
+  font-size: 11.5px !important;
+}
+#msgText {
+  left: 26% !important;
+  right: 10% !important;
+  top: 36.5% !important;
+  font-size: 15.5px !important;
+  line-height: 1.5 !important;
+}
+
+
+/* ===== 输入框第十一版: 原图直用, 移到右下 ===== */
+#inputBar {
+  left: 512px !important;
+  top: 208px !important;
+  bottom: auto !important;
+  width: 280px !important;
+  height: 65px !important;
+  opacity: 1 !important;
+  align-items: flex-start !important;
+}
+#inputFrame { width: 100% !important; height: 100% !important; opacity: .92 !important; }
+#input {
+  font-size: 11px !important;
+  padding: 0 14px 0 26px !important;
+  height: 100% !important;
+}
+#thinkBtn, #sendBtn {
+  position: absolute !important;
+  bottom: -22px;
+  height: 20px !important;
+  font-size: 7.6px !important;
+  padding: 0 9px !important;
+}
+#thinkBtn { right: 62px !important; margin: 0 !important; }
+#sendBtn  { right: 0 !important; }
+
+
+/* ===== 按钮三态皮肤 (sys_07020) ===== */
+#thinkBtn, #sendBtn {
+  background-image: url("assets/ui/btn_3state.png") !important;
+  background-size: 100% 300% !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: #eaf7ff !important;
+  text-shadow: 0 1px 2px rgba(0,15,30,.9) !important;
+  width: 66px !important;
+}
+#thinkBtn:active, #sendBtn:active {
+  background-position: 0 33.333% !important;
+}
+#thinkBtn.released, #sendBtn.released {
+  background-position: 0 66.666% !important;
+}
+
+/* ===== 三态按钮修正: 三帧图集正确位置 0/50/100 ===== */
+#thinkBtn, #sendBtn {
+  width: 80px !important;
+  background-position: 0 0 !important;
+}
+#thinkBtn:active, #sendBtn:active {
+  background-position: 0 50% !important;
+}
+#thinkBtn.released, #sendBtn.released {
+  background-position: 0 100% !important;
+}
+
+
+/* ===== 按钮: 分开间距, 去掉原生外观 ===== */
+#thinkBtn, #sendBtn {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  width: 82px !important;
+}
+#thinkBtn { right: 94px !important; }
+#sendBtn  { right: 0 !important; }
+
+
+/* ===== 按钮: 边框贴图 + 透明内部(无模糊块) ===== */
+#thinkBtn, #sendBtn {
+  background-image: url("assets/ui/btn_frame.png") !important;
+  background-size: 100% 300% !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 0 !important;
+  background-color: rgba(26,104,146,.55) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-shadow: none !important;
+  color: #f2fbff !important;
+  text-shadow: 0 1px 2px rgba(0,18,36,.95) !important;
+  width: 82px !important;
+}
+#thinkBtn:active, #sendBtn:active { background-position: 0 50% !important; }
+#thinkBtn.released, #sendBtn.released { background-position: 0 100% !important; }
+
+/* 按钮内部填充加深一点, 让文字更清楚 */
+#thinkBtn, #sendBtn { background-color: rgba(18,88,128,.82) !important; }
+
+
+/* ===== 按钮: 用修好的完整三帧贴图 ===== */
+#thinkBtn, #sendBtn {
+  background-image: url("assets/ui/btn_3state.png") !important;
+  background-size: 100% 300% !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 0 !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-shadow: none !important;
+  color: #f4fcff !important;
+  text-shadow: 0 1px 2px rgba(0,18,36,.95) !important;
+  width: 82px !important;
+}
+#thinkBtn:active, #sendBtn:active { background-position: 0 50% !important; }
+#thinkBtn.released, #sendBtn.released { background-position: 0 100% !important; }
+
+
+
+/* 翻页提示: 还有下一页时闪烁 */
+#moreHint {
+  position: absolute;
+  right: 9%;
+  bottom: 8%;
+  color: #cfefff;
+  font-size: 14px;
+  text-shadow: 0 0 4px #0a2a44, 0 1px 0 #000;
+  display: none;
+  animation: moreBlink 1.1s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes moreBlink { 0%,100%{opacity:.25} 50%{opacity:1} }
+
+
+/* ===== 位置校正: 对照游戏整窗截图实测 ===== */
+/* 正文左沿 0.2416 与游戏 0.2414 一致; 名字按 0.2199 校正 */
+#msgText {
+  left: 23.5% !important;
+  top: 30.5% !important;
+}
+#namePlate {
+  left: 21.3% !important;
+  top: 5.2% !important;
+}
+
+
+/* ===== 思考文字: 左上区域, 不进对话框 ===== */
+#thinkBox {
+  position: absolute;
+  left: 3.2%;
+  top: 15%;
+  width: 21%;
+  max-height: 34%;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.5;
+  color: #a8dcf5;
+  font-style: italic;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,10,24,.95), 0 0 6px rgba(0,20,40,.8);
+  opacity: .95;
+  word-break: break-all;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 7;      /* 最多 7 行, 超出显示省略号 */
+  z-index: 5;
+}
+#thinkBox.hidden { display: none !important; }
+
+
+/* ===== 句末翻页图标（游戏原版素材） ===== */
+#msgText { position: relative; }
+#msgText .pageIcon {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
+  animation: pageBlink 1.2s steps(1, end) infinite;
+}
+@keyframes pageBlink {
+  0%, 60%   { opacity: 1; }
+  61%, 100% { opacity: 0.15; }
+}
+
+
+/* 旧的 ▼ 提示由游戏原版翻页图标取代 */
+#moreHint { display: none !important; }
+
+
+
+
+
+/* ===================== 历史对话（按截图逐像素实测） ===================== */
+#historyPanel { position:absolute; inset:0; z-index:60; display:none; }
+#historyPanel.show { display:block; }
+body.histOpen .mbBar { display:none !important; }   /* 菜单栏保留：鼠标移到顶部照样能唤出 */
+
+/* 顶栏: 通栏，下沿 y=4.04%（游戏实测 62/1536） */
+#historyHead { position:absolute; left:0; right:0; top:0; height:auto; line-height:0; }
+#historyHead img { width:100%; height:auto; display:block; }
+
+/* 面板: x 14.25% ~ 83.15%, y 4.04% ~ 93.68% */
+#historyBox {
+  position:absolute; left:14.25%; right:16.85%; top:4.028%; bottom:6.250%;
+  background:url("assets/ui/history/panel.png") left top / 100% 100% no-repeat;
+}
+#historyBody { position:absolute; inset:0; }
+#historyList {
+  position:absolute; top:0; bottom:0; left:0; right:9.2%;   /* 右侧留出滑条宽度 */
+  overflow-y:auto; overflow-x:hidden;
+  padding: 4px 10px 6px 38.4px;
+  scrollbar-width:none; -ms-overflow-style:none;
+}
+#historyList::-webkit-scrollbar { width:0; height:0; }
+
+/* 记录 */
+.hline { display:flex; align-items:flex-start; margin:0 0 7px; }
+.hline .ico { flex:0 0 auto; width:16.1px; margin:3px 7.3px 0 0; line-height:0; }
+.hline .ico img { width:100%; display:block; }
+.hline .body { flex:1 1 auto; min-width:0; }
+.hline .who { display:block; font-size:18px; color:#eaf7ff; line-height:26px !important;
+  letter-spacing:.06em; margin-bottom:0;
+  text-shadow:0 1px 2px rgba(0,10,24,.95); }
+/* uitext 生成的图片默认 inline-block，会撑高行盒导致行距不齐，改成块级 */
+.hline .who img, .hline .txt img { display:block !important; }
+.hline .txt { font-size:18px; line-height:26px !important; text-indent:10.9px; color:#eaf7ff;
+  text-shadow:0 1px 2px rgba(0,10,24,.95); white-space:pre-wrap; }
+.hline.me .who { color:#ffd9e2; }
+.hline.me .txt { color:#f7ebf0; }
+
+/* 滑条: 在面板内部靠右，x 81.06%~82.60%，y 与面板同高 */
+#historyScroll { -webkit-app-region:no-drag;
+  /* 实测(模板匹配 0.98): x 80.88% 宽 2.01%; y 4.43%~93.36% */
+  position:absolute; left:80.88%; width:2.01%;
+  top:4.43%; bottom:6.64%;
+  display:flex; flex-direction:column; align-items:center;
+}
+.hsArrow { width:100%; padding:0; border:0; background:none; cursor:pointer; line-height:0; }
+.hsArrow img { width:100%; display:block; }
+.hsArrow .on { display:none; }
+.hsArrow:hover .off { display:none; }
+.hsArrow:hover .on { display:block; }
+
+#hsTrack { position:relative; flex:1 1 auto; width:100%; margin:1px 0; min-height:20px; }
+.hsTrackImg { width:100%; height:100%; display:block; }
+/* 滑块长度固定（游戏里不随内容变化），位置按滚动比例 */
+/* 滑块: 宽 50.9% 滑条宽、左缩进 25.5%、高 13.0% 滑条高（游戏实测 28x178 / 55x1366） */
+/* 滑块: 宽 57% 滑条宽（游戏实测 31/51），高由 JS 按 16.3% 轨道设定 */
+#hsThumb { -webkit-app-region:no-drag; position:absolute; left:24%; width:52%; top:0; height:40px; cursor:grab; }
+#hsThumb img { width:100%; height:100%; display:block; }
+#hsThumb:active { cursor:grabbing; }
+#hsThumb img { width:100%; height:100%; display:block; }
+
+/* 底栏: 上沿 y=93.68% */
+#historyFoot { position:absolute; left:0; right:0; bottom:0; height:auto; line-height:0; }
+#historyFoot img { width:100%; height:auto; display:block; }
+
+/* EXIT: 底栏右侧 */
+#historyExit {
+  position:absolute; right:2.4%; bottom:1.3%; height:3.2%;
+  padding:0; border:0; background:none; cursor:pointer; line-height:0;
+}
+#historyExit img { height:100%; width:auto; display:block; }
+#historyExit .on { display:none; }
+#historyExit:hover .off { display:none; }
+#historyExit:hover .on { display:block; }
+
+/* 打开历史时收起其它 UI */
+body.histOpen #msgWrap,
+body.histOpen #inputBar,
+body.histOpen #toolbar { display:none !important; }
+
+/* 对话界面底部蓝色微光条：素材 sys_00013.tga（1280x48）
+   alpha 自 0 递增到 175，贴在画面最下沿形成渐亮 */
+#glowBottom {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 800px;
+  height: 30px;
+  z-index: 20;
+  pointer-events: none;
+}
+#glowBottom img { width: 100%; height: 100%; display: block; }
+
+/* 长句折行容器：每行一个 .txt */
+.hline .txtwrap { min-width:0; }
+
+/* 回想：悬停/重播时整句变黄。滤镜参数是解出来的：
+   我们的字芯 RGB(228,228,228) 经过 sepia(1) saturate(1.73) brightness(.98)
+   正好变成 RGB(250,250,164)，即游戏原图里黄字字芯色 #FAF6A4 */
+.hline.hl .who img, .hline.hl .txt img {
+  filter: sepia(1) saturate(2.05) brightness(1);
+}
+.hline .ico { cursor: default; }
