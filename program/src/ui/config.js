@@ -3,7 +3,7 @@
   const SND = "assets/snd/";
   let catalog = { se: [], bgm: [] };
   let prefs = {
-    seHover: 0, seClick: 1, seCancel: 2,
+    seHover: 55, seClick: 56, seCancel: 56,   // 55=悬停音 56=点击音（录屏比对得出）
     bgmMenu: 0, bgmCalm: 2, bgmWarm: 3, bgmSad: 4, bgmTense: 6,
     bgmVol: 30, seVol: 35,
   };
