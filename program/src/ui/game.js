@@ -171,7 +171,8 @@ const seCache = {};
 function playSE(kind) {
   const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
   const C = (window.App && window.App.catalogGet) ? window.App.catalogGet() : { se: [] };
-  const key = kind === "click" ? P.seClick : (kind === "cancel" ? P.seCancel : P.seHover);
+  const key = kind === "page" ? (P.sePage || 57)
+                 : (kind === "click" ? P.seClick : (kind === "cancel" ? P.seCancel : P.seHover));
   const item = C.se && C.se[key || 0];
   if (!item) return;
   const vol = (P.seVol === undefined ? 35 : P.seVol) / 100;

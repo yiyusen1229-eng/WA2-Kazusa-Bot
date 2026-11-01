@@ -5,6 +5,10 @@
   background:rgba(2,12,24,.72);
 }
 .uiScreen.show { display:block !important; }
+  /* 与实机一致：切换界面整屏淡入（0.22s），关闭淡出 */
+  .uiScreen { opacity:0; transition:opacity .22s ease; }
+  .uiScreen.show { opacity:1; }
+  .uiScreen.fading { opacity:0 !important; }
 
 
 .uiHead {

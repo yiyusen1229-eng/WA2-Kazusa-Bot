@@ -40,7 +40,8 @@
     window.__savePage = p;
     showActive(cur);
     showHover(0);
-    if (window.__renderSaveSlots) window.__renderSaveSlots(p);
+    try { window.playSE && window.playSE("page"); } catch (e) {}
+      if (window.__renderSaveSlots) window.__renderSaveSlots(p);
   }
   window.__setSavePage = setPage;
 

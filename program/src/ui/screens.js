@@ -4,6 +4,12 @@
   // 元素被移走时不要抛错
   function need(id) { return document.getElementById(id); }
 
+  /* 统一音效：翻页/切页 —— 页签、EXIT、OPTION 标签、回想滚轮都用它 */
+  function playPageSE() {
+    try { if (window.playSE) window.playSE("page"); } catch (e) {}
+  }
+  window.__pageSE = playPageSE;
+
 
   /* ---------- 存读档 ---------- */
   let saveMode = "load";           // load | save
@@ -81,7 +87,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".optTabs .t").forEach(t => t.addEventListener("click", () => {
-      window.__setOptPage && window.__setOptPage(+t.dataset.opt); playSE && playSE("click");
+      playPageSE(); window.__setOptPage && window.__setOptPage(+t.dataset.opt); playSE && playSE("click");
     }));
     // ESC 关闭
     document.addEventListener("keydown", e => {
