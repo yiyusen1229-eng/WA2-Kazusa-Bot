@@ -865,7 +865,6 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path.startswith("/api/session/load"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             return self._json(session_load((q.get("slot") or ["auto"])[0]))
-        if self.path.startswith("/api/session/list"):
             return self._json(session_list())
         if self.path.startswith("/api/session/thumb"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
