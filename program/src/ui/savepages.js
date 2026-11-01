@@ -170,7 +170,9 @@ window.__renderSaveSlots = function (page) {
   var BAKED_TOAST = {
     "存档已保存": "save_done",
     "这个槽位没有存档": "load_empty",
-    "对话不足两条不能存档": "save_short"
+    "对话不足两条，不能存档": "save_short",
+    "读档失败": "load_fail",
+    "这个槽位读不出来": "slot_bad"
   };
 
   function showToast(msg) {

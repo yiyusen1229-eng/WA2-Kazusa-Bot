@@ -275,3 +275,6 @@
 .uiExit:hover img.s2 { opacity: 1; }
 .uiExit:active img.s2 { opacity: 0; }
 .uiExit:active img.s3 { opacity: 1; }
+
+/* 字模图片：按 18px 行高显示，保持原始比例，不被容器拉伸 */
+#saveScreen .dlgToast .txt img { height: 18px !important; width: auto !important; display: inline-block; vertical-align: middle; }
