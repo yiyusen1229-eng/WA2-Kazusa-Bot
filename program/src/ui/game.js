@@ -1298,17 +1298,6 @@ function syncHistThumb() {
     .catch(function () { window.__voiceOk = false; });
 })();
 /* 内容淡入淡出：换页/换标签时统一走这里，时长和实机一致（约 0.2s 出 + 0.2s 入） */
-window.fadeSwap = function (el, fn, ms) {
-  if (!el) { try { fn && fn(); } catch (e) {} return; }
-  ms = ms || 200;
-  el.style.transition = "none";
-  el.style.opacity = "0";
-  requestAnimationFrame(function () {
-    try { fn && fn(); } catch (e) {}
-    el.style.transition = "opacity " + ms + "ms ease";
-    el.style.opacity = "1";
-  });
-};
 
 /* 整屏淡入：给界面上 .show 后，用两帧把 opacity 推上去（display 切换时 CSS transition 不会启动） */
 window.fadeInScreen = function (el, ms) {
@@ -1359,71 +1348,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /* 一组元素做淡出→改动→淡入（切标签页/切存档页时用，和实机一致约 0.2s） */
-window.fadeEls = function (els, fn, ms) {
-  if (!els || !els.length) { try { fn && fn(); } catch (e) {} return; }
-  ms = ms || 200;
-  var half = ms / 2;
-  Array.prototype.forEach.call(els, function (el) {
-    el.style.transition = "opacity " + half + "ms ease";
-    el.style.opacity = "0";
-  });
-  setTimeout(function () {
-    try { fn && fn(); } catch (e) {}
-    Array.prototype.forEach.call(els, function (el) {
-      el.style.opacity = "1";
-    });
-  }, half);
-};
 /* 换页动画（按原版观感实现）：
    旧页：向内收缩 + 虚化 + 变透明
    新页：从略大开始，向内收缩同时由透明迅速实化
    总时长默认 390ms（与翻页音 SE_9213 等长） */
-window.zoomSwap = function (oldEls, newEls, fn, ms) {
-  ms = ms || 390;
-  var out = Math.round(ms * 0.45), inn = ms - out;
-  var olds = oldEls ? [].concat(oldEls) : [];
-  var news = newEls ? [].concat(newEls) : [];
-
-  function reflow(el) { void el.offsetWidth; }
-
-  /* 旧页：先确保起始状态干净，再在下一帧启动过渡（同一帧改 transition 与值不会产生动画） */
-  olds.forEach(function (el) {
-    el.style.transition = "none";
-    el.style.transformOrigin = "50% 50%";
-    el.style.transform = "scale(1)";
-    el.style.filter = "none";
-    el.style.opacity = "1";
-    reflow(el);
-  });
-  requestAnimationFrame(function () {
-    olds.forEach(function (el) {
-      el.style.transition = "transform " + out + "ms ease-in, opacity " + out + "ms ease-in, filter " + out + "ms ease-in";
-      el.style.transform = "scale(0.94)";
-      el.style.filter = "blur(5px)";
-      el.style.opacity = "0";
-    });
-  });
-
-  setTimeout(function () {
-    try { fn && fn(); } catch (e) {}
-    news.forEach(function (el) {
-      el.style.transition = "none";
-      el.style.transformOrigin = "50% 50%";
-      el.style.transform = "scale(1.06)";
-      el.style.filter = "blur(4px)";
-      el.style.opacity = "0.15";
-      reflow(el);
-    });
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        news.forEach(function (el) {
-          el.style.transition = "transform " + inn + "ms cubic-bezier(.2,.9,.25,1), " +
-                                "opacity " + inn + "ms ease, filter " + inn + "ms ease";
-          el.style.transform = "scale(1)";
-          el.style.filter = "blur(0)";
-          el.style.opacity = "1";
-        });
-      });
-    });
-  }, out);
-};
