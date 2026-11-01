@@ -1455,21 +1455,25 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /* ---------- 界面显示（OPTION 1 的「窗口」那几项） ----------
-   窗口 ON / OFF：关掉时整个对话框（消息框 + 输入栏）不显示；
-   窗口透明度（普通场景）：对话框和输入栏一起变透明，0 就是完全看不见（也不吃点击）。 */
+   窗口透明度（普通场景）：只淡 UI 底图（对话框发光框 / 输入栏底框 / 按钮底板），
+     字模（正文、名字、占位符、按钮标签）保持原样 —— 通过 CSS 变量 --ui-alpha 控制；
+   窗口 ON / OFF：整块显示/隐藏（连字一起），这是有意的。 */
 window.__applyUiPrefs = function () {
   var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
   var on = (P.winVisible === undefined) ? true : !!P.winVisible;
   var a = (P.winAlpha === undefined) ? 100 : P.winAlpha;
   a = Math.max(0, Math.min(100, a)) / 100;
-  var op = on ? String(a) : "0";
+  try { document.documentElement.style.setProperty("--ui-alpha", String(a)); } catch (e) {}
   ["msgWrap", "inputBar"].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
-    /* 必须 !important：game450.css 后面有 `#inputBar { opacity: 1 !important }`，
-       普通内联样式压不住它（这就是第一次测出来输入框不跟着变透明的原因）。 */
-    el.style.setProperty("opacity", op, "important");
-    el.style.pointerEvents = (on && a > 0.02) ? "" : "none";
+    if (on) {
+      el.style.removeProperty("opacity");
+      el.style.removeProperty("pointer-events");
+    } else {
+      el.style.setProperty("opacity", "0", "important");
+      el.style.setProperty("pointer-events", "none", "important");
+    }
   });
   document.body.classList.toggle("dlgHidden", !on);
 };

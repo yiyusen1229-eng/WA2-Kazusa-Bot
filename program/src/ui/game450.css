@@ -800,3 +800,45 @@ body.histOpen #toolbar { display:none !important; }
 #thinkBtn img.lbl { height: 8.5px !important; width: auto !important; vertical-align: middle; }
 #thinkBtn img.val { height: 8.5px !important; width: auto !important; vertical-align: middle; margin-left: 1px; }
 #sendBtn img { height: 8.5px !important; width: auto !important; vertical-align: middle; }
+
+/* ===== OPTION 1「窗口透明度（普通场景）」=====
+   只淡 UI 底图，字模（正文 / 名字 / 占位符 / 按钮标签）一点不动。
+   数值由 game.js 的 __applyUiPrefs() 写进 :root 的 --ui-alpha（0~1）。
+
+   对话框的 UI 是两层：丝带层（原本是 #msgBox 的背景）+ 填充层（#msgBox::before）。
+   丝带挪到 ::after 才能单独淡；填充层沿用原规则，只把它的 .9 也乘上 UI 透明度。 */
+#msgBox { background-image: none !important; }
+#msgBox::after {
+  content: "";
+  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  background: url("assets/ui/msgbox_ribbon.png") 0 0 / 100% 100% no-repeat;
+  opacity: var(--ui-alpha, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+/* 原来写死 .9 !important，这里改成 0.9 × UI 透明度（同特异性、后出现，能压住） */
+#msgBox::before {
+  opacity: calc(.9 * var(--ui-alpha, 1)) !important;
+}
+
+/* 输入栏底框（素材自带 .92，再乘 UI 透明度） */
+#inputFrame { opacity: calc(.92 * var(--ui-alpha, 1)) !important; }
+
+/* 发送 / 动作按钮：三态底板挪到伪元素，字模留在按钮本身上 */
+#thinkBtn, #sendBtn {
+  background-image: none !important;
+  isolation: isolate;                 /* 让 z-index:-1 的伪元素只在本按钮内垫底 */
+}
+#thinkBtn::before, #sendBtn::before {
+  content: "";
+  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  z-index: -1;
+  background-image: url("assets/ui/btn_3state.png");
+  background-size: 100% 300%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  opacity: var(--ui-alpha, 1);
+  pointer-events: none;
+}
+#thinkBtn:active::before, #sendBtn:active::before { background-position: 0 50%; }
+#thinkBtn.released::before, #sendBtn.released::before { background-position: 0 100%; }

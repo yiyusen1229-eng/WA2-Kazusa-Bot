@@ -27,6 +27,7 @@ other/dev/
 logs/
 *.log
 config.json
+prefs.json
 ui2/
 
 # 过程产物

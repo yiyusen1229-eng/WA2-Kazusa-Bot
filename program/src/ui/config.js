@@ -20,8 +20,41 @@
 
 function getPrefs() { return prefs; }
 
+/* ---- 持久化 ----
+   真正落盘的是后端 prefs.json（EXE_DIR），localStorage 只是同一次运行里的缓存。
+   为什么不只靠 localStorage：主窗口用 private_mode 启动，每次都是全新的缓存目录，
+   localStorage 会被清空，设置就"重启复位"了。 */
+var pushTimer = null;
+
+function pushPrefs() {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(function () {
+    pushTimer = null;
+    try {
+      fetch("/api/prefs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prefs)
+      }).catch(function () {});
+    } catch (e) {}
+  }, 300);
+}
+
+/* 从后端读设置；失败就沿用 localStorage / 默认值（不能让界面起不来） */
+function loadPrefs() {
+  return fetch("/api/prefs", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.ok && d.prefs && typeof d.prefs === "object") {
+        Object.assign(prefs, d.prefs);
+      }
+    })
+    .catch(function () {});
+}
+
 function savePrefs() {
     try { localStorage.setItem("app_prefs", JSON.stringify(prefs)); } catch (e) {}
+    pushPrefs();
     window.dispatchEvent(new CustomEvent("app:prefs", { detail: prefs }));
   }
 
@@ -152,10 +185,14 @@ function savePrefs() {
 
 window.App = { prefs: null, catalog: null };
 
-  fetch(SND + "catalog.json")
-    .then(r => r.json())
-    .then(data => {
-      catalog = data;
+  /* 目录和设置并行加载，两个都就绪后才创建 App：
+     否则 opt.js 的还原会在拿到 prefs 之前跑，界面显示和实际值对不上 */
+  Promise.all([
+    fetch(SND + "catalog.json").then(r => r.json()),
+    loadPrefs()
+  ])
+    .then(function (res) {
+      catalog = res[0] || { se: [], bgm: [] };
       const panel = buildPanel();
       window.App.catalog = catalog;
       window.App.prefs = prefs;

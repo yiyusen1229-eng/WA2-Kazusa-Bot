@@ -63,6 +63,62 @@ EXE_DIR = (os.path.dirname(os.path.abspath(sys.executable))
            if getattr(sys, "frozen", False) else BASE)
 CLOUD_CFG_FILE = os.path.join(EXE_DIR, "config.json")
 FEWSHOT_FILE = os.path.join(EXE_DIR, "fewshot.json")
+# 界面设置（音量 / 确认开关 / 右键功能 / 文字速度 / 对话框透明度…）
+# 放 exe 同目录：清理缓存、private_mode 清 localStorage 都不影响它
+PREFS_FILE = os.path.join(EXE_DIR, "prefs.json")
+
+
+# 窗口模式的窗口大小（DIP/CSS 像素）。退出全屏后回到这个尺寸：
+# 这台机器 250% 缩放下 1280x720 已经占满屏幕 83%，全屏和"窗口"肉眼一样大，
+# 所以窗口模式固定用更小的一档（也是程序的 min_size）。
+WINDOWED_SIZE = (1024, 576)
+
+
+def _screen_size():
+    """物理像素的屏幕尺寸（含任务栏区域）"""
+    try:
+        import ctypes
+        u = ctypes.WinDLL("user32")
+        return int(u.GetSystemMetrics(0)), int(u.GetSystemMetrics(1))
+    except Exception:
+        return 0, 0
+
+
+def _dpi_scale():
+    try:
+        import ctypes
+        return ctypes.WinDLL("user32").GetDpiForSystem() / 96.0
+    except Exception:
+        return 1.0
+
+
+def prefs_load():
+    """读界面设置；文件坏了就当没有（不抛异常，否则整个界面起不来）"""
+    try:
+        with open(PREFS_FILE, encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def prefs_save(d):
+    """整体覆写界面设置（先写临时文件再原子替换，避免写一半留下坏 JSON）"""
+    if not isinstance(d, dict):
+        return False
+    try:
+        tmp = PREFS_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=1, sort_keys=True)
+        os.replace(tmp, PREFS_FILE)
+        return True
+    except Exception as e:
+        try:
+            applog.log("保存界面设置失败: %s" % e)
+        except Exception:
+            pass
+        return False
+
 
 def ensure_cloud_cfg():
     """首次启动没有 config.json 就生成一份空白模板（不含任何密钥）"""
@@ -840,6 +896,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"ok": False, "error": str(e)})
         if self.path == "/api/ollama":
             return self._json({"models": ollama_models()})
+        if self.path == "/api/prefs":
+            return self._json({"ok": True, "prefs": prefs_load()})
         if self.path == "/api/modelcfg":
             return self._json(model_cfg_all())
         if self.path.startswith("/api/session/load"):
@@ -875,6 +933,14 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         self._req_start = time.time()
+        if self.path == "/api/prefs":
+            try:
+                body = self._body()
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)}, 400)
+            if not isinstance(body, dict):
+                return self._json({"ok": False, "error": "bad prefs"}, 400)
+            return self._json({"ok": prefs_save(body)})
         if self.path == "/api/modelcfg":
             return self._modelcfg()
         if self.path.startswith("/api/session/save"):
@@ -967,6 +1033,8 @@ class Handler(SimpleHTTPRequestHandler):
                         return self._json({"ok": False, "error": str(e)})
             elif action == "fullscreen":
                 # OPTION 1 的「窗口模式 / 全屏模式」：按目标状态切，不是盲目 toggle。
+                # 退出全屏时必须回到一个**明显小于全屏**的窗口 —— 不然在 4K/高 DPI 上
+                # 全屏与"最大化"看起来一样大（用户实测反馈过）。
                 want = qs(q, ("on",), "1")
                 target = (want != "0")
                 try:
@@ -974,6 +1042,24 @@ class Handler(SimpleHTTPRequestHandler):
                     if target != cur:
                         w.toggle_fullscreen()
                     w._wa2_full = target
+                    if not target:
+                        try:
+                            w.restore()                      # 先解除最大化
+                        except Exception:
+                            pass
+                        try:
+                            w.resize(*WINDOWED_SIZE)
+                        except Exception:
+                            pass
+                        try:
+                            # move() 收的是 DIP，GetSystemMetrics 给的是物理像素，先换算
+                            sw, sh = _screen_size()
+                            dp = _dpi_scale()
+                            if sw and sh and dp > 0:
+                                w.move(int((sw / dp - WINDOWED_SIZE[0]) / 2),
+                                       int((sh / dp - WINDOWED_SIZE[1]) / 2))
+                        except Exception:
+                            pass
                     return self._json({"ok": True, "fullscreen": target})
                 except Exception as e:
                     # 全屏 API 不可用时退回最大化，至少不是"点了没反应"
