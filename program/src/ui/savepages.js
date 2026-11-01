@@ -131,15 +131,7 @@
 
   /* 翻页 / 打开存档界面时调用：先用旧数据占位，再按服务器结果重画一次 */
 window.__renderSaveSlots = function (page) {
-    /* 换页：槽位整片「收缩+虚化」淡出，新页从略大收缩实化（WAAPI，实测有效） */
-    try {
-      if (window.waapiSwap && String(page) !== String(window.__savePage || "")) {
-        var slots = document.querySelectorAll("#saveScreen .saveSlot");
-        window.__savePage = page;
-        window.waapiSwap(slots, slots, function () { window.__renderSaveSlotsNow(page); }, 390);
-        return;
-      }
-    } catch (e) {}
+    /* 只做重绘（换页动画已撤掉：WAAPI 在实际界面里会把整片槽位弄没） */
     window.__savePage = page;
     window.__renderSaveSlotsNow(page);
   };

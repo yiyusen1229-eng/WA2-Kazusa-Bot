@@ -88,8 +88,7 @@
           var nxt = document.getElementById("optContent" + (n === 1 ? "" : n));
           var run = function () { current = n; refreshTabs(); };
           if (nxt) nxt.style.display = "block";
-          if (window.waapiSwap && cur && nxt) window.waapiSwap([cur], [nxt], run, 390);
-          else run();
+          run();
         });
       })(i);
     }
