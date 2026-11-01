@@ -120,3 +120,61 @@ window.addEventListener("error", function (e) {
 window.addEventListener("unhandledrejection", function (e) {
   try { log("REJ ", String(e.reason).slice(0, 60)); } catch (err) {}
 });
+
+/* ---------- WAAPI 测试：打开存档界面时自动跑一次 ----------
+   目的：区分「动画没执行」和「执行了但渲染层没画出来」。
+   transform 若在跑却采不到变化 → 说明是渲染层问题；若 playState 就不是 running → 是执行问题。 */
+(function () {
+  var done = false;
+
+  function sample(el, prop, n, gap, cb) {
+    var vals = [], i = 0;
+    var iv = setInterval(function () {
+      vals.push(getComputedStyle(el)[prop]);
+      if (++i >= n) { clearInterval(iv); cb(vals); }
+    }, gap);
+  }
+
+  function run(el) {
+    if (done) return;
+    done = true;
+    log("WAAPI", "开始测试 #" + el.id);
+
+    var a1 = null, a2 = null;
+    try {
+      a1 = el.animate([{ transform: "scale(1)" }, { transform: "scale(0.5)" }],
+                      { duration: 1200, fill: "both", easing: "linear" });
+      log("T  anim=" + (a1 ? "ok" : "null") + " state=" + (a1 ? a1.playState : "-") +
+          " n=" + el.getAnimations().length);
+    } catch (e) { log("T!  " + e.message.slice(0, 40)); }
+
+    try {
+      a2 = el.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 1200, fill: "both" });
+    } catch (e) { log("O!  " + e.message.slice(0, 40)); }
+
+    sample(el, "transform", 8, 150, function (tv) {
+      var u = {}; tv.forEach(function (v) { u[v] = 1; });
+      log("T  transform 值种类=" + Object.keys(u).length);
+      log("T  首=" + tv[0].slice(0, 22));
+      log("T  末=" + tv[tv.length - 1].slice(0, 22));
+      log("T  currentTime=" + (a1 ? Math.round(a1.currentTime) : "-") +
+          " state=" + (a1 ? a1.playState : "-"));
+
+      sample(el, "opacity", 8, 150, function (ov) {
+        var u2 = {}; ov.forEach(function (v) { u2[v] = 1; });
+        log("O  opacity 值种类=" + Object.keys(u2).length +
+            "  (" + ov[0] + " -> " + ov[ov.length - 1] + ")");
+        log("结论", Object.keys(u).length > 1 ? "T 可用 -> 换页动画走 WAAPI"
+              : (Object.keys(u2).length > 1 ? "T 被吞 / O 正常 -> 渲染层问题，需 canvas"
+                 : "两者都不动 -> 动画没执行"));
+        try { a1 && a1.cancel(); } catch (e) {}
+        try { a2 && a2.cancel(); } catch (e) {}
+      });
+    });
+  }
+
+  var timer = setInterval(function () {
+    var el = document.getElementById("saveScreen");
+    if (el && el.classList.contains("show")) { clearInterval(timer); setTimeout(function(){ run(el); }, 400); }
+  }, 300);
+})();
