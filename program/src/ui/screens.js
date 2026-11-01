@@ -76,6 +76,7 @@
       sc.style.transition = "none";
       sc.style.opacity = "0";
       sc.classList.add("show");
+      if (window.zoomIn) window.zoomIn(sc, 390);
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
           sc.style.transition = "opacity 220ms ease";

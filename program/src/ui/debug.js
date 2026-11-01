@@ -103,3 +103,15 @@
 
   log("BOOT", "面板已启动（Ctrl+Shift+D 开关）");
 })();
+
+/* 把 JS 运行时报错也记进面板（有异常时动画会整段不执行，这条能看到原因） */
+window.addEventListener("error", function (e) {
+  try {
+    var msg = (e && e.message) ? e.message : "unknown";
+    var src = (e && e.filename ? e.filename.split("/").pop() : "") + ":" + (e && e.lineno || 0);
+    log("ERR ", src + " " + msg.slice(0, 60));
+  } catch (err) {}
+});
+window.addEventListener("unhandledrejection", function (e) {
+  try { log("REJ ", String(e.reason).slice(0, 60)); } catch (err) {}
+});

@@ -1371,25 +1371,43 @@ window.zoomSwap = function (oldEls, newEls, fn, ms) {
   ms = ms || 390;
   var out = Math.round(ms * 0.45), inn = ms - out;
   var olds = oldEls ? [].concat(oldEls) : [];
+  var news = newEls ? [].concat(newEls) : [];
+
+  function reflow(el) { void el.offsetWidth; }
+
+  /* 旧页：先确保起始状态干净，再在下一帧启动过渡（同一帧改 transition 与值不会产生动画） */
   olds.forEach(function (el) {
-    el.style.transition = "transform " + out + "ms ease, opacity " + out + "ms ease, filter " + out + "ms ease";
+    el.style.transition = "none";
     el.style.transformOrigin = "50% 50%";
-    el.style.transform = "scale(0.94)";
-    el.style.filter = "blur(5px)";
-    el.style.opacity = "0";
+    el.style.transform = "scale(1)";
+    el.style.filter = "none";
+    el.style.opacity = "1";
+    reflow(el);
   });
+  requestAnimationFrame(function () {
+    olds.forEach(function (el) {
+      el.style.transition = "transform " + out + "ms ease-in, opacity " + out + "ms ease-in, filter " + out + "ms ease-in";
+      el.style.transform = "scale(0.94)";
+      el.style.filter = "blur(5px)";
+      el.style.opacity = "0";
+    });
+  });
+
   setTimeout(function () {
     try { fn && fn(); } catch (e) {}
-    var news = newEls ? [].concat(newEls) : [];
     news.forEach(function (el) {
       el.style.transition = "none";
       el.style.transformOrigin = "50% 50%";
       el.style.transform = "scale(1.06)";
       el.style.filter = "blur(4px)";
       el.style.opacity = "0.15";
+      reflow(el);
+    });
+    requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          el.style.transition = "transform " + inn + "ms cubic-bezier(.2,.9,.25,1), opacity " + inn + "ms ease, filter " + inn + "ms ease";
+        news.forEach(function (el) {
+          el.style.transition = "transform " + inn + "ms cubic-bezier(.2,.9,.25,1), " +
+                                "opacity " + inn + "ms ease, filter " + inn + "ms ease";
           el.style.transform = "scale(1)";
           el.style.filter = "blur(0)";
           el.style.opacity = "1";

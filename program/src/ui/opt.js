@@ -23,6 +23,7 @@
   s.style.transition = "none";
   s.style.opacity = "0";
   s.classList.add("show");
+  if (window.zoomIn) window.zoomIn(s, 390);
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
       s.style.transition = "opacity 220ms ease";
