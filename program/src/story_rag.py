@@ -8,6 +8,7 @@ import json
 import math
 import os
 import re
+import threading
 
 CJK = re.compile(r"[\u4e00-\u9fff]")
 WORD = re.compile(r"[a-zA-Z]{2,}")
@@ -118,6 +119,7 @@ class StoryIndex:
 
 
 _CACHE = {}
+_BUILD_LOCK = threading.Lock()
 
 
 def get_index(path=None):
@@ -127,11 +129,23 @@ def get_index(path=None):
     gz = path + ".gz"
     if os.path.exists(gz):
         path = gz
-    if path not in _CACHE:
-        if not os.path.exists(path):
-            return None
-        _CACHE[path] = StoryIndex(path)
+    if path in _CACHE:
+        return _CACHE[path]
+    if not os.path.exists(path):
+        return None
+    # 第一次建索引要读 12MB 并分词，可能被多个请求同时触发 —— 加锁只建一次
+    with _BUILD_LOCK:
+        if path not in _CACHE:
+            _CACHE[path] = StoryIndex(path)
     return _CACHE[path]
+
+
+def preload():
+    """启动时后台预热（main.py 调用），别让第一句相关的话等 1 秒多"""
+    try:
+        return get_index() is not None
+    except Exception:
+        return False
 
 
 def memory_context(query, k=2, max_chars=900):

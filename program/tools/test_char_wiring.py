@@ -131,13 +131,16 @@ def main():
         if FAILS:
             return 1
 
-        def chat():
+        def chat(memory=False, text="你好"):
             CAPTURED.clear()
-            d = post_json(base + "/api/chat", {
-                "messages": [{"role": "user", "content": "你好"}],
+            body = {
+                "messages": [{"role": "user", "content": text}],
                 "base_url": "http://127.0.0.1:%d/v1" % fake_port,
                 "model": "deepseek-flash",
-            })
+            }
+            if memory:
+                body["memory"] = True
+            d = post_json(base + "/api/chat", body)
             sys_msg = ""
             for m in CAPTURED.get("messages") or []:
                 if m.get("role") == "system":
@@ -180,7 +183,16 @@ def main():
         check("worldbook 文件", (st.get("worldbook") or {}).get("file") == "设定.md", repr(st))
         check("人设字数对得上", st.get("prompt_chars") == len(persona), repr(st))
 
-        print("\n[5] 删掉导入 → 回落到原人设")
+        print("\n[5] story_rag：带 memory 才注入，且和世界书分开")
+        d, s_nomem = chat(memory=False, text="你上次在音乐室说什么")
+        check("不带 memory 不注入往事", "原作里发生过的片段" not in s_nomem, s_nomem[-300:])
+        d, s_mem = chat(memory=True, text="你上次在音乐室说什么")
+        check("带 memory 注入往事", "原作里发生过的片段" in s_mem, s_mem[-500:])
+        check("检索到的片段非空", "「" in s_mem.split("原作里发生过的片段")[-1][:300], s_mem[-500:])
+        check("往事和世界书/设定分开写",
+              "【设定补充" in s_mem and "【原作里发生过的片段" in s_mem, s_mem[-700:])
+
+        print("\n[6] 删掉导入 → 回落到原人设")
         for kind, name in (("prompt", "测试提示词.txt"), ("memory", "旧事.txt"), ("worldbook", "设定.md")):
             sub = {"prompt": "prompt", "memory": "memory", "worldbook": "worldbook"}[kind]
             os.remove(os.path.join(tmp, "char", sub, name))

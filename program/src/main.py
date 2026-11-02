@@ -1712,7 +1712,8 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             log("角色资源读取失败: %s" % e)
 
-        # 剧本检索: 找出和这句话相关的往事, 作为"记忆"而非台词
+        # 剧本检索: 找出和这句话相关的原作片段, 作为"想起来的事"而不是台词。
+        # 和世界书分开写：世界书是「设定」，这里是「原作里真的发生过什么」。
         try:
             if STORY is not None and req.get("memory"):
                 last_user = ""
@@ -1723,10 +1724,11 @@ class Handler(SimpleHTTPRequestHandler):
                 mem = STORY.memory_context(last_user, k=2, max_chars=900)
                 if mem:
                     system = system + (
-                        "\n\n【你想起的一些往事（资料，不是台词）】\n"
+                        "\n\n【原作里发生过的片段（资料，不是这轮对话的内容，也不是你的台词）】\n"
                         + mem
-                        + "\n（这些只是你记得的事。用你自己的口气简短说出来，"
-                          "不要照抄格式，不要整段复述，不要描写场景。）")
+                        + "\n（这些是以前真实发生过的事。只在聊天自然提及时，用你自己的口气带一句；"
+                          "不要照抄原文，不要整段复述，不要把它说成刚刚发生的事。）")
+                    log("story_rag 命中 %d 字（问：%s）" % (len(mem), last_user[:20]))
         except Exception as e:
             log("story_rag 失败: %s" % e)
 
@@ -1841,6 +1843,9 @@ def _warm_font():
 
 
 threading.Thread(target=_warm_font, daemon=True).start()
+# 剧本检索索引预热（12MB，建索引约 1 秒）：别让第一句相关的话干等
+if STORY is not None:
+    threading.Thread(target=STORY.preload, daemon=True).start()
 if not NO_MODELS:
     threading.Thread(target=lambda: tts_client.start_translate(), daemon=True).start()
 if not NO_MODELS:

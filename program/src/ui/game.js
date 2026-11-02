@@ -1026,6 +1026,8 @@ async function send() {
       const body = { messages: history.map(function (m) { return { role: m.role, content: m.content }; }) };
       if (act.model) body.model = act.model;
     if (act.url) body.base_url = act.url;
+    // 让后端做一次剧本检索：和这句话相关的「原作里发生过的事」会单独拼进 system
+    body.memory = true;
     // 当前背景一并带上：模型只说地点没说时间时，新场景沿用现在的时段（白天/晚上）
     if (currentBg) body.bg = currentBg;
     return body;
