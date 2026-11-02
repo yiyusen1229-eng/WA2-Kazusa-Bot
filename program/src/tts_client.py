@@ -386,7 +386,9 @@ def _tts_cache_path(text, lang, emo):
     还是播昨天那段）。
     """
     import hashlib
-    key = "%s|%s|%s|%s" % (text, lang, emo, _refs_sig or _char_voice_sig())
+    # 每次现算参考音频目录的签名（两次 stat，很便宜）：刚导入完的那一句也能立刻换新，
+    # 不会先命中导入前的旧缓存
+    key = "%s|%s|%s|%s" % (text, lang, emo, _char_voice_sig())
     h = hashlib.md5(key.encode("utf-8")).hexdigest()[:20]
     return os.path.join(_TTS_CACHE_DIR, h + ".wav")
 
