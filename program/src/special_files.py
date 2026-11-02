@@ -292,9 +292,13 @@ def _portrait_index():
 
 
 def _outfit_name_of(outfits, code):
-    """旧编号 → 字典里的衣服名（立绘目录现在用中文衣服名）"""
+    """旧编号 → 字典里的衣服名（立绘目录现在用中文衣服名；合并过的衣服有多个编号）"""
     for name, o in outfits.items():
-        if isinstance(o, dict) and str(o.get("code") or "") == code:
+        if not isinstance(o, dict):
+            continue
+        if str(o.get("code") or "") == code:
+            return name
+        if code in [str(c) for c in (o.get("codes") or [])]:
             return name
     return ""
 

@@ -190,17 +190,99 @@ def apply(root, moves, new_idx, dry_run=False):
         os.replace(tmp, os.path.join(root, "index.json"))
 
 
+def merge_same_label(root, idx, dry_run=False):
+    """把 label 相同的几套衣服并成一个目录（重名的编号记进 codes）"""
+    outfits = idx.get("outfits") or {}
+    groups = {}
+    for name, o in outfits.items():
+        label = ((o or {}).get("label") or name).strip()
+        groups.setdefault(label, []).append(name)
+
+    merged = 0
+    for label, names in groups.items():
+        if len(names) < 2:
+            continue
+        target = label if label in outfits else names[0]
+        tgt_dir = os.path.join(root, target)
+        os.makedirs(tgt_dir, exist_ok=True)
+        base = outfits[target]
+        base.setdefault("codes", [])
+        if base.get("code") and base["code"] not in base["codes"]:
+            base["codes"].append(base["code"])
+        files_now = set(os.listdir(tgt_dir)) if os.path.isdir(tgt_dir) else set()
+        for name in names:
+            if name == target:
+                continue
+            o = outfits.pop(name)
+            src_dir = os.path.join(root, name)
+            if o.get("code") and o["code"] not in base["codes"]:
+                base["codes"].append(o["code"])
+            moved = {}
+            if os.path.isdir(src_dir):
+                for fn in sorted(os.listdir(src_dir)):
+                    sp = os.path.join(src_dir, fn)
+                    if not os.path.isfile(sp):
+                        continue
+                    stem, ext = os.path.splitext(fn)
+                    n = fn
+                    i = 2
+                    while n.lower() in {f.lower() for f in files_now}:
+                        n = "%s%d%s" % (stem, i, ext)
+                        i += 1
+                    files_now.add(n)
+                    if not dry_run:
+                        os.replace(sp, os.path.join(tgt_dir, n))
+                    moved[fn] = n
+                try:
+                    os.rmdir(src_dir)
+                except OSError:
+                    pass
+            # 变体 / 情绪 / 默认图 都指到新名字
+            for v in (o.get("variants") or []):
+                nf = moved.get(v.get("file") or "")
+                if not nf:
+                    continue
+                item = dict(v)
+                item["file"] = nf
+                base.setdefault("variants", []).append(item)
+                if item.get("emotion"):
+                    base.setdefault("emotions", {}).setdefault(item["emotion"], nf)
+            if not base.get("default"):
+                base["default"] = moved.get(o.get("default") or "") or ""
+            merged += 1
+        print("  合并 %s ← %s（编号 %s）" % (
+            target, ", ".join(n for n in names if n != target), ",".join(base["codes"])))
+    return merged
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="立绘改名（编号 → 衣服名 / 表情名）")
     ap.add_argument("--root", default="")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--merge", action="store_true", help="把 label 相同的几套衣服并成一个目录")
     args = ap.parse_args()
 
     root = args.root or _default_root()
     if not os.path.isdir(root) or not os.path.isfile(os.path.join(root, "index.json")):
         print("找不到立绘目录或 index.json：%s" % root)
         return 1
+
+    if args.merge:
+        with open(os.path.join(root, "index.json"), encoding="utf-8") as f:
+            idx = json.load(f)
+        print("合并同 label 的衣服：%s" % root)
+        n = merge_same_label(root, idx, args.dry_run)
+        print("合并了 %d 套；现在共 %d 套" % (n, len(idx.get("outfits") or {})))
+        if args.dry_run:
+            print("\n[dry-run] 没有改动任何文件")
+            return 0
+        tmp = os.path.join(root, "index.json.tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(idx, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, os.path.join(root, "index.json"))
+        print("已重写 index.json")
+        return 0
 
     moves, new_idx, name_of = plan(root)
     print("立绘目录: %s" % root)

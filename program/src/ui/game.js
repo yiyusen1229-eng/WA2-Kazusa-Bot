@@ -492,7 +492,7 @@ window.__spriteSummary = function () {
   return outfits ? (outfits + " 套衣服 · " + files + " 张") : "";
 };
 
-/* 名字 / 旧编号 / label → index 里的衣服名 */
+/* 名字 / 旧编号 / label → index 里的衣服名（合并过的衣服有多个编号，都在 codes 里） */
 function resolveOutfit(v) {
   v = (v || "").trim();
   if (!v) return "";
@@ -500,6 +500,7 @@ function resolveOutfit(v) {
   for (const k in SPRITE_INDEX) {
     const o = SPRITE_INDEX[k] || {};
     if (o.code === v || o.label === v) return k;
+    if (o.codes && o.codes.indexOf(v) >= 0) return k;
   }
   return "";
 }

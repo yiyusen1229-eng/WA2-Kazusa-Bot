@@ -479,8 +479,11 @@ def sprite_index(assets_sprites):
     outfits = dict(base.get("outfits") or {})
     code_key = {}
     for k, o in outfits.items():
-        if isinstance(o, dict) and o.get("code"):
-            code_key[str(o["code"])] = k
+        if not isinstance(o, dict):
+            continue
+        for c in ([o.get("code")] + list(o.get("codes") or [])):
+            if c:
+                code_key[str(c)] = k
     for k, v in (own.get("outfits") or {}).items():
         v = v if isinstance(v, dict) else {}
         code = str(v.get("code") or "")
