@@ -130,19 +130,42 @@
     });
   });
 
-  /* 右下角 EXIT：统一走 hideScreen（模型界面由它自己的关闭逻辑收尾） */
+  /* 关一层浮层，顺带收拾存读档的确认框 / 提示框。
+     EXIT 键、右键退出共用这一份（别在别处再写一遍）。 */
+  function closeScreen(el) {
+    if (!el) return;
+    hideScreen(el);
+    /* 设置页有自己的开关标志（__optOpen），走它的关闭函数收尾 */
+    if (el.id === "optScreen") {
+      try { if (window.__closeOptions) window.__closeOptions(); } catch (e) {}
+    }
+    var dlg = document.getElementById("dlgConfirm");
+    if (dlg) dlg.classList.remove("on");
+    var tst = document.getElementById("dlgToast");
+    if (tst) tst.classList.remove("on");
+  }
+  window.__closeScreen = closeScreen;
+
+  /* 关掉「当前最上面那一层」：存读档的确认框 → 开着的浮层。
+     右键退出先看这里；没有可关的就返回 false（交给对话界面自己的右键功能）。 */
+  window.__closeTopScreen = function () {
+    var dlg = document.getElementById("dlgConfirm");
+    if (dlg && dlg.classList.contains("on")) {
+      dlg.classList.remove("on");
+      return true;
+    }
+    var open = allScreens().filter(function (el) { return el.classList.contains("show"); });
+    if (!open.length) return false;
+    closeScreen(open[open.length - 1]);
+    return true;
+  };
+
+  /* 右下角 EXIT：统一走 closeScreen（模型界面由它自己的关闭逻辑收尾） */
   function wireExit() {
     document.querySelectorAll(".uiExit").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
-        var sc = btn.closest(".uiScreen");
-        if (!sc) return;
-        hideScreen(sc);
-        /* 存读档的提示框跟着关掉 */
-        var dlg = document.getElementById("dlgConfirm");
-        if (dlg) dlg.classList.remove("on");
-        var tst = document.getElementById("dlgToast");
-        if (tst) tst.classList.remove("on");
+        closeScreen(btn.closest(".uiScreen"));
       });
     });
   }

@@ -1467,7 +1467,9 @@ window.__setWinMode = function (mode) {
    总时长默认 390ms（与翻页音 SE_9213 等长） */
 
 /* ---------- 滑鼠右键功能（OPTION 2 设置项） ----------
-   三种模式：hide = 隐藏所有界面只留 CG/立绘；options = 打开设置；save = 打开存档 */
+   三种模式：hide = 隐藏所有界面只留 CG/立绘；options = 打开设置；save = 打开存档
+   只在「对话界面」生效：浮层（设置 / 存读档 / 回想 / 特别模式）开着时，右键 = 关掉当前这一层，
+   不再顺带触发下面的隐藏窗口，否则两个界面会同时响应同一个右键。 */
 document.addEventListener("contextmenu", function (e) {
   // 输入框上仍然保留浏览器默认（方便复制粘贴）
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
@@ -1475,6 +1477,17 @@ document.addEventListener("contextmenu", function (e) {
   /* 隐藏状态下右键 = 先把界面叫回来（不管右键功能设的是哪一项） */
   if (document.body.classList.contains("uiHidden")) {
     document.body.classList.remove("uiHidden");
+    return;
+  }
+
+  /* 浮层开着：右键只负责退出这一层（等同右下角 EXIT） */
+  if (window.__closeTopScreen && window.__closeTopScreen()) {
+    if (window.__dbg) window.__dbg("RMB", "close-screen");
+    return;
+  }
+  /* 回想面板不是 .uiScreen，单独收一下 */
+  if (backlogOpen) {
+    toggleBacklog(false);
     return;
   }
 
@@ -1496,6 +1509,22 @@ document.addEventListener("contextmenu", function (e) {
   }
   try { if (window.__openScreen) window.__openScreen("save", "save"); } catch (err) {}
 });
+
+/* ---------- 滚轮上滑：对话界面直接打开回想 ----------
+   只在对话界面响应（和右键一样）：标题画面、隐藏窗口、任意浮层（设置 / 存读档 / 回想 /
+   特别模式）开着的时候都不抢；回想已经开着时滚轮交给面板自己翻。 */
+document.addEventListener("wheel", function (e) {
+  if (!(e.deltaY < 0)) return;                                      /* 只认上滑 */
+  if (backlogOpen) return;
+  if (document.body.classList.contains("uiHidden")) return;
+  /* 调试面板里滚日志不该弹回想 */
+  if (e.target && e.target.closest && e.target.closest("#dbgPanel")) return;
+  var gs = $("gameScreen");
+  if (!gs || !gs.classList.contains("active")) return;              /* 只在对话界面 */
+  if (window.__isScreenOpen && window.__isScreenOpen()) return;     /* 浮层开着不抢 */
+  toggleBacklog(true);
+  e.preventDefault();
+}, { passive: false });
 
 /* ---------- 右下角：本条 / 累计 token 与花费 ----------
    文案与 0~9 都是烤好的字模（tools/bake_cost_ui.py），这里只负责拼图，
