@@ -10,7 +10,8 @@ html, body {
   user-select:none;
 }
 
-.screen { position:fixed; inset:0; opacity:0; pointer-events:none; transition:opacity .5s; }
+/* 画面层：都铺在 #stage（800x450）里，靠 .active 淡入淡出 */
+.screen { position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .5s; }
 .screen.active { opacity:1; pointer-events:auto; }
 
 
@@ -22,7 +23,6 @@ html, body {
   overflow:hidden;
   background:#000;
 }
-.screen { position:absolute; inset:0; }
 
 /* ================= 开场动画 ================= */
 #introScreen { background:#000; cursor:pointer; }
@@ -141,47 +141,71 @@ html, body {
   opacity:0; transform:translateY(16px); transition:opacity .6s, transform .6s; }
 #sprite.show { opacity:1; transform:translateY(0); }
 
-/* ---------- 对话框 ---------- */
-#msgWrap { position:absolute; left:50%; bottom:31px; transform:translateX(-50%);
-  width:768px; height:128px; z-index:20; }   /* 高 128 = 素材 1248x208 按 768 宽的真实比例 */
+/* ---------- 对话框 ----------
+   位置/尺寸是十几轮像素测量后的定稿值（历史见 git）。分三层：
+     #msgBox          只负责尺寸和事件，不画背景
+     #msgBox::before  填充层（渐变 + WHITE ALBUM 水印），screen 叠上去
+     #msgBox::after   丝带层，单独一层才能跟着 OPTION 的 UI 透明度一起淡 */
+#msgWrap {
+  position:absolute; left:50%; right:auto; bottom:0;
+  transform:translateX(-50%);
+  width:780px; height:130px;      /* 780 * 208/1248，和素材 1:1 */
+  padding:0; z-index:20;
+}
 
 #namePlate {
-  position:absolute; left:21.8%; top:3.2%;
-  font-size:10.8px; letter-spacing:1.3px; color:#ffffff;
+  position:absolute; left:21.3%; top:5.2%;
+  font-size:11.5px; letter-spacing:1.3px; color:#ffffff;
   text-shadow:0 0.5px 1.1px rgba(0,18,38,.95), 0 0 1.8px rgba(0,10,26,.5);
-  z-index:3;
+  z-index:1;
 }
 
 #msgBox {
   position:relative; height:100%;
-  background-image:url("assets/msgbox_glow.png");
-  background-size:100% 100%;
-  background-repeat:no-repeat;
+  background-image:none !important;        /* 丝带在 ::after，不在这里画 */
+  background-size:100% 100%, 100% 100% !important;
+  background-repeat:no-repeat, no-repeat !important;
+  background-position:0 0, 0 0 !important;
+  background-color:transparent !important;
+  background-blend-mode:screen !important;
+  filter:none !important;
+  opacity:1;
   cursor:pointer;
 }
-#msgBox .fill {
-  position:absolute; left:2.5%; right:2.5%; top:6%; bottom:6%;
-  background:radial-gradient(ellipse at 50% 50%,
-      rgba(190,240,255,.46) 0%, rgba(130,210,250,.30) 45%, rgba(70,160,215,.14) 75%, rgba(0,0,0,0) 100%);
-  border-radius:50%;
+#msgBox .fill { display:none !important; }
+#msgBox .walogo { display:none !important; }
+
+#msgBox::before {
+  content:"";
+  position:absolute; inset:0;
+  background:url("assets/ui/msgbox_fill.png") 0 0 / 100% 100% no-repeat !important;
+  mix-blend-mode:screen !important;
+  opacity:calc(.9 * var(--ui-alpha, 1)) !important;
   pointer-events:none;
+  z-index:0;
 }
-#msgText.gdi { -webkit-text-stroke:0; text-shadow:none; }
-#msgText.gdi img { image-rendering:auto; }
+#msgBox::after {
+  content:"";
+  position:absolute; left:0; top:0; right:0; bottom:0;
+  background:url("assets/ui/msgbox_ribbon.png") 0 0 / 100% 100% no-repeat;
+  opacity:var(--ui-alpha, 1);
+  pointer-events:none;
+  z-index:0;
+}
+
 #msgText {
-  position:absolute; left:22.6%; right:8%; top:28.5%;
-  font-size:17px; line-height:1.5; letter-spacing:0;
+  position:relative;
+  left:23.5%; right:10%; top:30.5%;
+  font-size:15.5px; line-height:1.5; letter-spacing:0;
   color:#ffffff;
   -webkit-text-stroke:0.5px rgba(12,40,68,.95);
   paint-order:stroke fill;
   text-shadow:0 0.5px 1px rgba(0,10,24,.7);
   white-space:pre-wrap; word-break:break-word;
-  z-index:2;
+  z-index:1;
 }
-#msgBox .walogo {
-  position:absolute; left:47%; bottom:6%; font-family: inherit !important;
-  font-size:15px; letter-spacing:7px; color:rgba(215,245,255,.30); z-index:1;
-}
+#msgText.gdi { -webkit-text-stroke:0; text-shadow:none; }
+#msgText.gdi img { image-rendering:auto; }
 
 /* ---------- 底部工具栏 ---------- */
 #toolbar {
@@ -213,27 +237,42 @@ html, body {
 #toolbar .tb.close { filter:none; }
 #toolbar .hint { margin-left:10px; letter-spacing:1px; opacity:.8; }
 
-#inputBar { position:absolute; left:8%; bottom:5.4px;
-  width:33%; height:17.1px; display:flex; align-items:center; gap:0;
-  z-index:25; opacity:.42; transition:opacity .25s; }
+/* ---------- 底部输入栏（定稿：原图直用，挪到右下角） ---------- */
+#inputBar { position:absolute; left:512px; top:208px; bottom:auto;
+  width:280px; height:65px; display:flex; align-items:flex-start; gap:0;
+  z-index:25; opacity:1; transition:opacity .25s; }
 #inputFrame {
   position:absolute; left:0; top:0; width:100%; height:100%;
-  pointer-events:none; opacity:.55;
+  pointer-events:none;
+  opacity:calc(.92 * var(--ui-alpha, 1)) !important;
 }
 #inputBar:hover, #inputBar:focus-within { opacity:1; }
 #input { flex:1; position:relative; background:none; border:none;
-  padding:0 6% 0 4.5%; color:#eaf9ff;
-  font-family: inherit !important; font-size:7.9px; letter-spacing:0.5px; outline:none; }
+  height:100%; padding:0 14px 0 26px; color:#eaf9ff;
+  font-family: inherit !important; font-size:11px; letter-spacing:0.5px; outline:none; }
 #input:focus { border-color:rgba(160,240,255,.95); }
-#sendBtn {
-  position:relative;
-  background:rgba(30,120,180,.55);
-  border:1px solid rgba(150,230,255,.55); border-radius:1.8px;
-  color:#fff; font-family: inherit !important; font-size:7.6px; letter-spacing:1.3px;
-  height:100%; padding:0 9px; margin-right:0; cursor:pointer; }
-#sendBtn:hover { background:rgba(60,175,235,.8); }
-#backBtn { display:none; }
-#backBtn { padding:0 12px; }
+
+/* 思考 / 发送按钮：只留文字和定位，三态底板在 ::before 上（文件末尾） */
+#thinkBtn, #sendBtn {
+  position:absolute; bottom:-22px; height:20px;
+  width:82px; padding:0 9px; flex:0 0 auto;
+  font-size:7.6px;
+  color:#f4fcff !important;
+  font-family: inherit !important;
+  text-shadow:0 1px 2px rgba(0,18,36,.95) !important;
+  background-image:none !important;
+  background-size:100% 300% !important;
+  background-repeat:no-repeat !important;
+  background-position:0 0 !important;
+  background-color:transparent !important;
+  border:0 !important; border-radius:0 !important;
+  box-shadow:none !important; outline:0 !important;
+  appearance:none !important; -webkit-appearance:none !important;
+  cursor:pointer; isolation:isolate;
+}
+#thinkBtn { right:94px !important; margin:0 !important;
+  line-height:1 !important; white-space:nowrap; }
+#sendBtn { right:0 !important; margin-right:0; letter-spacing:1.3px; }
 
 .choice::before, .choice::after {
   content:""; position:absolute; top:50%; width:34px; height:34px;
@@ -281,343 +320,7 @@ html, body {
   border:1px solid rgba(150,230,255,.6); border-radius:2px; color:#fff;
   font-family: inherit !important; font-size:14px; letter-spacing:2px; cursor:pointer; }
 
-/* ===== 对话框: 直接用游戏原图 sys_00000 (1248x208) ===== */
-#msgWrap {
-  left: 0 !important; right: 0 !important;
-  bottom: 26px !important;
-  height: 118px !important;
-  padding: 0 8px !important;
-}
-#msgBox {
-  background-image: url("assets/ui/msgbox.png") !important;
-  background-size: 100% 100% !important;
-  background-color: transparent !important;
-}
-#msgBox .fill { display: none !important; }
-#namePlate {
-  left: 12% !important; top: 8% !important;
-  font-size: 11px !important;
-}
-#msgText {
-  left: 13% !important; right: 9% !important;
-  top: 30% !important;
-  font-size: 15px !important;
-}
-#msgBox .walogo { display: none !important; }
-
-/* 对话框位置微调: 丝带贴底, 留出下方工具栏 */
-#msgWrap {
-  left: 0 !important; right: 0 !important;
-  bottom: 8px !important;
-  height: 152px !important;
-  width: auto !important;
-  transform: none !important;
-  padding: 0 6px !important;
-}
-#namePlate { left: 11.5% !important; top: 12% !important; }
-#msgText   { left: 12.5% !important; right: 9% !important; top: 34% !important; }
-
-/* ===== 对话框 = 填充层(sys_00001, 含水印) + 丝带层(sys_00000) ===== */
-#msgBox {
-  background-image: url("assets/ui/msgbox_ribbon.png"), url("assets/ui/msgbox_fill.png") !important;
-  background-size: 100% 100%, 100% 100% !important;
-  background-repeat: no-repeat, no-repeat !important;
-  background-position: 0 0, 0 0 !important;
-  opacity: 1 !important;
-}
-#msgBox .fill { display: none !important; }
-/* 水印已经在填充层里, 去掉自绘的 */
-#msgBox .walogo { display: none !important; }
-
-
-/* 思考面板 */
-#thinkBox {
-  position: absolute; left: 13%; right: 9%; top: 6%;
-  font-size: 11px; line-height: 1.45; color: #9fd8f5;
-  font-style: italic; pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0,10,24,.9);
-  opacity: .92;
-}
-#thinkBox.hidden { display: none; }
-#thinkBtn {
-  font-family: inherit !important; font-size: 13px;
-  padding: 0 12px; height: 34px; margin-left: 8px;
-  color: #eaf7ff; cursor: pointer;
-  background: rgba(20,90,140,.75);
-  border: 1px solid rgba(150,230,255,.55); border-radius: 3px;
-}
-#thinkBtn:hover { background: rgba(40,130,190,.85); }
-
-/* 输入栏: 加宽放得下"思考"按钮 */
-#inputBar { width: 46% !important; left: 6% !important; }
-#input { font-size: 8.2px !important; }
-#thinkBtn {
-  position: relative;
-  height: 100% !important;
-  padding: 0 6px !important;
-  margin-left: 3px !important;
-  font-size: 7.4px !important;
-  line-height: 1 !important;
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-#sendBtn { flex: 0 0 auto; padding: 0 8px !important; }
-/* 思考面板字体再小一点, 避免压到正文 */
-#thinkBox { font-size: 10.5px !important; color: #8fd0ef !important; }
-
-
-/* ===== 对话框对齐游戏原图 (第三轮) ===== */
-#msgWrap {
-  left: 50% !important; right: auto !important;
-  transform: translateX(-50%) !important;
-  width: 780px !important;
-  height: 130px !important;
-  bottom: 34px !important;
-  padding: 0 !important;
-}
-#msgBox {
-  opacity: 1 !important;
-  filter: brightness(1.12) saturate(1.15) contrast(1.03) !important;
-}
-#namePlate {
-  left: 17% !important; top: 6% !important;
-  font-size: 11.5px !important;
-}
-#msgText {
-  left: 19% !important; right: 12% !important;
-  top: 30% !important;
-  font-size: 15.5px !important;
-  line-height: 1.5 !important;
-}
-
-
-/* ===== 对话框第四轮: 位置/尺寸按游戏实测, 填充层加柔和遮罩 ===== */
-#msgWrap {
-  left: 50% !important; right: auto !important;
-  transform: translateX(-50%) !important;
-  width: 780px !important;
-  height: 154px !important;
-  bottom: 19px !important;
-  padding: 0 !important;
-}
-/* 只保留丝带层做背景 */
-#msgBox {
-  background-image: url("assets/ui/msgbox_ribbon.png") !important;
-  background-size: 100% 100% !important;
-  background-repeat: no-repeat !important;
-  filter: none !important;
-  opacity: 1 !important;
-}
-/* 填充层(渐变+水印)放成伪元素, 用椭圆遮罩消掉矩形硬边 */
-#msgBox::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: url("assets/ui/msgbox_fill.png") 0 0 / 100% 100% no-repeat;
-  -webkit-mask-image: radial-gradient(ellipse 62% 78% at 50% 52%, #000 62%, transparent 88%);
-  mask-image: radial-gradient(ellipse 62% 78% at 50% 52%, #000 62%, transparent 88%);
-  pointer-events: none;
-  z-index: 0;
-}
-#namePlate, #msgText { z-index: 1; }
-/* 名字/正文位置 */
-#namePlate {
-  left: 17% !important; top: 8% !important;
-  font-size: 11.5px !important;
-}
-#msgText {
-  left: 19% !important; right: 12% !important;
-  top: 32% !important;
-  font-size: 15.5px !important;
-  line-height: 1.5 !important;
-}
-
-
-/* ===== 对话框第五轮: 加法混合, 不要遮罩 ===== */
-#msgBox::before {
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
-  mix-blend-mode: screen !important;
-  opacity: .9 !important;
-  background: url("assets/ui/msgbox_fill.png") 0 0 / 100% 100% no-repeat !important;
-}
-/* 丝带层也用 screen, 让亮线叠加而不是盖住 */
-#msgBox {
-  background-image: url("assets/ui/msgbox_ribbon.png") !important;
-  background-blend-mode: screen !important;
-}
-
-
-/* ===== 对话框第六轮: 按像素测量修正 ===== */
-#msgWrap {
-  bottom: 0px !important;
-  height: 154px !important;
-  width: 780px !important;
-}
-/* 名字: 22.5% / 21% */
-#namePlate {
-  left: 22.5% !important;
-  top: 21% !important;
-  font-size: 11.5px !important;
-}
-/* 正文: 26% / 41% */
-#msgText {
-  left: 26% !important;
-  right: 10% !important;
-  top: 41% !important;
-  font-size: 15.5px !important;
-  line-height: 1.5 !important;
-}
-
-/* ===== 对话框第七轮: 纵向再上提 (按叠加图) ===== */
-#namePlate { top: 12.6% !important; }
-#msgText   { top: 30.8% !important; }
-
-/* ===== 对话框第八轮: 名字再上提 6%, 左移 1.5% ===== */
-#namePlate { top: 6.6% !important; left: 21% !important; }
-
-/* ===== 对话框第九轮(定稿): 名字纵向取中间值 ===== */
-#namePlate { top: 9.6% !important; }
-
-
-/* ===== 对话框第十轮: 按素材原始比例, 消除纵向拉伸 ===== */
-#msgWrap {
-  width: 780px !important;
-  height: 130px !important;   /* 780 * 208/1248 = 130, 与素材 1:1 */
-  bottom: 0px !important;
-}
-/* 绝对位置保持不变: 154/130 = 1.185 */
-#namePlate {
-  left: 21% !important;
-  top: 11.4% !important;
-  font-size: 11.5px !important;
-}
-#msgText {
-  left: 26% !important;
-  right: 10% !important;
-  top: 36.5% !important;
-  font-size: 15.5px !important;
-  line-height: 1.5 !important;
-}
-
-
-/* ===== 输入框第十一版: 原图直用, 移到右下 ===== */
-#inputBar {
-  left: 512px !important;
-  top: 208px !important;
-  bottom: auto !important;
-  width: 280px !important;
-  height: 65px !important;
-  opacity: 1 !important;
-  align-items: flex-start !important;
-}
-#inputFrame { width: 100% !important; height: 100% !important; opacity: .92 !important; }
-#input {
-  font-size: 11px !important;
-  padding: 0 14px 0 26px !important;
-  height: 100% !important;
-}
-#thinkBtn, #sendBtn {
-  position: absolute !important;
-  bottom: -22px;
-  height: 20px !important;
-  font-size: 7.6px !important;
-  padding: 0 9px !important;
-}
-#thinkBtn { right: 62px !important; margin: 0 !important; }
-#sendBtn  { right: 0 !important; }
-
-
-/* ===== 按钮三态皮肤 (sys_07020) ===== */
-#thinkBtn, #sendBtn {
-  background-image: url("assets/ui/btn_3state.png") !important;
-  background-size: 100% 300% !important;
-  background-repeat: no-repeat !important;
-  background-position: 0 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  color: #eaf7ff !important;
-  text-shadow: 0 1px 2px rgba(0,15,30,.9) !important;
-  width: 66px !important;
-}
-#thinkBtn:active, #sendBtn:active {
-  background-position: 0 33.333% !important;
-}
-#thinkBtn.released, #sendBtn.released {
-  background-position: 0 66.666% !important;
-}
-
-/* ===== 三态按钮修正: 三帧图集正确位置 0/50/100 ===== */
-#thinkBtn, #sendBtn {
-  width: 80px !important;
-  background-position: 0 0 !important;
-}
-#thinkBtn:active, #sendBtn:active {
-  background-position: 0 50% !important;
-}
-#thinkBtn.released, #sendBtn.released {
-  background-position: 0 100% !important;
-}
-
-
-/* ===== 按钮: 分开间距, 去掉原生外观 ===== */
-#thinkBtn, #sendBtn {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  background-color: transparent !important;
-  border: 0 !important;
-  outline: 0 !important;
-  width: 82px !important;
-}
-#thinkBtn { right: 94px !important; }
-#sendBtn  { right: 0 !important; }
-
-
-/* ===== 按钮: 边框贴图 + 透明内部(无模糊块) ===== */
-#thinkBtn, #sendBtn {
-  background-image: url("assets/ui/btn_frame.png") !important;
-  background-size: 100% 300% !important;
-  background-repeat: no-repeat !important;
-  background-position: 0 0 !important;
-  background-color: rgba(26,104,146,.55) !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  box-shadow: none !important;
-  color: #f2fbff !important;
-  text-shadow: 0 1px 2px rgba(0,18,36,.95) !important;
-  width: 82px !important;
-}
-#thinkBtn:active, #sendBtn:active { background-position: 0 50% !important; }
-#thinkBtn.released, #sendBtn.released { background-position: 0 100% !important; }
-
-/* 按钮内部填充加深一点, 让文字更清楚 */
-#thinkBtn, #sendBtn { background-color: rgba(18,88,128,.82) !important; }
-
-
-/* ===== 按钮: 用修好的完整三帧贴图 ===== */
-#thinkBtn, #sendBtn {
-  background-image: url("assets/ui/btn_3state.png") !important;
-  background-size: 100% 300% !important;
-  background-repeat: no-repeat !important;
-  background-position: 0 0 !important;
-  background-color: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  box-shadow: none !important;
-  color: #f4fcff !important;
-  text-shadow: 0 1px 2px rgba(0,18,36,.95) !important;
-  width: 82px !important;
-}
-#thinkBtn:active, #sendBtn:active { background-position: 0 50% !important; }
-#thinkBtn.released, #sendBtn.released { background-position: 0 100% !important; }
-
-
-
-/* 翻页提示: 还有下一页时闪烁 */
+/* 翻页提示（旧版）：尺寸/字色保留，显隐由下面那条 !important 控制 */
 #moreHint {
   position: absolute;
   right: 9%;
@@ -625,36 +328,24 @@ html, body {
   color: #cfefff;
   font-size: 14px;
   text-shadow: 0 0 4px #0a2a44, 0 1px 0 #000;
-  display: none;
   animation: moreBlink 1.1s ease-in-out infinite;
   pointer-events: none;
 }
 @keyframes moreBlink { 0%,100%{opacity:.25} 50%{opacity:1} }
 
 
-/* ===== 位置校正: 对照游戏整窗截图实测 ===== */
-/* 正文左沿 0.2416 与游戏 0.2414 一致; 名字按 0.2199 校正 */
-#msgText {
-  left: 23.5% !important;
-  top: 30.5% !important;
-}
-#namePlate {
-  left: 21.3% !important;
-  top: 5.2% !important;
-}
-
-
-/* ===== 思考文字: 左上区域, 不进对话框 ===== */
+/* ===== 思维文字: 左上区域, 不进对话框 ===== */
 #thinkBox {
   position: absolute;
   left: 3.2%;
   top: 15%;
+  right: 9%;                  /* 和 left+width 同时存在时 right 不参与布局，保留只为宽度约束一致 */
   width: 21%;
   max-height: 34%;
   overflow: hidden;
-  font-size: 9px;
+  font-size: 10.5px;
   line-height: 1.5;
-  color: #a8dcf5;
+  color: #8fd0ef;
   font-style: italic;
   pointer-events: none;
   text-shadow: 0 1px 3px rgba(0,10,24,.95), 0 0 6px rgba(0,20,40,.8);
@@ -670,7 +361,6 @@ html, body {
 
 
 /* ===== 句末翻页图标（游戏原版素材） ===== */
-#msgText { position: relative; }
 #msgText .pageIcon {
   position: absolute;
   pointer-events: none;
@@ -683,7 +373,7 @@ html, body {
 }
 
 
-/* 旧的 ▼ 提示由游戏原版翻页图标取代 */
+/* 旧的 ▼ 提示由游戏原版翻页图标取代（JS 会把 display 改成 block，这里必须 !important） */
 #moreHint { display: none !important; }
 
 
@@ -715,7 +405,7 @@ body.histOpen .mbBar { display:none !important; }   /* 菜单栏保留：鼠标�
 
 /* 记录 */
 .hline { display:flex; align-items:flex-start; margin:0 0 7px; }
-.hline .ico { flex:0 0 auto; width:16.1px; margin:3px 7.3px 0 0; line-height:0; }
+.hline .ico { flex:0 0 auto; width:16.1px; margin:3px 7.3px 0 0; line-height:0; cursor:default; }
 .hline .ico img { width:100%; display:block; }
 .hline .body { flex:1 1 auto; min-width:0; }
 .hline .who { display:block; font-size:18px; color:#eaf7ff; line-height:26px !important;
@@ -743,13 +433,10 @@ body.histOpen .mbBar { display:none !important; }   /* 菜单栏保留：鼠标�
 
 #hsTrack { position:relative; flex:1 1 auto; width:100%; margin:1px 0; min-height:20px; }
 .hsTrackImg { width:100%; height:100%; display:block; }
-/* 滑块长度固定（游戏里不随内容变化），位置按滚动比例 */
-/* 滑块: 宽 50.9% 滑条宽、左缩进 25.5%、高 13.0% 滑条高（游戏实测 28x178 / 55x1366） */
-/* 滑块: 宽 57% 滑条宽（游戏实测 31/51），高由 JS 按 16.3% 轨道设定 */
+/* 滑块: 宽 52% 滑条宽、左缩进 24%，高度由 JS 按轨道比例设定 */
 #hsThumb { -webkit-app-region:no-drag; position:absolute; left:24%; width:52%; top:0; height:40px; cursor:grab; }
 #hsThumb img { width:100%; height:100%; display:block; }
 #hsThumb:active { cursor:grabbing; }
-#hsThumb img { width:100%; height:100%; display:block; }
 
 /* 底栏: 上沿 y=93.68% */
 #historyFoot { position:absolute; left:0; right:0; bottom:0; height:auto; line-height:0; }
@@ -792,43 +479,20 @@ body.histOpen #toolbar { display:none !important; }
 .hline.hl .who img, .hline.hl .txt img {
   filter: sepia(1) saturate(2.05) brightness(1);
 }
-.hline .ico { cursor: default; }
 /* 对话界面按钮里的字模：按各自 CSS 字号换算高度 */
 #thinkBtn img, #sendBtn img { height: 8.5px !important; width: auto !important; display: inline-block; vertical-align: middle; }
 
 /* 动作按钮：标签图 + 值图，按 7.6px 字号换算 */
 #thinkBtn img.lbl { height: 8.5px !important; width: auto !important; vertical-align: middle; }
 #thinkBtn img.val { height: 8.5px !important; width: auto !important; vertical-align: middle; margin-left: 1px; }
-#sendBtn img { height: 8.5px !important; width: auto !important; vertical-align: middle; }
 
 /* ===== OPTION 1「窗口透明度（普通场景）」=====
    只淡 UI 底图，字模（正文 / 名字 / 占位符 / 按钮标签）一点不动。
    数值由 game.js 的 __applyUiPrefs() 写进 :root 的 --ui-alpha（0~1）。
 
-   对话框的 UI 是两层：丝带层（原本是 #msgBox 的背景）+ 填充层（#msgBox::before）。
-   丝带挪到 ::after 才能单独淡；填充层沿用原规则，只把它的 .9 也乘上 UI 透明度。 */
-#msgBox { background-image: none !important; }
-#msgBox::after {
-  content: "";
-  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
-  background: url("assets/ui/msgbox_ribbon.png") 0 0 / 100% 100% no-repeat;
-  opacity: var(--ui-alpha, 1);
-  pointer-events: none;
-  z-index: 0;
-}
-/* 原来写死 .9 !important，这里改成 0.9 × UI 透明度（同特异性、后出现，能压住） */
-#msgBox::before {
-  opacity: calc(.9 * var(--ui-alpha, 1)) !important;
-}
-
-/* 输入栏底框（素材自带 .92，再乘 UI 透明度） */
-#inputFrame { opacity: calc(.92 * var(--ui-alpha, 1)) !important; }
-
-/* 发送 / 动作按钮：三态底板挪到伪元素，字模留在按钮本身上 */
-#thinkBtn, #sendBtn {
-  background-image: none !important;
-  isolation: isolate;                 /* 让 z-index:-1 的伪元素只在本按钮内垫底 */
-}
+   对话框的 UI 是两层：丝带层在 #msgBox::after，填充层在 #msgBox::before，
+   两层的 opacity 都乘上了 --ui-alpha（见文件前部）。
+   发送 / 动作按钮的底板也挪到 ::before，跟着一起淡。 */
 #thinkBtn::before, #sendBtn::before {
   content: "";
   position: absolute; left: 0; top: 0; right: 0; bottom: 0;
