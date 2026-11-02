@@ -292,6 +292,64 @@
     savedTimer = setTimeout(function () { el.classList.remove("on"); }, 1600);
   }
 
+  /* ---------- 切换角色 / 新建角色 ----------
+     · 切换：后端弹系统的文件夹选择窗口，从「总角色资源文件夹」里挑一个
+     · 新建：后端在那个总目录里新建一个角色文件夹，建完直接切过去
+     成功后：名字、五项资源的「当前：xxx」、立绘索引全部刷新（下一条消息就生效） */
+  function afterCharacter(res) {
+    nameValue = res.name || nameValue;
+    renderNameView();
+    if (window.__setCharName && res.name) window.__setCharName(res.name);
+    try { if (window.__reloadSprites) window.__reloadSprites(); } catch (e) {}
+    refreshStatus();
+    loadName();
+  }
+
+  function postCharacter(url, body) {
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    }).then(function (r) { return r.json(); });
+  }
+
+  var charBusy = false;
+
+  function switchCharacter() {
+    if (charBusy) return;
+    charBusy = true;
+    flash("正在选择角色文件夹…");
+    postCharacter("/api/character/pick")
+      .then(function (d) {
+        charBusy = false;
+        if (d && d.ok) { afterCharacter(d); flash("已切换到 " + (d.name || d.id)); }
+        else if (!d || !d.cancelled) flash((d && d.error) || "切换失败");
+      })
+      .catch(function () { charBusy = false; flash("切换失败"); });
+  }
+
+  function newCharacter() {
+    if (charBusy) return;
+    charBusy = true;
+    postCharacter("/api/character/new")
+      .then(function (d) {
+        charBusy = false;
+        if (d && d.ok) { afterCharacter(d); flash("已新建 " + (d.name || d.id)); }
+        else flash((d && d.error) || "新建失败");
+      })
+      .catch(function () { charBusy = false; flash("新建失败"); });
+  }
+
+  var charsBound = false;
+  function bindCharacters() {
+    if (charsBound) return;
+    charsBound = true;
+    var sw = $("spSwitch");
+    var nw = $("spNew");
+    if (sw) sw.addEventListener("click", function (e) { e.stopPropagation(); switchCharacter(); });
+    if (nw) nw.addEventListener("click", function (e) { e.stopPropagation(); newCharacter(); });
+  }
+
   function bindSave() {
     var btn = $("spSave");
     var inp = $("spName");
@@ -491,7 +549,7 @@
       var el = item.querySelector(".spPanelNow");
       if (!el) continue;
       if (kind === "portrait") {
-        setGlyph(el, "当前：assets/sprites（按变化的文件名归类）");
+        setGlyph(el, "当前：角色文件夹的 portrait/（按变化的文件名归类）");
         continue;
       }
       var f = files && files[kind];
@@ -612,6 +670,7 @@
       });
       bindSave();
       bindFrames();
+      bindCharacters();
       var rb = $("spReset");
       if (rb) rb.addEventListener("click", resetDefaults);
     }

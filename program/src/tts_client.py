@@ -124,14 +124,19 @@ _refs_sig = ""
 
 
 def _char_voice_sig():
-    """参考音频目录的 mtime 签名：导入/删除了文件就换签名，缓存跟着失效"""
+    """参考音频目录的 mtime 签名：导入/删除了文件、或者换了角色，缓存都跟着失效"""
     sig = []
     for d in (_REFS_DIR, char_res.voice_dir()):
         try:
             sig.append(os.path.getmtime(d) if d and os.path.isdir(d) else 0)
         except Exception:
             sig.append(0)
-    return "%.0f/%.0f" % (sig[0], sig[1])
+    try:
+        import characters
+        cid = characters.active_id()
+    except Exception:
+        cid = ""
+    return "%s|%.0f/%.0f" % (cid, sig[0], sig[1])
 
 
 def _emo_from_filename(path):

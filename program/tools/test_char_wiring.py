@@ -9,7 +9,7 @@
 `/api/chat` 的 base_url 指到本地假模型，假模型把收到的 system prompt 原样记账，
 测试再断言里面有没有导入的内容。不花钱、不联网。
 
-测试用 WA2_USER_DIR 把 char/ 指到临时目录，不碰运行时真正的导入文件。
+测试用 WA2_USER_DIR 把用户数据目录（characters/）指到临时目录，不碰运行时真正的导入文件。
 """
 import json
 import os
@@ -195,9 +195,11 @@ def main():
               "【设定补充" in s_mem and "【原作里发生过的片段" in s_mem, s_mem[-700:])
 
         print("\n[6] 删掉导入 → 回落到原人设")
+        active = (get_json(base + "/api/character/list") or {}).get("active") or "和纱"
+        cdir = os.path.join(tmp, "characters", active)
         for kind, name in (("prompt", "测试提示词.txt"), ("memory", "旧事.txt"), ("worldbook", "设定.md")):
             sub = {"prompt": "prompt", "memory": "memory", "worldbook": "worldbook"}[kind]
-            os.remove(os.path.join(tmp, "char", sub, name))
+            os.remove(os.path.join(cdir, sub, name))
         d, sys3 = chat()
         check("回落成功", "冬马和纱" in sys3 and "测试提示词" not in sys3, sys3[:200])
         check("记忆书也没了", "测试记忆" not in sys3)

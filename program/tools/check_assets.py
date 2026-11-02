@@ -50,7 +50,7 @@ ITEMS = [
 
     # ---- 运行时可选项 ----
     ("build_env/config.json", "file", False, "云端 API 配置（复制 config.example.json 再填 key）"),
-    ("build_env/char", "dir", False, "特别模式导入的角色资源"),
+    ("build_env/characters", "dir", False, "总角色资源文件夹（每个角色一个子文件夹）"),
     ("other/dev/tts/GPT-SoVITS", "dir", False, "本地语音依赖（没有就只有文字）"),
     ("other/dev/dataset/L2_scene.jsonl", "file", False, "剧本场景（重建检索索引用）"),
 ]

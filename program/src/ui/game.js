@@ -460,10 +460,24 @@ const OUTFIT_BY_SCENE = {
 const SPRITE_INDEX = {};      // outfit -> {label, default, variants}
 let currentOutfit = "001";
 
-fetch("assets/sprites/index.json")
+fetch("/api/character/sprite/index.json")
   .then(function (r) { return r.json(); })
   .then(function (d) { Object.assign(SPRITE_INDEX, d.outfits || {}); })
   .catch(function () {});
+
+/* 切换 / 新建角色之后重拉立绘索引（服务端已经把角色自己的 portrait/index.json
+   和自带的 assets/sprites/index.json 合并好），再强制重画一次当前立绘 */
+window.__reloadSprites = function () {
+  fetch("/api/character/sprite/index.json", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      Object.keys(SPRITE_INDEX).forEach(function (k) { delete SPRITE_INDEX[k]; });
+      Object.assign(SPRITE_INDEX, (d && d.outfits) || {});
+      currentSprite = "";
+      try { setSpriteByScene(currentBg || "classroom", window.__lastEmo || "", true); } catch (e) {}
+    })
+    .catch(function () {});
+};
 
 function outfitOf(scene) {
   return OUTFIT_BY_SCENE[scene] || "001";
@@ -479,14 +493,15 @@ function spritePath(outfit, emotion) {
   const o = SPRITE_INDEX[outfit];
   if (!o) return "assets/kaz_cold.png";
   const emo = emotion ? (MOOD_TO_EMO[emotion] || emotion) : "";
+  /* 立绘走 /api/character/sprite/：当前角色的 portrait/ 优先，没有的图回落自带素材 */
   if (emo && o.emotions && o.emotions[emo]) {
-    return "assets/sprites/" + outfit + "/" + o.emotions[emo];
+    return "/api/character/sprite/" + outfit + "/" + o.emotions[emo];
   }
   // 该套衣服没有这个情绪 → 退到「认真」，再退到默认
   if (o.emotions && o.emotions.serious) {
-    return "assets/sprites/" + outfit + "/" + o.emotions.serious;
+    return "/api/character/sprite/" + outfit + "/" + o.emotions.serious;
   }
-  return "assets/sprites/" + outfit + "/" + o.default;
+  return "/api/character/sprite/" + outfit + "/" + o.default;
 }
 
 /** 按场景切换服装 */
@@ -669,21 +684,63 @@ function splitPages(text) {
 function renderPage() {
   const box = $("msgText");
   const txt = pageTexts[pageIndex] || "";
+  hidePageCursor();                /* 换页先收起来，打完再出 */
   if (gdiRenderMsg && window.__gdiOK !== false) {
     gdiRenderMsg(txt, box, 56, 1200, 1).then((ok) => {
       if (ok) { box.classList.add("gdi"); startReveal(box, txt); }
       else { window.__gdiOK = false; legacyTypewriter(txt); }
-      updateMoreHint();
+      updatePageCursor();
     });
   } else {
     legacyTypewriter(txt);
   }
 }
 
-function updateMoreHint() {
-  const hint = $("moreHint");
-  if (!hint) return;
-  hint.style.display = (pageIndex < pageTexts.length - 1) ? "block" : "none";
+/* ---------- 翻页提示：文字末尾的页面图标 ----------
+   和原版一样：一段话打完、后面还有下一页时，在最后一个字后面闪动页面图标。
+   文字是 /api/text 出的整段图（每字 28×32 的固定格子，见 sub_render.py），
+   所以最后一字的位置可以直接由字数算出来，不用测量排版。 */
+function pageCursorEl() {
+  const box = $("msgText");
+  if (!box) return null;
+  let cur = document.getElementById("pageCursor");
+  if (!cur) {
+    cur = document.createElement("div");
+    cur.id = "pageCursor";
+    box.appendChild(cur);
+  } else if (cur.parentNode !== box) {
+    box.appendChild(cur);          /* 每次重渲染 msgText 都会被清空，补回来 */
+  }
+  return cur;
+}
+
+function hidePageCursor() {
+  const cur = document.getElementById("pageCursor");
+  if (cur) cur.style.display = "none";
+}
+
+function updatePageCursor() {
+  const cur = pageCursorEl();
+  if (!cur) return;
+  const text = pageTexts[pageIndex] || "";
+  /* 只有「这一段还没打完 → 不能显示」和「还有下一页」两个条件同时不满足才显示 */
+  if (typing || !text || pageIndex >= pageTexts.length - 1) {
+    cur.style.display = "none";
+    return;
+  }
+  const img = $("msgText") && $("msgText").querySelector("img");
+  if (!img || !img.naturalWidth || !img.clientWidth) {
+    hidePageCursor();              /* 兜底打字机走文字：没有格子可对，先不显示 */
+    return;
+  }
+  const scale = img.clientWidth / img.naturalWidth;
+  const n = text.length;                       /* 1 起算的最后一个字 */
+  const line = Math.floor((n - 1) / PER_LINE);
+  const col = ((n - 1) % PER_LINE) + 1;
+  cur.style.left = Math.round(col * CHAR_ADV * scale) + "px";
+  cur.style.top = Math.round((line * LINE_H + 2) * scale) + "px";
+  cur.style.transform = "scale(" + scale + ")";
+  cur.style.display = "block";
 }
 
 function showReply(text) {
@@ -763,7 +820,7 @@ function startReveal(el, text) {
   text = text || "";
   if (!el || !text) return;
   const sp = textSpeed();
-  if (sp === 0) return;                     /* 瞬间显示：整段直接出来 */
+  if (sp === 0) { updatePageCursor(); return; }   /* 瞬间显示：整段直接出来 */
   const img = el.querySelector("img");
   if (!img) return;
   if (!img.complete || !img.naturalWidth) {
@@ -779,7 +836,7 @@ function startReveal(el, text) {
     if (revealEl !== el) return;
     i++;
     if (!revealTo(el, text, i)) { stopReveal(); return; }
-    if (i >= text.length) { stopReveal(); return; }
+    if (i >= text.length) { stopReveal(); updatePageCursor(); return; }
     const ch = text.charAt(i - 1);
     const d = SPEED_MS[sp] * (/[，。！？…、,\.!?]/.test(ch) ? 3 : 1);
     revealTimer = setTimeout(step, d);
@@ -814,10 +871,10 @@ function legacyTypewriter(text, done) {
   fullText = text; el.textContent = ""; typing = true;
   let i = 0;
   const base = SPEED_MS[textSpeed()];
-  if (base === 0) { el.textContent = text; typing = false; done && done(); return; }
+  if (base === 0) { el.textContent = text; typing = false; done && done(); hidePageCursor(); return; }
   const tick = () => {
-    if (!typing) { el.textContent = fullText; typing = false; done && done(); return; }
-    if (i >= text.length) { typing = false; done && done(); return; }
+    if (!typing) { el.textContent = fullText; typing = false; done && done(); hidePageCursor(); return; }
+    if (i >= text.length) { typing = false; done && done(); hidePageCursor(); return; }
     const ch = text[i++];
     el.textContent += ch;
     setTimeout(tick, "，。！？…、".includes(ch) ? base * 3 : base);
@@ -1013,6 +1070,7 @@ async function send() {
   } else {
     $("msgText").textContent = "「……」";
   }
+  hidePageCursor();
 
   try {
     const r = await fetch("/api/chat", {
@@ -1171,7 +1229,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 ($("msgBox")||{addEventListener:function(){}}).addEventListener("click", () => {
-  if (typing) { stopReveal(); return; }   // 打字途中点一下 = 立刻显示整句
+  if (typing) { stopReveal(); updatePageCursor(); return; }   // 打字途中点一下 = 立刻显示整句
   nextPage();          // 还有下一页就翻页
 });
 
@@ -1393,6 +1451,21 @@ function syncHistThumb() {
   document.addEventListener("DOMContentLoaded", attach);
   window.addEventListener("load", attach);
   setInterval(attach, 1500);
+})();
+
+/* 回想：已经翻到最底部时继续往下滚 = 直接退出回想（原版手感） */
+(function () {
+  var panel = document.getElementById("historyPanel");
+  if (!panel) return;
+  panel.addEventListener("wheel", function (e) {
+    if (!backlogOpen || e.deltaY <= 0) return;
+    var list = document.getElementById("historyList");
+    if (!list) return;
+    /* 还差 1px 以内都算到底（子像素滚动会差一点点） */
+    if (list.scrollTop + list.clientHeight < list.scrollHeight - 1) return;
+    toggleBacklog(false);
+    e.preventDefault();
+  }, { passive: false });
 })();
 
 /* ---------- 音量总控：BGM / 语音 / 音效都乘上主音量 ----------

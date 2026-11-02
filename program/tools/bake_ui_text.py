@@ -71,6 +71,9 @@ ITEMS = {
     # 配置项下拉出来的两个按钮（宽 106、高 20，字 10px 刚好）
     "sp_btn_import":    ("导入文件", 10, False, None),
     "sp_btn_open":      ("查看文件", 10, False, None),
+    # 「配置角色」标题右边的两个按钮（切换角色 / 新建角色，底板用发送按钮的三态图）
+    "sp_btn_switch":    ("切换角色", 9, False, None),
+    "sp_btn_new":       ("新建角色", 9, False, None),
     "sp_pct":           ("%", 12, False, None),
     "sp_eq":            ("=", 12, False, None),
     "sp_approx":        ("≈", 12, False, None),

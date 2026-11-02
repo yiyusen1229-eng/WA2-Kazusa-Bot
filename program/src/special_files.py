@@ -3,17 +3,19 @@
 
 界面上有 5 个底框按钮，每个对应一种资源：
 
-    portrait   角色立绘        图片 → 直接进游戏的立绘目录 assets/sprites/<衣服编号>/
-    prompt     提示词          文本 → char/prompt/
-    worldbook  世界书          文本 → char/worldbook/
-    memory     记忆书          文本 → char/memory/
-    voice      参考音频        音频 → char/voice/
+    portrait   角色立绘        图片 → characters/<角色>/portrait/
+    prompt     提示词          文本 → characters/<角色>/prompt/
+    worldbook  世界书          文本 → characters/<角色>/worldbook/
+    memory     记忆书          文本 → characters/<角色>/memory/
+    voice      参考音频        音频 → characters/<角色>/voice/
+
+（角色文件夹由 characters.py 管理；老版本的 `char/<kind>/` 会被自动搬过去。）
 
 立绘为什么单独处理：
-    对话框换立绘用的是 assets/sprites/<衣服>/<文件>.png + index.json，
-    所以立绘必须放到那套目录里才能真的用上。按文件名自动归类：
-        kaz + 衣服编号(3位) + 变化编号(3位) + 扩展名   例：kaz001101.png → sprites/001/
-    文件名对不上就拒绝（不做内容识别）。
+    对话框换立绘用的是「衣服目录 + index.json」，所以立绘必须按同样的结构摆：
+        文件名 kaz + 衣服编号(3位) + 变化编号(3位) + 扩展名   例：kaz001101.png → portrait/001/
+    文件名对不上就拒绝（不做内容识别）。角色自己的 portrait/ 优先，
+    没有的图回落到自带的 assets/sprites/。
 
 其余四类只保留最新一份（它们本来就是一个配置）。
 文件类型在这里做硬校验（前端的 accept 只是筛选提示，不能当安全边界）。
@@ -24,7 +26,8 @@ import re
 import subprocess
 import sys
 
-ROOT_NAME = "char"
+import characters
+
 MAX_BYTES = 25 * 1024 * 1024
 
 # 立绘文件名：kaz + 衣服 3 位 + 变化 3 位
@@ -66,17 +69,15 @@ KINDS = {
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif")
 
 
-def _user_dir():
-    """用户数据目录（char/ 在这里）。WA2_USER_DIR 可以改，自测时指到临时目录用。"""
-    env = os.environ.get("WA2_USER_DIR")
-    if env:
-        return env
-    if getattr(sys, "_MEIPASS", None):
-        return os.path.dirname(os.path.abspath(sys.executable))
-    return os.path.dirname(os.path.abspath(__file__))
+# 兼容：自测脚本可以直接改这个常量把资源目录指到临时位置；平时留空，
+# 走当前角色文件夹（characters/<角色>/）。
+CHAR_DIR = ""
 
 
-CHAR_DIR = os.path.join(_user_dir(), ROOT_NAME)
+def char_dir():
+    """当前角色的资源根目录（prompt/worldbook/memory/voice/portrait 都在它下面）"""
+    return CHAR_DIR or characters.active_dir()
+
 
 # 素材根目录由 main.py 起服务时注进来（开发时是 program/res/assets，打包版是 ui2/assets）
 ASSETS_DIR = None
@@ -123,7 +124,7 @@ def save_upload(kind, filename, data):
     if ext not in spec["exts"]:
         return {"ok": False, "error": spec["hint"]}
 
-    folder = os.path.join(CHAR_DIR, spec["dir"])
+    folder = kind_dir(kind)
     try:
         os.makedirs(folder, exist_ok=True)
         target = os.path.join(folder, name)
@@ -156,9 +157,16 @@ def set_default_paths(prompt="", worldbook="", memory="", voice=""):
 
 
 def kind_dir(kind):
-    """这一类资源的导入目录（char/<kind>/）"""
+    """这一类资源在当前角色文件夹里的目录（characters/<角色>/<kind>/）"""
     spec = KINDS.get(kind)
-    return os.path.join(CHAR_DIR, spec["dir"]) if spec else ""
+    root = char_dir()
+    return os.path.join(root, spec["dir"]) if (spec and root) else ""
+
+
+def portrait_dir():
+    """当前角色的立绘目录（characters/<角色>/portrait/）"""
+    root = char_dir()
+    return os.path.join(root, "portrait") if root else ""
 
 
 def char_file(kind, exts=None):
@@ -191,6 +199,9 @@ def open_target(kind):
     返回 {folder, select, source}；source ∈ imported / default / empty / assets
     """
     if kind == "portrait":
+        d = portrait_dir()
+        if d:
+            return {"folder": d, "select": "", "source": "imported"}
         return {"folder": os.path.join(_assets(), "sprites"), "select": "", "source": "assets"}
     if kind not in KINDS:
         return None
@@ -208,7 +219,7 @@ def open_target(kind):
 def open_folder(kind):
     """在系统文件管理器里打开这一类资源**实际被读取**的位置。
 
-    · 导入过 → 打开 char/<kind>/ 并选中那个文件
+    · 导入过 → 打开 characters/<角色>/<kind>/ 并选中那个文件
     · 没导入 → 打开程序真正在用的默认文件/目录（persona_core.txt、worldbook.json、
       sessions/、tts/refs_touma），而不是一个空目录
     只认这 5 种 kind，路径全部由常量拼出来，不接受外部路径。
@@ -245,7 +256,7 @@ def open_folder(kind):
 
 # ------------------------------------------------------------------ 立绘
 def save_portrait(filename, data):
-    """立绘：按 kaz<衣服3><变化3>.png 归类进 assets/sprites/<衣服>/"""
+    """立绘：按 kaz<衣服3><变化3>.png 归类进当前角色的 portrait/<衣服>/"""
     if not data:
         return {"ok": False, "error": "文件是空的"}
     if len(data) > MAX_BYTES:
@@ -259,7 +270,10 @@ def save_portrait(filename, data):
     if ext not in IMAGE_EXTS:
         return {"ok": False, "error": "只能放图片文件"}
 
-    folder = os.path.join(_assets(), "sprites", outfit)
+    pdir = portrait_dir()
+    if not pdir:
+        return {"ok": False, "error": "没有当前角色文件夹"}
+    folder = os.path.join(pdir, outfit)
     try:
         os.makedirs(folder, exist_ok=True)
         target = os.path.join(folder, name)
@@ -275,13 +289,22 @@ def save_portrait(filename, data):
 
 
 def _register_sprite(outfit, variant, filename):
-    """把新立绘写进 sprites/index.json（没有这套衣服就新建一条），保留其它内容"""
-    idx_path = os.path.join(_assets(), "sprites", "index.json")
+    """把新立绘写进**角色自己的** portrait/index.json（没有这套衣服就新建一条）。
+
+    自带的 assets/sprites/index.json 一个字都不改：读取时由 characters.sprite_index()
+    把两份合起来（角色的优先），所以不导入也照样能用自带立绘。
+    """
+    pdir = portrait_dir()
+    if not pdir:
+        return False
+    idx_path = os.path.join(pdir, "index.json")
     try:
-        with open(idx_path, encoding="utf-8") as f:
-            data = json.load(f)
+        data = {}
+        if os.path.isfile(idx_path):
+            with open(idx_path, encoding="utf-8") as f:
+                data = json.load(f)
         if not isinstance(data, dict):
-            return False
+            data = {}
         outfits = data.setdefault("outfits", {})
         o = outfits.get(outfit)
         if not isinstance(o, dict):

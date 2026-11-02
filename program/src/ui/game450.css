@@ -320,18 +320,26 @@ html, body {
   border:1px solid rgba(150,230,255,.6); border-radius:2px; color:#fff;
   font-family: inherit !important; font-size:14px; letter-spacing:2px; cursor:pointer; }
 
-/* 翻页提示（旧版）：尺寸/字色保留，显隐由下面那条 !important 控制 */
-#moreHint {
+/* ---------- 翻页提示：对话框文字末尾的页面图标 ----------
+   原版 page_02 的 120 帧精灵（tools/bake_page_cursor.py 烤成一条横向图）：
+   60fps、2 秒一轮。位置和缩放由 game.js 按文字图的格子算（每字 28×32）。 */
+#pageCursor {
   position: absolute;
-  right: 9%;
-  bottom: 8%;
-  color: #cfefff;
-  font-size: 14px;
-  text-shadow: 0 0 4px #0a2a44, 0 1px 0 #000;
-  animation: moreBlink 1.1s ease-in-out infinite;
+  left: 0; top: 0;
+  width: 28px; height: 28px;
+  background-image: url("assets/ui/text/page_cursor.png");
+  background-repeat: no-repeat;
+  background-size: 3360px 28px;
+  transform-origin: top left;
+  display: none;
   pointer-events: none;
+  z-index: 2;
+  animation: pageCursorRun 2s steps(120) infinite;
 }
-@keyframes moreBlink { 0%,100%{opacity:.25} 50%{opacity:1} }
+@keyframes pageCursorRun {
+  from { background-position: 0 0; }
+  to   { background-position: -3360px 0; }
+}
 
 
 /* ===== 思维文字: 左上区域, 不进对话框 ===== */
@@ -358,10 +366,6 @@ html, body {
   z-index: 5;
 }
 #thinkBox.hidden { display: none !important; }
-
-
-/* 旧的 ▼ 提示由游戏原版翻页图标取代（JS 会把 display 改成 block，这里必须 !important） */
-#moreHint { display: none !important; }
 
 
 

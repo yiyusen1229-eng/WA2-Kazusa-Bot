@@ -31,7 +31,9 @@ config.json
 prefs.json
 memory.json
 ui2/
-# 特别模式导入的角色资源（立绘 / 提示词 / 世界书 / 记忆书 / 参考音频）
+# 角色资源（总角色文件夹 + 每个角色的立绘 / 提示词 / 世界书 / 记忆书 / 参考音频）
+characters/
+# 老版本的位置（已迁进 characters/，留着免得漏网）
 char/
 
 # 过程产物

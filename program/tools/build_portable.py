@@ -103,7 +103,7 @@ def _copy_into(src, name):
 # 用户数据：fewshot / 界面偏好 / 上下文设置 / 导入的角色资源（不复制存档、缓存、日志）
 for f in ("fewshot.json", "prefs.json", "memory.json"):
     _copy_into(os.path.join(APP, f), f)
-_copy_into(os.path.join(APP, "char"), "char")
+_copy_into(os.path.join(APP, "characters"), "characters")
 # 空配置模板（不含密钥）
 cfg = os.path.join(OUTDIR, "config.example.json")
 if not os.path.exists(cfg):

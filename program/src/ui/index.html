@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 聊天界面架构</title>
-<link rel="stylesheet" href="screens-base.css?v=11021835">
-<link rel="stylesheet" href="opt-screen.css?v=11021835">
-<link rel="stylesheet" href="save-screen.css?v=11021835">
-<link rel="stylesheet" href="game450.css?v=11021835">
-<link rel="stylesheet" href="unifont.css?v=11021835">
-<link rel="stylesheet" href="opt.css?v=11021835">
-  <link rel="stylesheet" href="menubar.css?v=11021835">
-<link rel="stylesheet" href="special.css?v=11021835">
+<link rel="stylesheet" href="screens-base.css?v=11021925">
+<link rel="stylesheet" href="opt-screen.css?v=11021925">
+<link rel="stylesheet" href="save-screen.css?v=11021925">
+<link rel="stylesheet" href="game450.css?v=11021925">
+<link rel="stylesheet" href="unifont.css?v=11021925">
+<link rel="stylesheet" href="opt.css?v=11021925">
+  <link rel="stylesheet" href="menubar.css?v=11021925">
+<link rel="stylesheet" href="special.css?v=11021925">
 </head>
 <body>
 <div id="stage">
@@ -121,7 +121,13 @@
 
     <!-- 右栏：角色配置（底框就是每一项的底，文字压在框上） -->
     <div class="spCol spRight">
-      <div class="spTitle"><img src="assets/ui/text/sp_title_char.png" alt=""></div>
+      <div class="spTitleRow">
+        <div class="spTitle"><img src="assets/ui/text/sp_title_char.png" alt=""></div>
+        <div class="spRoleBtns">
+          <button class="spRoleBtn" id="spSwitch" type="button" title="从总角色资源文件夹里选一个角色"><img src="assets/ui/text/sp_btn_switch.png" alt=""></button>
+          <button class="spRoleBtn" id="spNew" type="button" title="在总角色资源文件夹里新建一个角色"><img src="assets/ui/text/sp_btn_new.png" alt=""></button>
+        </div>
+      </div>
 
       <div class="spLine"><span class="spLabel"><img src="assets/ui/text/sp_name_label.png" alt=""></span></div>
       <div class="spNameRow">
@@ -215,7 +221,6 @@
 
   <div id="msgWrap">
     <div id="msgBox">
-  <div id="moreHint">▼</div>
       <div class="fill"></div>
       <div id="namePlate">和纱</div>
       <div id="msgText"></div>
@@ -253,19 +258,19 @@
 </div>
 
 <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
-<script src="config.js?v=11021835"></script>
-<script src="opt.js?v=11021835"></script>
-  <script src="savetabs4.js?v=11021835"></script>
-  <script src="savepages.js?v=11021835"></script>
-  <script src="screens.js?v=11021835"></script>
-  <script src="special.js?v=11021835"></script>
-<script src="game.js?v=11021835"></script>
-<script src="sound.js?v=11021835"></script>
-<script src="zoom.js?v=11021835"></script>
-<script src="debug.js?v=11021835"></script>
-<script src="scale.js?v=11021835"></script>
-<script src="menubar.js?v=11021835"></script>
-<script src="uitext.js?v=11021835"></script>
+<script src="config.js?v=11021925"></script>
+<script src="opt.js?v=11021925"></script>
+  <script src="savetabs4.js?v=11021925"></script>
+  <script src="savepages.js?v=11021925"></script>
+  <script src="screens.js?v=11021925"></script>
+  <script src="special.js?v=11021925"></script>
+<script src="game.js?v=11021925"></script>
+<script src="sound.js?v=11021925"></script>
+<script src="zoom.js?v=11021925"></script>
+<script src="debug.js?v=11021925"></script>
+<script src="scale.js?v=11021925"></script>
+<script src="menubar.js?v=11021925"></script>
+<script src="uitext.js?v=11021925"></script>
 <script>
 /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
 window.addEventListener("load", function () {

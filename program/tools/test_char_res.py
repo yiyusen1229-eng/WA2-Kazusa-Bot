@@ -114,22 +114,27 @@ def main():
     key2 = TTS._tts_cache_path("测试", "zh", "calm")
     check("换参考音频后缓存 key 变了", key1 != key2)
 
-    print("\n[6] 立绘：变化编号 → 表情映射")
+    print("\n[6] 立绘：变化编号 → 表情映射（写进角色自己的 portrait/index.json）")
     idx = {"height": 900, "outfits": {
         "001": {"label": "旧", "default": "kaz001101.png",
                 "variants": [{"variant": "101", "file": "kaz001101.png"}],
                 "emotions": {"serious": "kaz001101.png"}}}}
     write(os.path.join(assets, "sprites", "index.json"), json.dumps(idx, ensure_ascii=False))
+    own_idx = os.path.join(char_dir, "portrait", "index.json")
     r = SF.save_portrait("kaz001212.png", b"\x89PNGfake")
     check("立绘写入成功", r.get("ok") and r.get("emotion") == "angry", repr(r))
-    got = json.load(open(os.path.join(assets, "sprites", "index.json"), encoding="utf-8"))
+    check("文件落在角色的 portrait/001/",
+          os.path.isfile(os.path.join(char_dir, "portrait", "001", "kaz001212.png")))
+    got = json.load(open(own_idx, encoding="utf-8"))
     o = got["outfits"]["001"]
     check("emotions 补上 angry", o.get("emotions", {}).get("angry") == "kaz001212.png", repr(o.get("emotions")))
     check("variants 里也有", any(v["file"] == "kaz001212.png" for v in o.get("variants", [])))
-    r2 = SF.save_portrait("kaz099115.png", b"\x89PNGfake")
-    got2 = json.load(open(os.path.join(assets, "sprites", "index.json"), encoding="utf-8"))
+    SF.save_portrait("kaz099115.png", b"\x89PNGfake")
+    got2 = json.load(open(own_idx, encoding="utf-8"))
     check("新衣服也能建条并映射 surprise",
           got2["outfits"]["099"]["emotions"].get("surprise") == "kaz099115.png", repr(got2["outfits"].get("099")))
+    check("自带 assets/sprites/index.json 没被动过",
+          "099" not in json.load(open(os.path.join(assets, "sprites", "index.json"), encoding="utf-8"))["outfits"])
 
     print("\n[7] synthesize 真的把导入的参考音频传给合成接口")
     import urllib.parse as _up

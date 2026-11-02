@@ -317,6 +317,56 @@
   width: auto;
   display: block;
 }
+
+/* ---------- 「配置角色」标题右边：切换角色 / 新建角色 ----------
+   底板直接用对话界面发送按钮的三态图（btn_3state.png，100% 300%） */
+#specialScreen .spTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 16px 0;
+}
+#specialScreen .spTitleRow .spTitle {
+  margin: 0;
+}
+#specialScreen .spRoleBtns {
+  display: flex;
+  gap: 5px;
+}
+#specialScreen .spRoleBtn {
+  position: relative;
+  width: 62px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+}
+#specialScreen .spRoleBtn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat;
+  opacity: var(--ui-alpha, 1);
+  pointer-events: none;
+}
+#specialScreen .spRoleBtn:active::before {
+  background-position: 0 50%;
+}
+#specialScreen .spRoleBtn:hover {
+  filter: brightness(1.18);
+}
+#specialScreen .spRoleBtn img {
+  height: 8.5px;
+  width: auto;
+  display: block;
+  pointer-events: none;
+}
 #specialScreen .spLabel img,
 #specialScreen .spVal img,
 #specialScreen .spItemLabel img,

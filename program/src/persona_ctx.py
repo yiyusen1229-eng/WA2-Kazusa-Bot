@@ -11,8 +11,8 @@
 
 阶段由 `persona_stage.py` 从最近对话判断，不调用模型；读档时重置。
 
-特别模式导入的 `char/prompt`、`char/worldbook` 优先级更高（由 char_res 读），
-这里只管"程序自带的那一份"。
+特别模式导入的提示词 / 世界书在**当前角色文件夹**里（characters/<角色>/prompt|worldbook/），
+优先级更高（由 char_res 读），这里只管"程序自带的那一份"。
 
 日志：main 启动时用 `set_logger()` 把它的 `log()` 注入进来，避免循环 import。
 """
@@ -88,7 +88,7 @@ def _read(path):
 
 
 def persona_text(messages=None):
-    """人设：特别模式导入的提示词最优先（char/prompt/）。
+    """人设：特别模式导入的提示词最优先（当前角色文件夹的 prompt/）。
 
     没有导入时用 `persona/base.txt` + 当前阶段那一份（`stage1~4.txt`），
     阶段由 persona_stage 从最近对话判断——只注入命中的那一份，省 token。
@@ -129,7 +129,7 @@ def persona_text(messages=None):
 
 
 def load_worldbook():
-    """世界书：特别模式导入的 json 优先（char/worldbook/），没有再用 worldbook/ 里的
+    """世界书：特别模式导入的 json 优先（当前角色文件夹的 worldbook/），没有再用 worldbook/ 里的
     worldbook.json（旧安装还在根目录的也认）。char_res 按 mtime 缓存，导入后立刻生效。"""
     try:
         wb = char_res.worldbook()

@@ -14,14 +14,18 @@ memory.py 的参数本来就可以用 `memory.json` 覆盖（见 memory.cfg()）
 import json
 import os
 
+import characters
 import memory
-import special_files
 
 # 上下文滑条的上限：memory.DEFAULTS 里云端那一档，界面按百分比显示
 CTX_MAX = 32000
 
 DEFAULT_NAME = "和纱"
-NAME_FILE = os.path.join(special_files.CHAR_DIR, "name.txt")
+
+
+def name_file():
+    """角色名写在当前角色的文件夹里（characters/<角色>/name.txt）"""
+    return characters.name_file()
 
 KEYS = ("cloud_ctx", "trigger_ratio", "recent_ratio", "entries_ratio")
 
@@ -96,12 +100,11 @@ def _write(data):
 
 # ------------------------------------------------------------------ 角色名
 def get_name():
-    """对话框左上角显示的名字：char/name.txt，没有就用默认的「和纱」"""
+    """对话框左上角显示的名字：当前角色的 name.txt，没有就用文件夹名 / 默认「和纱」"""
     try:
-        with open(NAME_FILE, encoding="utf-8") as f:
-            name = f.read().strip()
-        if name:
-            return name
+        n = characters.display_name()
+        if n:
+            return n
     except Exception:
         pass
     return DEFAULT_NAME
@@ -113,12 +116,15 @@ def set_name(name):
         return {"ok": False, "error": "名字不能为空"}
     if len(name) > 12:
         return {"ok": False, "error": "名字最长 12 个字"}
+    path = name_file()
+    if not path:
+        return {"ok": False, "error": "没有当前角色文件夹"}
     try:
-        os.makedirs(os.path.dirname(NAME_FILE), exist_ok=True)
-        tmp = NAME_FILE + ".tmp"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             f.write(name)
-        os.replace(tmp, NAME_FILE)
+        os.replace(tmp, path)
     except Exception as e:
         return {"ok": False, "error": "写入失败: %s" % e}
     return {"ok": True, "name": name}

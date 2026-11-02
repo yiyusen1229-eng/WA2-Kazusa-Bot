@@ -39,6 +39,7 @@ except Exception:
     STORY = None
 import special_cfg
 import special_files
+import characters
 import char_res
 import persona_ctx
 import persona_stage
@@ -91,6 +92,10 @@ ASSETS_DIR = os.environ.get("WA2_ASSETS_DIR") or os.path.join(UI_DIR, "assets")
 special_files.set_assets_dir(ASSETS_DIR)
 # 场景背景图（assets/cg/index.json）也走同一个素材目录
 scene_cg.set_assets_dir(ASSETS_DIR)
+# 多角色：总角色资源文件夹 characters/ + 当前角色（见 characters.py）
+# 第一次启动会建目录、把老的 char/<kind>/ 搬进当前角色文件夹
+_CHAR_ID = characters.ensure()
+applog.log("当前角色: %s（%s）" % (_CHAR_ID, characters.active_dir()), "CHAR")
 # 人设 / 世界书：各自一个文件夹（persona/、worldbook/），逻辑在 persona_ctx.py
 EXE_DIR = (os.path.dirname(os.path.abspath(sys.executable))
            if getattr(sys, "frozen", False) else BASE)
@@ -775,6 +780,12 @@ class Handler(SimpleHTTPRequestHandler):
             p = "/index.html"
         elif p.startswith("/game/"):
             p = p[len("/game"):]
+        elif p.startswith("/api/character/sprite/"):
+            # 立绘图：当前角色的 portrait/ 优先，没有再用自带 assets/sprites/
+            import urllib.parse as _up
+            rel = _up.unquote(p[len("/api/character/sprite/"):])
+            return (characters.sprite_file(os.path.join(ASSETS_DIR, "sprites"), rel)
+                    or os.path.join(UI_DIR, "__api__"))
         elif p.startswith("/api/"):
             return os.path.join(UI_DIR, "__api__")
         import posixpath, urllib.parse
@@ -917,7 +928,7 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)})
         if self.path == "/api/special/name":
-            # 对话框左上角显示的名字（char/name.txt）
+            # 对话框左上角显示的名字（当前角色的 name.txt）
             try:
                 return self._json({"ok": True, "name": special_cfg.get_name()})
             except Exception as e:
@@ -928,6 +939,11 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"ok": True, "files": char_res.status()})
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)})
+        if self.path.startswith("/api/character"):
+            # 多角色：列表 / 立绘索引（立绘图片本身走 translate_path 的静态分支）
+            done = self._character_get()
+            if done is not None:
+                return done
         if self.path.startswith("/api/scene/list"):
             # 背景图目录（调试用；前端直接读 assets/cg/index.json，不依赖这个接口）
             return self._json(scene_cg.catalog_public())
@@ -1038,6 +1054,27 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
             return self._json(special_cfg.set_name((body or {}).get("name")))
+        if self.path == "/api/character/switch":
+            try:
+                body = self._body()
+            except Exception as e:
+                return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
+            res = characters.switch((body or {}).get("id") or "")
+            return self._json(self._after_switch(res))
+        if self.path == "/api/character/pick":
+            # 弹系统的文件夹选择窗口，从总角色资源文件夹里挑一个角色
+            try:
+                res = characters.pick_folder()
+            except Exception as e:
+                res = {"ok": False, "error": str(e)}
+            return self._json(self._after_switch(res))
+        if self.path == "/api/character/new":
+            try:
+                body = self._body()
+            except Exception:
+                body = {}
+            res = characters.create((body or {}).get("name") or "")
+            return self._json(self._after_switch(res))
         if self.path.startswith("/api/special/upload"):
             # 特别模式的角色资源：原始字节流，文件名走 query（前端 encodeURIComponent）
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
@@ -1219,6 +1256,35 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({"ok": True, "action": action})
         except Exception as e:
             return self._json({"ok": False, "error": str(e)})
+
+    def _character_get(self):
+        """GET /api/character/…：角色列表 / 立绘索引。
+
+        立绘图片本身不走这里（返回 None，交给 translate_path 的静态分支）——
+        这样 Range / 缓存 / Content-Type 都复用现成的那套。
+        """
+        if self.path.startswith("/api/character/sprite/index.json"):
+            return self._json(characters.sprite_index(os.path.join(ASSETS_DIR, "sprites")))
+        if self.path.startswith("/api/character/list"):
+            return self._json({"ok": True,
+                               "active": characters.active_id(),
+                               "dir": characters.root(),
+                               "characters": characters.list_characters()})
+        return None
+
+    def _after_switch(self, res):
+        """切换 / 新建角色之后：关系阶段跟着换人重置，并把新名字带回去"""
+        if isinstance(res, dict) and res.get("ok"):
+            try:
+                persona_stage.reset()
+            except Exception:
+                pass
+            try:
+                res["name"] = special_cfg.get_name()
+                res["dir"] = characters.active_dir()
+            except Exception:
+                pass
+        return res
 
     def _tts(self):
         """合成语音，返回 wav

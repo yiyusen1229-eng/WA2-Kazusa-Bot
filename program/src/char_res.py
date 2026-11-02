@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """特别模式导入的角色资源 → 程序真正读取的地方（「资源接线」）
 
-导入端在 special_files.py（写 char/<kind>/），这里是读端：
+导入端在 special_files.py（写当前角色文件夹 characters/<角色>/<kind>/），这里是读端：
 
     prompt     提示词      整段替换 persona*.txt
     worldbook  世界书      .json 替换 worldbook.json（关键词触发）；
@@ -10,7 +10,7 @@
     voice      参考音频    tts_client.load_refs() 优先用它
 
 规矩：
-  1. **优先读 char/，没有再用默认文件** —— 不覆盖用户原来的 persona / worldbook，
+  1. **优先读角色文件夹，没有再用默认文件** —— 不覆盖用户原来的 persona / worldbook，
      导入的东西删掉就自动回落，接错了也不影响程序启动。
   2. 按 (路径, mtime) 缓存，导入后不用重启，下一条消息就生效。
   3. 读不出来就返回空，绝不抛异常 —— 资源坏了也不能影响聊天。
