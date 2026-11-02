@@ -194,11 +194,11 @@ def main():
     TTS.synthesize("边界测试2", "zh", emo="neutral")
     check("HTTP 错误不重拉（服务还活着）", TTS._ready is True, TTS.status())
 
-    print("\n[9] 「查看文件」：没导入打开默认位置，导入后指到导入的文件")
+    print("\n[9] 「查看文件」：一律打开当前角色文件夹里的这一类（自包含）")
     for k in ("prompt", "worldbook", "memory"):
         p = SF.char_file(k, CR.TEXT_EXTS)
         if p:
-            os.remove(p)                       # 清掉前面写进去的，测「没导入」分支
+            os.remove(p)                       # 清掉前面写进去的，测「目录还是空的」分支
     persona = write(os.path.join(tmp, "persona_core.txt"), "默认人设")
     wbjson = write(os.path.join(tmp, "worldbook.json"), json.dumps({"entries": []}))
     sess = os.path.join(tmp, "sessions")
@@ -208,17 +208,21 @@ def main():
     SF.set_default_paths(prompt=persona, worldbook=wbjson, memory=sess, voice=refs)
 
     t = SF.open_target("prompt")
-    check("提示词没导入→指默认人设", t["source"] == "default" and t["select"] == persona, t)
+    check("提示词没文件→开角色文件夹的 prompt/",
+          t["source"] == "empty" and t["folder"] == os.path.join(char_dir, "prompt"), t)
     t = SF.open_target("worldbook")
-    check("世界书没导入→指默认 json", t["source"] == "default" and t["select"] == wbjson, t)
+    check("世界书没文件→开角色文件夹的 worldbook/",
+          t["source"] == "empty" and t["folder"] == os.path.join(char_dir, "worldbook"), t)
     t = SF.open_target("memory")
-    check("记忆书没导入→开存档目录", t["source"] == "default" and t["folder"] == sess, t)
+    check("记忆书→开角色文件夹的 memory/",
+          t["source"] == "empty" and t["folder"] == os.path.join(char_dir, "memory"), t)
     t = SF.open_target("voice")
-    check("参考音频没导入→开 refs 目录", t["source"] == "default" and t["folder"] == refs, t)
+    check("参考音频→开角色文件夹的 voice/",
+          t["source"] == "empty" and t["folder"] == os.path.join(char_dir, "voice"), t)
 
     SF.save_upload("prompt", "我的提示词.txt", "测试".encode("utf-8"))
     t = SF.open_target("prompt")
-    check("导入后→指导入的文件", t["source"] == "imported"
+    check("有了文件→在角色文件夹里选中它", t["source"] == "imported"
           and os.path.basename(t["select"]) == "我的提示词.txt", t)
 
     calls, opened = [], []
@@ -231,7 +235,8 @@ def main():
         check("explorer /select 选中文件",
               bool(calls) and calls[0][0] == "explorer" and "/select," in calls[0][1], calls)
         r = SF.open_folder("memory")
-        check("目录型直接打开", r.get("ok") and opened and os.path.normpath(opened[0]) == os.path.normpath(sess),
+        check("目录型直接打开（角色文件夹）", r.get("ok") and opened
+              and os.path.normpath(opened[0]) == os.path.normpath(os.path.join(char_dir, "memory")),
               (r, opened))
     finally:
         SF.subprocess.Popen, os.startfile = old_popen, old_start

@@ -34,6 +34,11 @@ ACTIVE_FILE = "active.json"
 DEFAULT_ID = "和纱"
 DEFAULT_NEW_NAME = "新角色"
 
+# 第一次给某个角色铺底时，从程序自带的这份人设 / 世界书复制过来（之后只读角色文件夹）
+PROMPT_SEED = ("base.txt", "stage1.txt", "stage2.txt", "stage3.txt", "stage4.txt",
+               "persona_core.txt", "persona.txt")
+_SEED = {"prompt": "", "worldbook": ""}
+
 # 和 special_files 一样：自测时可以用 WA2_USER_DIR 指到临时目录
 def user_dir():
     env = os.environ.get("WA2_USER_DIR")
@@ -109,6 +114,62 @@ def _make_dirs(path):
             pass
 
 
+def set_seed_sources(prompt_dir, worldbook_file):
+    """程序自带的 persona/ 与 worldbook.json（main 启动时注入）。
+
+    角色文件夹是空的就复制一份进去，让每个角色都自带完整的提示词 / 世界书，
+    之后程序只读角色文件夹（自带那份只当"新建角色的模板"）。
+    """
+    _SEED["prompt"] = prompt_dir or ""
+    _SEED["worldbook"] = worldbook_file or ""
+
+
+def _has_prompt(pdir):
+    try:
+        names = os.listdir(pdir)
+    except OSError:
+        return False
+    for n in names:
+        low = n.lower()
+        if low in ("base.txt", "persona_core.txt", "persona.txt") or low.startswith("stage"):
+            return True
+    return False
+
+
+def seed_character(cid=None):
+    """把自带人设 / 世界书复制进角色文件夹（已经有就不动）。返回铺了哪几项。"""
+    d = os.path.join(root(), cid) if cid else active_dir()
+    if not d or not os.path.isdir(d):
+        return {}
+    made = {}
+    pdir = os.path.join(d, "prompt")
+    if not _has_prompt(pdir) and _SEED["prompt"]:
+        n = 0
+        for name in PROMPT_SEED:
+            src = os.path.join(_SEED["prompt"], name)
+            if not os.path.isfile(src):
+                continue
+            try:
+                os.makedirs(pdir, exist_ok=True)
+                shutil.copy2(src, os.path.join(pdir, name))
+                n += 1
+            except Exception as e:
+                _log("复制提示词 %s 失败: %s" % (src, e))
+        if n:
+            made["prompt"] = n
+    wfile = os.path.join(d, "worldbook", "worldbook.json")
+    if not os.path.isfile(wfile) and _SEED["worldbook"] and os.path.isfile(_SEED["worldbook"]):
+        try:
+            os.makedirs(os.path.dirname(wfile), exist_ok=True)
+            shutil.copy2(_SEED["worldbook"], wfile)
+            made["worldbook"] = 1
+        except Exception as e:
+            _log("复制世界书失败: %s" % e)
+    if made:
+        _log("多角色：给 %s 铺了 %s" % (d, made))
+    return made
+
+
 # ------------------------------------------------------------------ 迁移 / 初始化
 def _migrate_legacy(target):
     """把老版本 char/<kind>/ 里的文件搬进角色文件夹（搬完删空目录）"""
@@ -161,11 +222,12 @@ def _migrate_legacy(target):
 
 
 def ensure():
-    """第一次启动：建总目录 + 迁老数据 + 定当前角色。可重复调用。"""
+    """第一次启动：建总目录 + 迁老数据 + 定当前角色 + 铺好自带人设。可重复调用。"""
     r = root()
     st = _state()
     if st.get("id") and os.path.isdir(os.path.join(r, st["id"])):
         _make_dirs(os.path.join(r, st["id"]))
+        seed_character(st["id"])          # 已经有就不动；老的安装升级上来会补一份
         return st["id"]
     try:
         os.makedirs(r, exist_ok=True)
@@ -185,6 +247,7 @@ def ensure():
     if not os.path.isfile(os.path.join(target, "name.txt")):
         _write(os.path.join(target, "name.txt"), cid)
     _save_state(cid)
+    seed_character(cid)                  # 自带人设 / 世界书复制进这个角色
     if moved:
         _log("多角色：老 char/ 的 %d 个文件已搬进 %s" % (moved, target))
     # 老目录空了就删掉，免得下次又找一遍
@@ -266,6 +329,7 @@ def switch(cid):
         return {"ok": False, "error": "写不了 active.json"}
     if not os.path.isfile(os.path.join(p, "name.txt")):
         _write(os.path.join(p, "name.txt"), cid)
+    seed_character(cid)                  # 切过去的角色保证是「自包含」的（空了就补模板）
     _log("多角色：切换到 %s" % cid)
     return {"ok": True, "id": cid, "name": display_name(cid)}
 
@@ -286,6 +350,7 @@ def create(name=None):
         return {"ok": False, "error": "建不了角色文件夹: %s" % e}
     _make_dirs(p)
     _write(os.path.join(p, "name.txt"), (name or "").strip()[:12] or cid)
+    seed_character(cid)                  # 新角色也从自带模板复制一份，界面上能直接改
     res = switch(cid)
     if res.get("ok"):
         res["created"] = True
@@ -298,6 +363,9 @@ def pick_folder():
 
     用 PowerShell 的 FolderBrowserDialog（独立进程）：不用 tkinter，
     打包后也不需要额外的隐藏依赖。返回 {"ok": True, "id": ...} 或 cancelled。
+
+    路径经 UTF-8 临时文件传回来 —— 走 stdout 会被控制台代码页（GBK）转坏，
+    「和纱」这种中文文件夹名就选不中（踩过）。
     """
     r = root()
     try:
@@ -307,35 +375,77 @@ def pick_folder():
     if os.name != "nt":
         return {"ok": False, "error": "只有 Windows 支持文件夹选择窗口"}
 
+    import tempfile
+    fd, tmp_out = tempfile.mkstemp(prefix="wa2_pick_", suffix=".txt")
+    os.close(fd)
+    try:
+        os.remove(tmp_out)                 # 让脚本自己创建；没选就还是不存在
+    except OSError:
+        pass
+
     def q(s):
         return (s or "").replace("'", "''")
 
     ps = (
+        "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;"
         "$ErrorActionPreference='Stop';"
         "Add-Type -AssemblyName System.Windows.Forms;"
+        "Add-Type -AssemblyName System.Drawing;"
+        # 一个 1x1 的置顶 Owner 交给对话框：游戏窗口在前台时，选择窗口不会被压在后面
+        "$f=New-Object System.Windows.Forms.Form;"
+        "$f.TopMost=$true;$f.ShowInTaskbar=$false;$f.FormBorderStyle='None';"
+        "$f.StartPosition='Manual';$f.Size=New-Object System.Drawing.Size(1,1);"
+        "$f.Location=New-Object System.Drawing.Point(-3000,-3000);$f.Show();"
         "$d=New-Object System.Windows.Forms.FolderBrowserDialog;"
         "$d.Description='选择角色文件夹（总角色资源：%s）';"
         "$d.SelectedPath='%s';"
         "$d.ShowNewFolderButton=$false;"
-        "if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK)"
-        "{[Console]::Out.Write($d.SelectedPath)}"
-    ) % (q(r), q(r))
+        "$ok=($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK);"
+        "$f.Close();"
+        "if($ok)"
+        "{[System.IO.File]::WriteAllText('%s', $d.SelectedPath, "
+        "(New-Object System.Text.UTF8Encoding $false))}"
+    ) % (q(r), q(r), q(tmp_out))
+    def _cancelled(err=""):
+        """取消/没选：把「现在到底是谁」一起带回去，前端好给个明确提示"""
+        d = {"ok": False, "cancelled": True}
+        try:
+            d["active"] = active_id()
+            d["name"] = display_name()
+        except Exception:
+            pass
+        if err:
+            d["error"] = err
+        return d
+
     try:
         p = subprocess.run(["powershell", "-NoProfile", "-STA", "-Command", ps],
                            capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=300)
     except subprocess.TimeoutExpired:
-        return {"ok": False, "cancelled": True}
+        return _cancelled()
     except Exception as e:
         return {"ok": False, "error": "打不开选择窗口: %s" % e}
-    picked = (p.stdout or "").strip()
+
+    picked = ""
+    try:
+        with open(tmp_out, encoding="utf-8-sig", errors="replace") as f:
+            picked = f.read().strip()
+    except OSError:
+        picked = (p.stdout or "").strip()          # 兜底：老路子
+    finally:
+        try:
+            os.remove(tmp_out)
+        except OSError:
+            pass
+
     if not picked:
-        return {"ok": False, "cancelled": True}
+        return _cancelled()
     _log("多角色：选择窗口返回 %s" % picked)
     picked = os.path.normpath(picked)
     # Windows 的路径大小写不敏感：选中的就是总目录本身时要挡住
     if os.path.normcase(picked) == os.path.normcase(os.path.normpath(r)):
-        return {"ok": False, "error": "请选一个角色文件夹，不要选总目录本身"}
+        return _cancelled("请双击进入一个角色文件夹再点确定（现在选的是总目录）")
     cid = os.path.basename(picked)
     res = switch(cid)
     if not res.get("ok"):

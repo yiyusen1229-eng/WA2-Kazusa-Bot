@@ -194,9 +194,12 @@ def char_file(kind, exts=None):
 
 
 def open_target(kind):
-    """「查看文件」到底该打开哪儿：优先指到导入的那份，没导入就指到程序实际用的默认。
+    """「查看文件」打开哪儿：一律是当前角色文件夹里的这一类（自包含）。
 
-    返回 {folder, select, source}；source ∈ imported / default / empty / assets
+    这一类有文件 → 打开目录并选中它；没有 → 打开空目录，方便往里面放。
+    只有连角色文件夹都拿不到时（老安装 / 自测把 CHAR_DIR 清掉），才回落到程序默认位置。
+
+    返回 {folder, select, source}；source ∈ imported / empty / default / assets
     """
     if kind == "portrait":
         d = portrait_dir()
@@ -206,14 +209,17 @@ def open_target(kind):
     if kind not in KINDS:
         return None
     p = char_file(kind)
+    d = kind_dir(kind)
+    if d:
+        return {"folder": d, "select": p or "", "source": "imported" if p else "empty"}
     if p:
         return {"folder": os.path.dirname(p), "select": p, "source": "imported"}
-    d = DEFAULT_PATHS.get(kind) or ""
-    if d and os.path.isfile(d):
-        return {"folder": os.path.dirname(d), "select": d, "source": "default"}
-    if d and os.path.isdir(d):
-        return {"folder": d, "select": "", "source": "default"}
-    return {"folder": kind_dir(kind), "select": "", "source": "empty"}
+    dd = DEFAULT_PATHS.get(kind) or ""
+    if dd and os.path.isfile(dd):
+        return {"folder": os.path.dirname(dd), "select": dd, "source": "default"}
+    if dd and os.path.isdir(dd):
+        return {"folder": dd, "select": "", "source": "default"}
+    return {"folder": "", "select": "", "source": "empty"}
 
 
 def open_folder(kind):

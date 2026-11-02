@@ -93,7 +93,9 @@ special_files.set_assets_dir(ASSETS_DIR)
 # 场景背景图（assets/cg/index.json）也走同一个素材目录
 scene_cg.set_assets_dir(ASSETS_DIR)
 # 多角色：总角色资源文件夹 characters/ + 当前角色（见 characters.py）
-# 第一次启动会建目录、把老的 char/<kind>/ 搬进当前角色文件夹
+# 自带 persona/ 与 worldbook.json 只当模板：角色文件夹空了就复制一份进去，
+# 之后程序只读角色文件夹（角色完全自包含）；第一次启动还会把老的 char/<kind>/ 搬过来。
+characters.set_seed_sources(persona_ctx.PERSONA_DIR, persona_ctx.WORLDBOOK_FILE)
 _CHAR_ID = characters.ensure()
 applog.log("当前角色: %s（%s）" % (_CHAR_ID, characters.active_dir()), "CHAR")
 # 人设 / 世界书：各自一个文件夹（persona/、worldbook/），逻辑在 persona_ctx.py

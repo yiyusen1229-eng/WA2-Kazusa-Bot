@@ -144,6 +144,9 @@ def main():
     env["WA2_ASSETS_DIR"] = ASSETS
     env["WA2_NO_MODELS"] = "1"
     env["WA2_MEM_URL"] = "http://127.0.0.1:%d/v1" % fake_port   # 总结也走假模型，别烧真 token
+    # 这个测试只关心记忆书：关掉「关系阶段」的云端判断（否则历史够 40 轮时会另发一次分类请求，
+    # 把假模型记下的最后一条 system 换成分类用的提示词，断言就会偶发失败）
+    env["WA2_STAGE_EVERY"] = "100000"
     proc = subprocess.Popen([PY, "main.py", "--serve-only", "--port", str(port)],
                             cwd=ENV, env=env,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

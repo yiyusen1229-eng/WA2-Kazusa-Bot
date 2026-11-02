@@ -322,10 +322,20 @@
     postCharacter("/api/character/pick")
       .then(function (d) {
         charBusy = false;
-        if (d && d.ok) { afterCharacter(d); flash("已切换到 " + (d.name || d.id)); }
-        else if (!d || !d.cancelled) flash((d && d.error) || "切换失败");
+        if (d && d.ok) { afterCharacter(d); flash("已切换到 " + (d.name || d.id)); return; }
+        /* 取消 / 选错：也从后端重读一次名字和状态，
+           让「角色名称」永远显示真正生效的那个角色，而不是上一屏残留 */
+        loadName();
+        refreshStatus();
+        if (d && d.error) flash(d.error);
+        else if (d && d.cancelled) flash("已取消，当前角色：" + (d.name || d.active || ""));
       })
-      .catch(function () { charBusy = false; flash("切换失败"); });
+      .catch(function () {
+        charBusy = false;
+        loadName();
+        refreshStatus();
+        flash("切换失败");
+      });
   }
 
   function newCharacter() {
@@ -558,8 +568,9 @@
         continue;
       }
       var name = f.file || ((f.path || "").split(/[\\/]/).pop() + "/");
-      setGlyph(el, "当前：" + shortName(name, 22) +
-                   (f.source === "imported" ? "（已导入）" : "（默认）"));
+      var tag = f.source === "character" ? "（角色文件夹）"
+              : (f.source === "imported" ? "（已导入）" : "（默认）");
+      setGlyph(el, "当前：" + shortName(name, 22) + tag);
     }
   }
 

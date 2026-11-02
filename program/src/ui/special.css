@@ -166,11 +166,12 @@
   background-position: 0 100%;
 }
 
-/* 已保存提示：绝对定位在右栏标题行右侧，出现时不挤压下面的控件 */
+/* 已保存 / 换角色提示：绝对定位在标题行和「角色名称」之间的空档里，
+   出现时不挤压下面的控件，也不压在「切换角色 / 新建角色」两个按钮上 */
 #specialScreen .spSaved {
   position: absolute;
   right: 0;
-  top: 1px;
+  top: 18px;
   font-size: 11px;
   opacity: 0;
   transition: opacity .18s ease;

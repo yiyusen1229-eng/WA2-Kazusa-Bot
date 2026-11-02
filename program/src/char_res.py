@@ -66,8 +66,26 @@ def prompt_path():
     return char_file("prompt", TEXT_EXTS)
 
 
+def _has_staged_persona():
+    """角色文件夹里是不是「base.txt + stageN.txt」那套分阶段人设。
+
+    是的话这里就不返回单文件 —— 交给 persona_ctx 拼 base + 当前阶段，
+    否则只会读到 base.txt、阶段文件等于白放。
+    """
+    p = prompt_path()
+    if not p:
+        return False
+    d = os.path.dirname(p)
+    try:
+        return os.path.isfile(os.path.join(d, "base.txt"))
+    except OSError:
+        return False
+
+
 def prompt_text():
-    """导入的提示词；没有就返回空串（调用方回落到 persona*.txt）"""
+    """导入的提示词（整份替换）；分阶段人设 / 没有时返回空串（调用方回落 persona_ctx）"""
+    if _has_staged_persona():
+        return ""
     text = _cached(prompt_path(), _read_text) or ""
     if len(text) > MAX_PROMPT_CHARS:
         text = text[:MAX_PROMPT_CHARS]
@@ -142,8 +160,17 @@ def voice_refs():
 def status():
     """当前实际生效的是哪个文件（给 /api/special/status 和界面提示用）
 
-    每项：{file, path, source, size}；source = imported（导入的）/ default（程序默认）
+    每项：{file, path, source, size}；
+    source = character（在当前角色文件夹里）/ imported（老位置导入的）/ default（程序默认）
     """
+    def in_character(p):
+        try:
+            import characters
+            root = os.path.normcase(os.path.abspath(characters.active_dir()))
+            return bool(root) and os.path.normcase(os.path.abspath(p)).startswith(root)
+        except Exception:
+            return False
+
     def one(kind, exts=None):
         p = char_file(kind, exts)
         if p:
@@ -152,8 +179,11 @@ def status():
             except OSError:
                 size = 0
             return {"file": os.path.basename(p), "path": p,
-                    "source": "imported", "size": size}
-        # 没导入：告诉前端程序实际用的是哪个默认文件/目录
+                    "source": "character" if in_character(p) else "imported", "size": size}
+        # 角色文件夹里的这一类还是空的 → 就是「还没设置」（「查看文件」会打开这个空目录）
+        if _sf.kind_dir(kind):
+            return None
+        # 连角色文件夹都没有（老安装）：告诉前端程序实际用的是哪个默认文件/目录
         d = _sf.DEFAULT_PATHS.get(kind) or ""
         if d and os.path.isfile(d):
             try:

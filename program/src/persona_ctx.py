@@ -20,6 +20,7 @@ import json
 import os
 
 import char_res
+import characters
 import persona_stage
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -59,14 +60,49 @@ def _first_existing(*paths):
     return paths[0] if paths else ""
 
 
+def prompt_dir():
+    """人设目录：当前角色文件夹的 prompt/（里面有东西就用它），否则程序自带的 persona/
+
+    两种情况都支持：base.txt + stageN.txt（分关系阶段），或整份的 persona_core/persona.txt。
+    """
+    try:
+        d = os.path.join(characters.active_dir(), "prompt")
+    except Exception:
+        d = ""
+    if d and os.path.isdir(d):
+        for name in ("base.txt", "persona_core.txt", "persona.txt", "stage1.txt"):
+            if os.path.isfile(os.path.join(d, name)):
+                return d
+    return PERSONA_DIR
+
+
+def worldbook_file():
+    """世界书文件：当前角色文件夹里的优先，没有再用程序自带的"""
+    try:
+        d = os.path.join(characters.active_dir(), "worldbook", "worldbook.json")
+        if os.path.isfile(d):
+            return d
+    except Exception:
+        pass
+    return _first_existing(WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE)
+
+
 def default_paths():
-    """程序默认读的（没导入时）人设 / 世界书路径，给「查看文件」和 status 用"""
+    """当前实际读的人设 / 世界书路径（给「查看文件」和 status 用）
+
+    自包含之后这两份都在角色文件夹里；角色文件夹是空的才回落到程序自带的。
+    """
+    pd = prompt_dir()
     return {
         # 人设拆成 base + stageN；「查看文件」打开共用那份，阶段文件在同一个文件夹里
-        "prompt": _first_existing(PERSONA_BASE_FILE, PERSONA_CORE_FILE,
-                                  LEGACY_PERSONA_CORE_FILE,
-                                  PERSONA_FILE, LEGACY_PERSONA_FILE),
-        "worldbook": _first_existing(WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE),
+        "prompt": _first_existing(
+            os.path.join(pd, "base.txt"),
+            os.path.join(pd, "persona_core.txt"),
+            os.path.join(pd, "persona.txt"),
+            PERSONA_BASE_FILE, PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
+            PERSONA_FILE, LEGACY_PERSONA_FILE,
+        ),
+        "worldbook": worldbook_file(),
     }
 
 
@@ -90,9 +126,9 @@ def _read(path):
 def persona_text(messages=None):
     """人设：特别模式导入的提示词最优先（当前角色文件夹的 prompt/）。
 
-    没有导入时用 `persona/base.txt` + 当前阶段那一份（`stage1~4.txt`），
-    阶段由 persona_stage 从最近对话判断——只注入命中的那一份，省 token。
-    没有拆分文件时，回落到旧的一整份 persona_core / persona.txt。
+    否则用角色文件夹里的 `base.txt` + 当前阶段那一份（`stage1~4.txt`）——
+    角色文件夹是空的才回落到程序自带的 persona/。阶段由 persona_stage 从最近对话判断，
+    只注入命中的那一份，省 token。没有拆分文件时，用整份的 persona_core / persona.txt。
     """
     try:
         imported = char_res.prompt_text()
@@ -100,25 +136,29 @@ def persona_text(messages=None):
         _log("读取导入提示词失败: %s" % e)
         imported = ""
     if imported:
-        _note_persona_src("char/prompt")
+        _note_persona_src("角色文件夹的提示词")
         return imported
 
-    base = _read(PERSONA_BASE_FILE)
-    if base:
+    for d in (prompt_dir(), PERSONA_DIR):
+        base = _read(os.path.join(d, "base.txt"))
+        if not base:
+            continue
         try:
             stage = persona_stage.current(messages or [])
         except Exception as e:
             _log("关系阶段判断失败（按 1 处理）: %s" % e)
             stage = 1
-        stage_txt = _read(os.path.join(PERSONA_DIR, "stage%d.txt" % stage))
+        stage_txt = _read(os.path.join(d, "stage%d.txt" % stage))
         if stage_txt:
-            _note_persona_src("persona/base+stage%d" % stage)
+            _note_persona_src("%s/base+stage%d" % (os.path.basename(os.path.dirname(d)), stage))
             return base + "\n\n" + stage_txt
-        _note_persona_src("persona/base")
+        _note_persona_src("%s/base" % os.path.basename(os.path.dirname(d)))
         return base
 
-    # 旧的一整份（兼容没拆分的安装）
-    for f in (PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
+    # 整份的（兼容没拆分的安装 / 只放了一份提示词的角色）
+    pd = prompt_dir()
+    for f in (os.path.join(pd, "persona_core.txt"), os.path.join(pd, "persona.txt"),
+              PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
               PERSONA_FILE, LEGACY_PERSONA_FILE):
         t = _read(f)
         if t:
@@ -129,15 +169,15 @@ def persona_text(messages=None):
 
 
 def load_worldbook():
-    """世界书：特别模式导入的 json 优先（当前角色文件夹的 worldbook/），没有再用 worldbook/ 里的
-    worldbook.json（旧安装还在根目录的也认）。char_res 按 mtime 缓存，导入后立刻生效。"""
+    """世界书：当前角色文件夹的 worldbook/ 优先，没有再用程序自带的 worldbook/
+    （旧安装还在根目录的也认）。char_res 按 mtime 缓存，导入后立刻生效。"""
     try:
         wb = char_res.worldbook()
         if wb:
             return wb
     except Exception as e:
         _log("读取导入世界书失败: %s" % e)
-    for f in (WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE):
+    for f in (worldbook_file(), WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE):
         try:
             return json.load(open(f, encoding="utf-8"))
         except Exception:

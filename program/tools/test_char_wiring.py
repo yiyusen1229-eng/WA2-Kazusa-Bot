@@ -148,13 +148,13 @@ def main():
                     break
             return d, sys_msg
 
-        print("[1] 没导入：人设还是 persona_core")
+        print("[1] 没导入：人设来自角色文件夹（自带那份已经复制进去）")
         d, sys0 = chat()
         check("对话能跑通", (d or {}).get("reply"), repr(d)[:300])
         check("system 是原人设", "冬马和纱" in sys0, sys0[:200])
         st0 = get_json(base + "/api/special/status")["files"]
-        check("status：没导入时给的是默认文件",
-              (st0.get("prompt") or {}).get("source") == "default", repr(st0))
+        check("status：指的是角色文件夹里的那份",
+              (st0.get("prompt") or {}).get("source") == "character", repr(st0))
 
         print("\n[2] 导入提示词 → system 换成它")
         persona = "测试提示词：你现在的名字叫测试和纱，说话必须带「测试」两个字。"
@@ -180,7 +180,8 @@ def main():
         print("\n[4] status 能看到生效的是哪份")
         st = get_json(base + "/api/special/status")["files"]
         check("prompt 文件", (st.get("prompt") or {}).get("file") == "测试提示词.txt", repr(st))
-        check("prompt 标为已导入", (st.get("prompt") or {}).get("source") == "imported", repr(st))
+        check("prompt 标为角色文件夹里的那份",
+              (st.get("prompt") or {}).get("source") == "character", repr(st))
         check("memory 文件", (st.get("memory") or {}).get("file") == "旧事.txt", repr(st))
         check("worldbook 文件", (st.get("worldbook") or {}).get("file") == "设定.md", repr(st))
         check("人设字数对得上", st.get("prompt_chars") == len(persona), repr(st))
