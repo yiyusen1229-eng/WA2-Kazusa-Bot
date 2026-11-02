@@ -828,15 +828,19 @@ _MEM_PACK_LOCK = _th.Lock()
 
 
 def _mem_llm(prompt, max_tokens=1200, timeout=90):
-    """给记忆书用的模型调用：不加载人设，只让它把一段对话压成条目。"""
+    """给记忆书用的模型调用：不加载人设，只让它把一段对话压成条目。
+
+    WA2_MEM_URL 可以把这一步单独指到别的端点（自测用假模型时不烧真实 token）。
+    """
     cc = cloud_cfg()
     if cc:
-        base_url = (cc.get("base_url") or OLLAMA).rstrip("/")
+        base_url = (os.environ.get("WA2_MEM_URL")
+                    or cc.get("base_url") or OLLAMA).rstrip("/")
         key = cc.get("api_key") or ""
         model = cc.get("model") or DEFAULT_MODEL
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + key}
     else:
-        base_url = OLLAMA.rstrip("/")
+        base_url = (os.environ.get("WA2_MEM_URL") or OLLAMA).rstrip("/")
         model = DEFAULT_MODEL
         headers = {"Content-Type": "application/json"}
     payload = {
@@ -935,49 +939,6 @@ def _repack_async(msgs, a, b):
         finally:
             _MEM_PACK_LOCK.release()
     _th.Thread(target=work, daemon=True).start()
-
-
-def _pack_until(msgs, target, slot="", budget_sec=45):
-    """一直打包到 covered >= target（或超时）。只给后台线程用。"""
-    t0 = time.time()
-    while True:
-        cur = int(_memory.runtime().get("covered") or 0)
-        if cur >= target or (time.time() - t0) > budget_sec:
-            return cur
-        ok, n = _memory.pack_span(msgs, cur, target, _mem_llm, slot,
-                                  max_chunks=int(_memory.cfg()["async_chunks"]))
-        if not ok:
-            log("记忆书：打包中断（%d/%d）" % (cur, target))
-            return int(_memory.runtime().get("covered") or 0)
-
-
-def _finalize_save_memory(slot, saved_at, msgs):
-    """存档后的后台任务：把会被折叠的那段压成条目，写回同一个存档文件。
-
-    写回前会核对 saved_at：期间玩家又存过档就放弃，绝不覆盖新内容。
-    """
-    try:
-        trig, recent_b, entries_b = _memory.budget(bool(cloud_cfg()))
-        aligned = _memory.recent_start(msgs, recent_b, 0)
-        r = _memory.runtime()
-        covered = int(r.get("covered") or 0)
-        if aligned > covered:
-            with _MEM_PACK_LOCK:
-                cur = _pack_until(msgs, aligned, slot)
-            log("记忆书：存档 %s 覆盖到 %d/%d" % (slot, cur, aligned))
-        r = _memory.runtime()
-        mem = {
-            "enabled": True,
-            "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "covered_upto": int(r.get("covered") or 0),
-            "entries": list(r.get("entries") or []),
-        }
-        if _sessions.session_patch_memory(slot, mem, expect_saved_at=saved_at):
-            log("记忆书：已写入存档 %s（%d 条）" % (slot, len(mem["entries"])))
-        else:
-            log("记忆书：存档 %s 已被覆盖，丢弃这次总结" % slot)
-    except Exception as e:
-        log("记忆书：存档后台任务失败 %s" % e)
 
 
 # ---------------- HTTP 服务 ----------------
@@ -1202,15 +1163,15 @@ class Handler(SimpleHTTPRequestHandler):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             slot = (q.get("slot") or ["auto"])[0]
             d = session_load(slot)
-            # 读档：看到 memory 标记就把记忆书接到运行时缓存上
+            # 读档：存档里的记忆书一次性复制进运行时缓存（cache/memory_runtime.json），
+            # 之后整局都只读缓存 —— 不再区分"存档记忆书 / 缓存记忆书"两套。
             try:
-                mem = (d or {}).get("memory") or {}
-                if mem.get("enabled"):
-                    _memory.reset_for_load(mem.get("entries") or [],
-                                           mem.get("covered_upto") or 0, slot)
-                    log("记忆书：读档 %s，带 %d 条记忆" % (slot, len(mem.get("entries") or [])))
+                info = _memory.seed_from_save((d or {}).get("memory"), slot)
+                if info["enabled"]:
+                    log("记忆书：读档 %s → 缓存 %d 条（覆盖到第 %d 条）"
+                        % (slot, info["entries"], info["covered"]))
                 else:
-                    _memory.reset_for_load([], 0, slot)
+                    log("记忆书：读档 %s 没有记忆书，缓存已清空" % slot)
             except Exception as e:
                 log("记忆书：读档恢复失败 %s" % e)
             if isinstance(d, dict):
@@ -1292,26 +1253,19 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"ok": False, "error": str(e)}, 400)
             if not isinstance(body, dict):
                 return self._json({"ok": False, "error": "bad body"}, 400)
-            msgs = body.get("messages") or []
-            over = False
-            try:
-                trig, _rb, _eb = _memory.budget(bool(cloud_cfg()))
-                over = _memory.est_messages(msgs) > trig
-            except Exception:
-                pass
-            if over:
-                # 先写"生成中"的标记：读档立刻能用，条目由后台补
-                r = _memory.runtime()
-                body["memory"] = {"enabled": True, "generated_at": None,
-                                  "covered_upto": int(r.get("covered") or 0),
-                                  "entries": list(r.get("entries") or [])}
-            res = session_save(body)
-            if res.get("ok") and over:
-                _th.Thread(target=_finalize_save_memory,
-                           args=(body.get("slot") or "auto", res.get("saved_at"),
-                                 list(msgs)),
-                           daemon=True).start()
-            return self._json(res)
+            # 记忆书：把运行时缓存整份快照进存档。不在这里现跑总结 ——
+            # 总结只在对话超过阈值后按 repack_turns 做（见 _memory_context），
+            # 存档只是一次拷贝，所以每轮自动存档也不会额外调用模型。
+            r = _memory.runtime()
+            entries = list(r.get("entries") or [])
+            if entries:
+                body["memory"] = {
+                    "enabled": True,
+                    "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "covered_upto": int(r.get("covered") or 0),
+                    "entries": entries,
+                }
+            return self._json(session_save(body))
         if self.path == "/api/chat":
             return self._chat()
         if self.path == "/api/train/start":
@@ -1699,26 +1653,28 @@ class Handler(SimpleHTTPRequestHandler):
 
         wb_ctx, wb_names = worldbook_context(msgs)
         system = persona_text()
-        if mem_note:
-            system = system + "\n\n" + mem_note
-        if wb_ctx:
-            system = system + "\n\n" + wb_ctx
 
-        # 特别模式导入的资源：提示词在 persona_text() 里已经替换；
-        # 这里补「纯文本世界书」和「记忆书」，都是每轮带上、按字数上限截断。
+        # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
+        #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
+        #   后面还有：剧本检索（原作片段）
         try:
+            mem_extra = char_res.memory_text()
+            if mem_extra:
+                system = system + (
+                    "\n\n【你记得的旧事（角色设定的一部分，事先记好的，不是这轮对话里发生的事；"
+                    "用你自己的口气提起，不要照抄原文）】\n" + mem_extra)
             wb_extra = char_res.worldbook_text()
             if wb_extra:
                 system = system + (
                     "\n\n【设定补充（用户整理好的资料，只作参考，不要整段复述）】\n"
                     + wb_extra)
-            mem_extra = char_res.memory_text()
-            if mem_extra:
-                system = system + (
-                    "\n\n【你记得的旧事（事先记好的记忆，不是这轮对话里发生的事；"
-                    "用你自己的口气提起，不要照抄原文）】\n" + mem_extra)
         except Exception as e:
             log("角色资源读取失败: %s" % e)
+
+        if wb_ctx:
+            system = system + "\n\n" + wb_ctx
+        if mem_note:
+            system = system + "\n\n" + mem_note
 
         # 剧本检索: 找出和这句话相关的原作片段, 作为"想起来的事"而不是台词。
         # 和世界书分开写：世界书是「设定」，这里是「原作里真的发生过什么」。

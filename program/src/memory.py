@@ -28,7 +28,8 @@ import sys
 import time
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-CACHE_DIR = os.path.join(BASE, "cache")
+# 运行时缓存目录（缓存记忆书就放这儿）；WA2_CACHE_DIR 是给自测/便携版换位置的
+CACHE_DIR = os.environ.get("WA2_CACHE_DIR") or os.path.join(BASE, "cache")
 RUNTIME_FILE = os.path.join(CACHE_DIR, "memory_runtime.json")
 # 用户可改的参数放 exe 同目录（和 prefs.json / config.json 一个规矩）。
 # 打包后 BASE 是临时解包目录，写进去程序一退出就没了。
@@ -178,6 +179,23 @@ def reset_for_load(entries=None, covered=0, slot=""):
     _RT["slot"] = slot or ""
     _save_runtime()
     return _RT
+
+
+def seed_from_save(mem, slot=""):
+    """读档：存档里的记忆书整份**复制**到运行时缓存，之后只读缓存。
+
+    这是整个机制里唯一一次「存档 → 缓存」的搬运：
+      · 存档里是记忆书形式（有 entries）→ 复制 entries / covered_upto 进缓存
+      · 不是（旧档 / 短档）→ 清空缓存，按全量发送
+    返回值给日志用。
+    """
+    mem = mem if isinstance(mem, dict) else {}
+    entries = mem.get("entries")
+    entries = list(entries) if isinstance(entries, list) else []
+    covered = int(mem.get("covered_upto") or 0)
+    reset_for_load(entries, covered, slot)
+    return {"entries": len(entries), "covered": covered,
+            "slot": slot, "enabled": bool(entries)}
 
 
 # ------------------------------------------------------------------ 最近段

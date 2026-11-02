@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """记忆书逻辑的自测（不联网、不花钱）。
 
 跑法：
@@ -57,6 +57,10 @@ def rt_entries_check(M):
 
 
 def main():
+    # 运行时缓存指到临时目录：别动正在运行的程序的 cache/memory_runtime.json
+    _tmp_cache = tempfile.mkdtemp(prefix="wa2_mem_")
+    M.CACHE_DIR = _tmp_cache
+    M.RUNTIME_FILE = os.path.join(_tmp_cache, "memory_runtime.json")
     cfg = M.cfg()
     print("参数:", cfg, "cloud budget:", M.budget(True), "local budget:", M.budget(False))
 
@@ -119,12 +123,20 @@ def main():
     check("300 条一条不少", len(d["messages"]) == 300, "实际 %d" % len(d["messages"]))
     check("memory 原样存下", d["memory"]["covered_upto"] == 10)
 
-    print("\n[7] 后台写回要核对 saved_at")
-    ok1 = S.session_patch_memory("unit", {"enabled": True, "covered_upto": 99}, expect_saved_at="1999-01-01 00:00:00")
-    check("saved_at 对不上就拒绝", ok1 is False)
-    ok2 = S.session_patch_memory("unit", {"enabled": True, "covered_upto": 99}, expect_saved_at=d["saved_at"])
-    check("saved_at 一致才写", ok2 is True)
-    check("写回生效", S.session_load("unit")["memory"]["covered_upto"] == 99)
+    print("\n[7] 读档：存档里的记忆书 → 运行时缓存（只复制这一次）")
+    seed = {"enabled": True, "covered_upto": 42,
+            "entries": [{"text": "存档里的旧事", "kind": "event"}]}
+    info = M.seed_from_save(seed, "7")
+    rt2 = M.runtime()
+    check("条目复制进缓存", rt2["entries"] == seed["entries"], repr(rt2))
+    check("covered 一起复制", rt2["covered"] == 42 and rt2["slot"] == "7", repr(rt2))
+    check("返回信息正确", info.get("enabled") and info.get("entries") == 1, repr(info))
+    check("缓存文件已落盘", os.path.exists(M.RUNTIME_FILE), M.RUNTIME_FILE)
+    M._RT = None                                   # 模拟重启后再读
+    rt3 = M.runtime()
+    check("重启后缓存还在", rt3["covered"] == 42 and len(rt3["entries"]) == 1, repr(rt3))
+    M.seed_from_save({}, "8")                      # 旧档 / 短档：没有记忆书
+    check("没记忆书的档来读→缓存清空", M.runtime()["entries"] == [])
 
     print("\n[8] 摘要失败降级")
     def bad_llm(prompt):

@@ -12,7 +12,8 @@ import json
 import os
 import time
 
-SESS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sessions")
+SESS_DIR = os.environ.get("WA2_SESS_DIR") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "sessions")
 
 
 def _sess_path(slot):
@@ -46,29 +47,6 @@ def session_save(data):
                 "saved_at": payload["saved_at"]}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
-
-def session_patch_memory(slot, mem, expect_saved_at=None):
-    """只更新某个存档的 memory 字段（后台生成摘要后写回）。
-
-    如果期间玩家又存过一次档（saved_at 变了），就放弃这次写回 ——
-    宁可少一次记忆，也不能把新存档的内容覆盖成旧的。
-    """
-    try:
-        path = _sess_path(slot)
-        with open(path, encoding="utf-8") as f:
-            d = json.load(f)
-        if expect_saved_at and d.get("saved_at") != expect_saved_at:
-            return False
-        d["memory"] = mem
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(d, f, ensure_ascii=False, indent=1)
-        os.replace(tmp, path)
-        _SESS_CACHE.pop(os.path.basename(path), None)
-        return True
-    except Exception:
-        return False
 
 
 def session_load(slot="auto"):
