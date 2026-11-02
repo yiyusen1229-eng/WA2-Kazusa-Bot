@@ -617,7 +617,16 @@ function fetchVoice(text, timeoutMs) {
         a.onended = () => { URL.revokeObjectURL(url); };
         resolve(a);
       })
-      .catch(() => { if (!done) { done = true; clearTimeout(timer); resolve(null); } });
+      .catch(() => {
+        if (done) return;
+        done = true; clearTimeout(timer);
+        /* 语音服务没起来时别静默失败：提示一次（同一局里不反复弹） */
+        if (!window.__voiceWarned) {
+          window.__voiceWarned = true;
+          if (window.__saveHint) window.__saveHint("语音暂时不可用，先显示文字");
+        }
+        resolve(null);
+      });
   });
 }
 

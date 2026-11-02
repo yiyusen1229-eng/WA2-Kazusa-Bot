@@ -31,6 +31,19 @@ MAX_BYTES = 25 * 1024 * 1024
 SPRITE_RE = re.compile(r"^kaz(\d{3})(\d{3})\.(png|jpg|jpeg|webp|bmp|gif)$", re.I)
 SPRITE_HINT = "文件名要像 kaz001101.png（kaz + 衣服编号3位 + 变化编号3位）"
 
+# 「变化编号 → 表情」：从现有 index.json 的 emotions 里统计出来的一致规律
+# （同一个尾号在不同衣服上都指向同一种表情）。导入新立绘时按尾号自动补映射，
+# 这样对话里换表情才会真的换到这张图。
+VARIANT_EMOTION = {
+    "101": "serious",
+    "104": "cold", "110": "cold", "134": "cold",
+    "109": "smile", "307": "smile", "323": "smile",
+    "115": "surprise", "218": "surprise",
+    "125": "sad", "131": "sad", "224": "sad",
+    "140": "shy",
+    "205": "angry", "212": "angry",
+}
+
 KINDS = {
     "prompt": {
         "dir": "prompt", "label": "提示词", "hint": "只能放文本文件",
@@ -54,6 +67,10 @@ IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif")
 
 
 def _user_dir():
+    """用户数据目录（char/ 在这里）。WA2_USER_DIR 可以改，自测时指到临时目录用。"""
+    env = os.environ.get("WA2_USER_DIR")
+    if env:
+        return env
     if getattr(sys, "_MEIPASS", None):
         return os.path.dirname(os.path.abspath(sys.executable))
     return os.path.dirname(os.path.abspath(__file__))
@@ -189,8 +206,9 @@ def save_portrait(filename, data):
         return {"ok": False, "error": "写入失败: %s" % e}
 
     _register_sprite(outfit, variant, name)
+    emo = VARIANT_EMOTION.get(variant, "")
     return {"ok": True, "kind": "portrait", "name": name, "outfit": outfit,
-            "variant": variant, "size": len(data), "path": target}
+            "variant": variant, "emotion": emo, "size": len(data), "path": target}
 
 
 def _register_sprite(outfit, variant, filename):
@@ -211,6 +229,10 @@ def _register_sprite(outfit, variant, filename):
         variants = o.setdefault("variants", [])
         if not any((v or {}).get("file") == filename for v in variants):
             variants.append({"variant": variant, "file": filename})
+        # 变化编号 → 表情：补上 emotions，对话换表情时才会选中这张图
+        emo = VARIANT_EMOTION.get(variant)
+        if emo:
+            o.setdefault("emotions", {})[emo] = filename
         tmp = idx_path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=1)

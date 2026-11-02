@@ -41,6 +41,7 @@ except Exception:
     STORY = None
 import special_cfg
 import special_files
+import char_res
 import scene_cg
 try:
     import gdi_text as GLIB
@@ -541,26 +542,53 @@ def translate_ja(text):
     return ''
 
 
+_PERSONA_SRC = {"v": ""}
+
+
+def _note_persona_src(name):
+    """人设来源变了才记一行日志，免得每条消息刷屏"""
+    if _PERSONA_SRC["v"] != name:
+        _PERSONA_SRC["v"] = name
+        log("人设来源: %s" % name)
+
+
 def persona_text():
+    """人设：特别模式导入的提示词最优先（char/prompt/），其次精简人设 persona_core，
+    最后才是完整版 persona.txt —— 导入的东西删掉会自动回落，不破坏原文件。"""
+    try:
+        imported = char_res.prompt_text()
+    except Exception as e:
+        log("读取导入提示词失败: %s" % e)
+        imported = ""
+    if imported:
+        _note_persona_src("char/prompt")
+        return imported
     # 优先用训练时一致的精简人设(persona_core), 保证训练/推理分布一致
     for f in (PERSONA_CORE_FILE, PERSONA_FILE):
         try:
             t = open(f, encoding="utf-8").read().strip()
             if t:
+                _note_persona_src(os.path.basename(f))
                 return t
         except Exception:
             continue
+    _note_persona_src("内置默认")
     return "你是示例角色，说话简短，只用简体中文。"
 
 
 def load_worldbook():
+    """世界书：特别模式导入的 json 优先（char/worldbook/），没有再用同目录的
+    worldbook.json。char_res 按 mtime 缓存，导入后下一条消息就生效。"""
+    try:
+        wb = char_res.worldbook()
+        if wb:
+            return wb
+    except Exception as e:
+        log("读取导入世界书失败: %s" % e)
     try:
         return json.load(open(WORLDBOOK_FILE, encoding="utf-8"))
     except Exception:
         return {"entries": []}
-
-
-WB = load_worldbook()
 
 # ---------------- 训练管理 ----------------
 TRAIN_DIR = os.environ.get("KAZUSA_TRAIN_DIR",
@@ -706,8 +734,8 @@ def train_stop():
 
 
 def worldbook_context(messages, depth=None, max_entries=None, max_chars=None):
-    """按关键词匹配注入世界书"""
-    wb = WB
+    """按关键词匹配注入世界书（每轮重读，导入的新世界书立刻生效）"""
+    wb = load_worldbook()
     depth = depth or wb.get("scan_depth", 3)
     max_entries = max_entries or wb.get("max_entries", 3)
     max_chars = max_chars or wb.get("max_chars", 1200)
@@ -1111,6 +1139,12 @@ class Handler(SimpleHTTPRequestHandler):
             # 对话框左上角显示的名字（char/name.txt）
             try:
                 return self._json({"ok": True, "name": special_cfg.get_name()})
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)})
+        if self.path == "/api/special/status":
+            # 角色资源接线：现在实际生效的是哪一份（没导入就是 null）
+            try:
+                return self._json({"ok": True, "files": char_res.status()})
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)})
         if self.path.startswith("/api/scene/list"):
@@ -1645,6 +1679,22 @@ class Handler(SimpleHTTPRequestHandler):
             system = system + "\n\n" + mem_note
         if wb_ctx:
             system = system + "\n\n" + wb_ctx
+
+        # 特别模式导入的资源：提示词在 persona_text() 里已经替换；
+        # 这里补「纯文本世界书」和「记忆书」，都是每轮带上、按字数上限截断。
+        try:
+            wb_extra = char_res.worldbook_text()
+            if wb_extra:
+                system = system + (
+                    "\n\n【设定补充（用户整理好的资料，只作参考，不要整段复述）】\n"
+                    + wb_extra)
+            mem_extra = char_res.memory_text()
+            if mem_extra:
+                system = system + (
+                    "\n\n【你记得的旧事（事先记好的记忆，不是这轮对话里发生的事；"
+                    "用你自己的口气提起，不要照抄原文）】\n" + mem_extra)
+        except Exception as e:
+            log("角色资源读取失败: %s" % e)
 
         # 剧本检索: 找出和这句话相关的往事, 作为"记忆"而非台词
         try:
