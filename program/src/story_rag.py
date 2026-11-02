@@ -121,10 +121,63 @@ class StoryIndex:
 _CACHE = {}
 _BUILD_LOCK = threading.Lock()
 
+GLOBAL_INDEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story_index.json")
+
+
+def _char_dir():
+    """当前角色的文件夹（没有就空串）"""
+    try:
+        import characters
+        return characters.active_dir() or ""
+    except Exception:
+        return ""
+
+
+def _char_cfg():
+    """角色自己的剧情检索配置：characters/<角色>/story.json
+
+        没有这个文件      → 沿用旧行为（用全局索引）
+        {"enabled": false} → 这个角色不做剧情检索
+        {"index": "xx.gz"} → 用角色文件夹里的这份索引（相对角色文件夹）
+    """
+    d = _char_dir()
+    if not d:
+        return {}
+    p = os.path.join(d, "story.json")
+    try:
+        with open(p, encoding="utf-8") as f:
+            v = json.load(f)
+        return v if isinstance(v, dict) else {}
+    except Exception:
+        return {}
+
+
+def enabled():
+    """这个角色要不要做剧情检索（新角色默认关，避免捞到别人的剧情）"""
+    return _char_cfg().get("enabled", True) is not False
+
+
+def active_index():
+    """当前角色实际用的索引文件：角色自带优先，否则全局那份（和纱的）"""
+    d = _char_dir()
+    if d:
+        cfg = _char_cfg()
+        rel = (cfg.get("index") or "").strip()
+        if rel:
+            p = rel if os.path.isabs(rel) else os.path.join(d, rel)
+            if os.path.exists(p):
+                return p
+            if os.path.exists(p + ".gz"):
+                return p + ".gz"
+        own = os.path.join(d, "story_index.json.gz")
+        if os.path.exists(own):
+            return own
+    return GLOBAL_INDEX
+
 
 def get_index(path=None):
     if path is None:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story_index.json")
+        path = active_index()
     # 有 .gz 就用 .gz
     gz = path + ".gz"
     if os.path.exists(gz):
@@ -143,6 +196,8 @@ def get_index(path=None):
 def preload():
     """启动时后台预热（main.py 调用），别让第一句相关的话等 1 秒多"""
     try:
+        if not enabled():
+            return False
         return get_index() is not None
     except Exception:
         return False

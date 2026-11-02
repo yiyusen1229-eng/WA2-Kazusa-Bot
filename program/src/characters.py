@@ -350,6 +350,13 @@ def create(name=None):
         return {"ok": False, "error": "建不了角色文件夹: %s" % e}
     _make_dirs(p)
     _write(os.path.join(p, "name.txt"), (name or "").strip()[:12] or cid)
+    # 新角色默认不做剧情检索：全局索引是和纱的剧情，别人用了会串味。
+    # 想让这个角色也检索，就往角色文件夹放自己的 story_index.json.gz，再把 story.json 的
+    # enabled 改成 true（{"enabled": true} / {"index": "story_index.json.gz"}）。
+    _write(os.path.join(p, "story.json"),
+           json.dumps({"enabled": False,
+                       "note": "剧情检索：放自己的 story_index.json.gz 后把 enabled 改成 true"},
+                      ensure_ascii=False, indent=1))
     seed_character(cid)                  # 新角色也从自带模板复制一份，界面上能直接改
     res = switch(cid)
     if res.get("ok"):

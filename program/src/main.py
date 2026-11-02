@@ -1553,7 +1553,7 @@ class Handler(SimpleHTTPRequestHandler):
         # 剧本检索: 找出和这句话相关的原作片段, 作为"想起来的事"而不是台词。
         # 和世界书分开写：世界书是「设定」，这里是「原作里真的发生过什么」。
         try:
-            if STORY is not None and req.get("memory"):
+            if STORY is not None and req.get("memory") and STORY.enabled():
                 last_user = ""
                 for m in reversed(msgs):
                     if m.get("role") == "user":
