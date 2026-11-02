@@ -1147,13 +1147,27 @@ $("mainMenu").addEventListener("mouseover", (e) => {
 ($("input")||{addEventListener:function(){}}).addEventListener("keydown", (e) => {
   if (e.key === "Enter") { e.preventDefault(); send(); }
 });
-($("backBtn")||{addEventListener:function(){}}).addEventListener("click", () => {
+/* 回标题：菜单「返回标题」和 ESC 共用 */
+function backToTitle() {
   playSE("cancel");
   showScreen("titleScreen");
   toggleBacklog(false);
   $("choiceScreen").classList.remove("show");
   titleBgmStarted = false;
   setBgm("menu", 800);
+}
+
+($("backBtn")||{addEventListener:function(){}}).addEventListener("click", backToTitle);
+
+/* ESC：对话界面直接回标题（回想 / 浮层先各自关掉，不抢） */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (backlogOpen) return;
+  if (window.__optOpen) return;
+  if (window.__isScreenOpen && window.__isScreenOpen()) return;
+  var gs = $("gameScreen");
+  if (!gs || !gs.classList.contains("active")) return;
+  backToTitle();
 });
 
 ($("msgBox")||{addEventListener:function(){}}).addEventListener("click", () => {

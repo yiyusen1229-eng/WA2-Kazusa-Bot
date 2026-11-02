@@ -114,7 +114,8 @@ var CT, CT2;
         e.stopPropagation();
         if (typeof window.__optTab !== "function") return;
         var n = current + (pair[1] === "l" ? -1 : 1);   /* 标签编号是 1~3 */
-        n = Math.max(1, Math.min(3, n));
+        if (n < 1) n = 3;                               /* 翻到头就绕回去 */
+        if (n > 3) n = 1;
         window.__optTab(n);
       });
     });
