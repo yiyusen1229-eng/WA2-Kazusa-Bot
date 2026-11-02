@@ -1135,8 +1135,8 @@ async function send() {
   renderThinking();
     history.push({ role: "assistant", content: reply });
     window.__history = history;
-    window.__lastReply = reply;
-    window.__lastReplyZh = replyZh;
+    history.push({ role: "assistant", content: reply });
+    window.__history = history;
     // 对话框显示中文（有译文用译文），历史记录也显示中文
     const shown = replyZh ? ("「" + replyZh.replace(/^「|」$/g, "") + "」") : reply;
     window.__speakJa = replyZh ? reply.replace(/^「|」$/g, "") : "";
@@ -1511,7 +1511,6 @@ window.__applyVolumes = function () {
   window.__volBgm = bv;
   window.__volVoice = vv;
 };
-window.__applyVolumesV2 = true;
 document.addEventListener("DOMContentLoaded", function () {
   try { window.__applyVolumes(); } catch (e) {}
 });

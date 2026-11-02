@@ -67,6 +67,10 @@
   position: absolute;
   right: 0;
   top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 13px;
   font-size: 12px;
   color: #ffffff;
   white-space: nowrap;
@@ -395,13 +399,7 @@
 }
 /* ---------- 读数：数字用 cost_* 素材，符号是 sp_* ----------
    cost_* 的字身只占画布的 62.5%，sp_* 占 87.5%，所以数字要放得比符号大一点，
-   两者看起来才一样高 */
-#specialScreen .spVal {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: 13px;
-}
+   两者看起来才一样高（布局那几条已经并进上面 .spVal 的规则里） */
 #specialScreen .spVal img {
   height: 16px;
   width: auto;

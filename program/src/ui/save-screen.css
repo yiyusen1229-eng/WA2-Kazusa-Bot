@@ -6,14 +6,6 @@
 
 
 
-/* 开场画面：静态背景（不再加载 38MB 视频） */
-#introStill {
-  position: absolute;
-  inset: 0;
-  background: url("assets/title.png") center / cover no-repeat;
-  filter: brightness(.85);
-}
-
 /* ===== 存档界面：PAGE 行 =====
    PAGE + 白线 = 一张合成图（右侧已在图片里延伸，无接缝）
    黑框 = 单独一层 */

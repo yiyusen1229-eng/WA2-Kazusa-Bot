@@ -1,12 +1,6 @@
 // 存读档 / 设置 / 回想 三个界面
 (function () {
   const $ = (id) => document.getElementById(id);
-  /* 统一音效：翻页/切页 —— 页签、EXIT、OPTION 标签、回想滚轮都用它 */
-  function playPageSE() {
-    try { if (window.playSE) window.playSE("page"); } catch (e) {}
-  }
-  window.__pageSE = playPageSE;
-
 
   /* ---------- 存读档 ---------- */
   let saveMode = "load";           // load | save
@@ -105,7 +99,6 @@
           /* 存档 / 读档是同一套界面，靠这个类区分点击行为与光标 */
           sc.classList.toggle("mode-save", saveMode === "save");
           sc.classList.toggle("mode-load", saveMode !== "save");
-          window.__saveMode = saveMode;
           fadeIn(sc);
         }
       }
