@@ -19,7 +19,22 @@
 > **非官方、非商业、个人技术验证项目。**
 > 本仓库**只包含源代码与文档**：不含任何游戏素材，不含任何模型权重，不含游戏本体。
 
-## 最新进展（2026-11-02 14:18）
+## 最新进展（2026-11-02 14:40）
+
+> 清理废弃文件 / 死代码，人设与世界书分家 —— 详见
+> [开发日志](other/docs/开发日志2026-11-02_14-40-00.md)：
+
+| 事项 | 结果 |
+|---|---|
+| **人设 / 世界书分家** | 新文件 `persona_ctx.py`：`persona/`、`worldbook/` 两个文件夹；旧根目录位置保留回落；`main.py` 只管调用 |
+| **删死代码** | 训练管理整套（约 230 行 + `/api/train/*`，界面早没了）、死函数、无引用 CSS；`main.py` 2012→1530 行 |
+| **归档旧工具** | `gdi_proxy/`、`llama_cpp/`、`make_placeholder_assets.py` → `tools/归档/` |
+| **修索引工具** | `build_story_index_v2.py` 输出改到 `src/story_index.json.gz`（原来写向已不存在的 `app/`）；重建 4592 块 / 408 万字 |
+| **素材自检重写** | `check_assets.py` 按现目录检查，缺什么、放哪，一看就懂 |
+| **日志换行 bug** | `main.log()` 原来写的是字面量 `\\n`，整份日志挤成一行；已改 |
+| **验证** | 5 个测试全过；CSS 六界面 0 样式 / 0 像素差异 |
+
+### 上一次（2026-11-02 14:18）
 
 > 承接 13:40 那轮的两处收尾：查看文件打开真正生效的位置、记忆书机制简化。
 > 详见 [开发日志](other/docs/开发日志2026-11-02_13-40-00.md) 的补记：
@@ -130,7 +145,9 @@
 ```
 WA2-Kazusa-Bot/
 ├── program/
-│   ├── src/                后端（main.py 等）+ 前端 ui/（HTML/CSS/JS）
+│   ├── src/                后端（main.py / persona_ctx.py 等）+ 前端 ui/
+│   │   ├── persona/        人设（persona_core.txt / persona.txt，不进仓库）
+│   │   └── worldbook/      世界书（worldbook.json，不进仓库）
 │   ├── res/assets/         界面图、音效、BGM、立绘 ※不进仓库
 │   ├── tools/              构建、素材生成、测量脚本
 │   ├── models/             模型目录联接说明（本体不进仓库）
@@ -138,11 +155,12 @@ WA2-Kazusa-Bot/
 ├── release/                打包产物（不进仓库）
 ├── other/
 │   ├── docs/               文档与开发日志
-│   └── dev/                解包工具链、游戏原始资源（不进仓库）
+│   └── dev/                本地开发数据（剧本、训练集等，不进仓库）
 └── README.md / NOTICE.md / LICENSE
 ```
 
-`.gitignore` 里明确排除了：`program/res/assets/`、`models/`、`train/`、`tts/`、`other/dev/`、`release/`。
+`.gitignore` 里明确排除了：`program/res/assets/`、`program/src/persona/`、`program/src/worldbook/`、
+`models/`、`train/`、`tts/`、`other/dev/`、`release/`。
 
 ---
 
@@ -220,7 +238,8 @@ WA2-Kazusa-Bot/
 | [other/docs/未完成功能.md](other/docs/未完成功能.md) | 哪些功能没做 |
 | [other/docs/场景CG系统.md](other/docs/场景CG系统.md) | 场景背景 CG：文件名标签规则、导入工具、匹配算法、接口 |
 | [other/docs/参考与致谢.md](other/docs/参考与致谢.md) | 参考过的项目与模型 |
-| [other/docs/开发日志2026-11-02_13-40-00.md](other/docs/开发日志2026-11-02_13-40-00.md) | **最新开发日志**：资源接线、语音边界、真实价格、CSS 收敛、story_rag |
+| [other/docs/开发日志2026-11-02_14-40-00.md](other/docs/开发日志2026-11-02_14-40-00.md) | **最新开发日志**：清理死代码、人设/世界书分家（`persona_ctx.py`）、索引工具修正 |
+| [other/docs/开发日志2026-11-02_13-40-00.md](other/docs/开发日志2026-11-02_13-40-00.md) | 资源接线、语音边界、真实价格、CSS 收敛、story_rag（含记忆书简化补记） |
 | [other/docs/开发日志2026-11-02_13-15-00.md](other/docs/开发日志2026-11-02_13-15-00.md) | 特别模式配置项改下拉面板（箭头旋转、导入/查看文件） |
 | [other/docs/开发日志2026-11-02_12-57-00.md](other/docs/开发日志2026-11-02_12-57-00.md) | 场景背景 CG 接入（119 张、文件名标签匹配、时段连续） |
 | [other/docs/开发日志2026-11-01_21-45-00.md](other/docs/开发日志2026-11-01_21-45-00.md) | 特别模式上线（存读档设置 + 角色配置）、全屏字模烘焙、大扫除 |
