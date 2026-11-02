@@ -69,6 +69,9 @@ ITEMS = {
     "sp_item_voice":    ("配置语音模型参考音频", 12, False, None),
     "sp_saved":         ("已保存", 11, False, None),
     "sp_save_btn":      ("保存", 9, False, None),
+    # 配置项下拉出来的两个按钮（宽 106、高 20，字 10px 刚好）
+    "sp_btn_import":    ("导入文件", 10, False, None),
+    "sp_btn_open":      ("查看文件", 10, False, None),
     "sp_pct":           ("%", 12, False, None),
     "sp_eq":            ("=", 12, False, None),
     "sp_approx":        ("≈", 12, False, None),

@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 聊天界面架构</title>
-<link rel="stylesheet" href="screens-base.css?v=11021200">
-<link rel="stylesheet" href="opt-screen.css?v=11021200">
-<link rel="stylesheet" href="save-screen.css?v=11021200">
-<link rel="stylesheet" href="game450.css?v=11021200">
-<link rel="stylesheet" href="unifont.css?v=11021200">
-<link rel="stylesheet" href="opt.css?v=11021200">
-  <link rel="stylesheet" href="menubar.css?v=11021200">
-<link rel="stylesheet" href="special.css?v=11021200">
+<link rel="stylesheet" href="screens-base.css?v=11021330">
+<link rel="stylesheet" href="opt-screen.css?v=11021330">
+<link rel="stylesheet" href="save-screen.css?v=11021330">
+<link rel="stylesheet" href="game450.css?v=11021330">
+<link rel="stylesheet" href="unifont.css?v=11021330">
+<link rel="stylesheet" href="opt.css?v=11021330">
+  <link rel="stylesheet" href="menubar.css?v=11021330">
+<link rel="stylesheet" href="special.css?v=11021330">
 </head>
 <body>
 <div id="stage">
@@ -131,25 +131,41 @@
       </div>
       <div class="spSaved" id="spSaved"></div>
 
+      <!-- 配置项：点框头展开下拉面板（导入文件 / 查看文件），面板由 special.js 生成 -->
       <div class="spItem" data-item="portrait">
-        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
-        <span class="spItemLabel"><img src="assets/ui/text/sp_item_portrait.png" alt=""></span>
+        <div class="spHead" role="button" tabindex="0" aria-expanded="false">
+          <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+          <img class="spArrow" src="assets/ui/special/item_arrow.png" alt="">
+          <span class="spItemLabel"><img src="assets/ui/text/sp_item_portrait.png" alt=""></span>
+        </div>
       </div>
       <div class="spItem" data-item="prompt">
-        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
-        <span class="spItemLabel"><img src="assets/ui/text/sp_item_prompt.png" alt=""></span>
+        <div class="spHead" role="button" tabindex="0" aria-expanded="false">
+          <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+          <img class="spArrow" src="assets/ui/special/item_arrow.png" alt="">
+          <span class="spItemLabel"><img src="assets/ui/text/sp_item_prompt.png" alt=""></span>
+        </div>
       </div>
       <div class="spItem" data-item="worldbook">
-        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
-        <span class="spItemLabel"><img src="assets/ui/text/sp_item_world.png" alt=""></span>
+        <div class="spHead" role="button" tabindex="0" aria-expanded="false">
+          <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+          <img class="spArrow" src="assets/ui/special/item_arrow.png" alt="">
+          <span class="spItemLabel"><img src="assets/ui/text/sp_item_world.png" alt=""></span>
+        </div>
       </div>
       <div class="spItem" data-item="memory">
-        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
-        <span class="spItemLabel"><img src="assets/ui/text/sp_item_memory.png" alt=""></span>
+        <div class="spHead" role="button" tabindex="0" aria-expanded="false">
+          <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+          <img class="spArrow" src="assets/ui/special/item_arrow.png" alt="">
+          <span class="spItemLabel"><img src="assets/ui/text/sp_item_memory.png" alt=""></span>
+        </div>
       </div>
       <div class="spItem" data-item="voice">
-        <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
-        <span class="spItemLabel"><img src="assets/ui/text/sp_item_voice.png" alt=""></span>
+        <div class="spHead" role="button" tabindex="0" aria-expanded="false">
+          <span class="spFrame"><span class="spFrameBase"></span><span class="spFrameHover"></span></span>
+          <img class="spArrow" src="assets/ui/special/item_arrow.png" alt="">
+          <span class="spItemLabel"><img src="assets/ui/text/sp_item_voice.png" alt=""></span>
+        </div>
       </div>
     </div>
 
@@ -237,19 +253,19 @@
 </div>
 
 <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
-<script src="config.js?v=11021200"></script>
-<script src="opt.js?v=11021200"></script>
-  <script src="savetabs4.js?v=11021200"></script>
-  <script src="savepages.js?v=11021200"></script>
-  <script src="screens.js?v=11021200"></script>
-  <script src="special.js?v=11021200"></script>
-<script src="game.js?v=11021200"></script>
-<script src="sound.js?v=11021200"></script>
-<script src="zoom.js?v=11021200"></script>
-<script src="debug.js?v=11021200"></script>
-<script src="scale.js?v=11021200"></script>
-<script src="menubar.js?v=11021200"></script>
-<script src="uitext.js?v=11021200"></script>
+<script src="config.js?v=11021330"></script>
+<script src="opt.js?v=11021330"></script>
+  <script src="savetabs4.js?v=11021330"></script>
+  <script src="savepages.js?v=11021330"></script>
+  <script src="screens.js?v=11021330"></script>
+  <script src="special.js?v=11021330"></script>
+<script src="game.js?v=11021330"></script>
+<script src="sound.js?v=11021330"></script>
+<script src="zoom.js?v=11021330"></script>
+<script src="debug.js?v=11021330"></script>
+<script src="scale.js?v=11021330"></script>
+<script src="menubar.js?v=11021330"></script>
+<script src="uitext.js?v=11021330"></script>
 <script>
 /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
 window.addEventListener("load", function () {

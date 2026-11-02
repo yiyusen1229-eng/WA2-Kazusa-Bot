@@ -1220,6 +1220,13 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)}, 400)
             return self._json(special_files.save_upload(kind, name, data))
+        if self.path.startswith("/api/special/open"):
+            # 特别模式「查看文件」：在资源管理器里打开这一类资源所在的目录
+            try:
+                body = self._body()
+            except Exception as e:
+                return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
+            return self._json(special_files.open_folder(((body or {}).get("kind") or "").strip()))
         if self.path.startswith("/api/session/save"):
             try:
                 body = self._body()

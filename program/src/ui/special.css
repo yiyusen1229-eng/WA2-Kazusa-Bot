@@ -179,15 +179,18 @@
   opacity: 1;
 }
 
-/* ---------- 角色配置项：底框当背景，文字压在框上 ---------- */
+/* ---------- 角色配置项：底框当框头，点一下往下滑出两个按钮 ---------- */
 #specialScreen .spItem {
   position: relative;
-  height: 20px;
   margin: 0 0 6px 0;
-  cursor: pointer;
-  /* flex 居中：文字在框里上下留白一样，不受字模图自身行高影响 */
+}
+#specialScreen .spHead {
+  position: relative;
+  height: 20px;
   display: flex;
   align-items: center;
+  cursor: pointer;
+  outline: none;
 }
 #specialScreen .spFrame {
   position: absolute;
@@ -202,11 +205,74 @@
   pointer-events: none;
   display: flex;
   align-items: center;
-}#specialScreen .spFrameBase,
+}
+/* 三角箭头：从底框上抠出来单独一张（tools/make_special_ui.py），
+   位置按它在原底框里的百分比定；点开时顺时针转 90°，尖端朝下 */
+#specialScreen .spArrow {
+  position: absolute;
+  left: 5.5%;          /* 原位 x 22/400 */
+  top: 28.125%;        /* 原位 y 9/32 */
+  width: 3%;           /* 12/400 */
+  height: 43.75%;      /* 14/32 */
+  transform-origin: 50% 50%;
+  transition: transform .2s ease;
+  pointer-events: none;
+}
+#specialScreen .spItem.open .spArrow {
+  transform: rotate(90deg);
+}
+/* 下拉面板：max-height 0 → 34，看起来就是从框里滑出来。
+   上下 padding 只在打开时加：box-sizing 也夹不住 padding/边框，
+   关着的时候留着会白占 10px，把下面的框顶开 */
+#specialScreen .spPanel {
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  padding: 0 8px 0 24px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-3px);
+  background: linear-gradient(180deg, rgba(6, 40, 62, .92), rgba(3, 22, 38, .94));
+  border-radius: 0 0 3px 3px;
+  transition: max-height .22s ease, opacity .16s ease,
+              transform .22s ease, padding .22s ease;
+}
+#specialScreen .spItem.open .spPanel {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  max-height: 34px;
+  opacity: 1;
+  transform: none;
+}
+/* 面板里的按钮：和「保存」同一套三帧图，文字是烤好的 sp_btn_import / sp_btn_open */
+#specialScreen .spPanelBtn {
+  width: 106px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat;
+}
+#specialScreen .spPanelBtn:hover {
+  background-position: 0 50%;
+}
+#specialScreen .spPanelBtn:active {
+  background-position: 0 100%;
+}
+#specialScreen .spPanelBtn img {
+  height: 10px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  pointer-events: none;
+}
+
+#specialScreen .spFrameBase,
 #specialScreen .spFrameHover {
   position: absolute;
   inset: 0;
-  background-image: url("assets/ui/sys_04100.png");
+  background-image: url("assets/ui/special/item_frame.png");
   background-size: 100% 400%;
   background-repeat: no-repeat;
   pointer-events: none;
@@ -220,12 +286,12 @@
   background-position: 0 100%;
   opacity: 0;
 }
-#specialScreen .spItem:hover .spFrameHover,
-#specialScreen .spItem.down .spFrameHover {
+#specialScreen .spHead:hover .spFrameHover,
+#specialScreen .spHead.down .spFrameHover {
   opacity: 1;
 }
 /* 按下：第 2 帧换到最上面（黄框仍是上面那层） */
-#specialScreen .spItem.down .spFrameBase {
+#specialScreen .spHead.down .spFrameBase {
   background-position: 0 33.333%;
 }
 

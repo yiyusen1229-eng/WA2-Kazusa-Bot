@@ -6,8 +6,10 @@
  *   · token 读数由 /api/text 出字模图，和界面其它文字同一套
  *
  * 角色配置：
- *   · 5 个底框按钮各自对应一种资源，点了弹系统选文件窗口（<input type=file>，
- *     WebView2 里就是 Windows 原生对话框）
+ *   · 5 个底框是「框头」，点一下三角箭头顺时针转 90°（朝下），并从框下
+ *     滑出一个面板，面板里两个按钮：
+ *       导入文件 → 弹系统选文件窗口（<input type=file>，WebView2 里就是 Windows 原生对话框）
+ *       查看文件 → 后端在资源管理器里打开这一类资源所在的目录
  *   · 前端按类型给 accept 提示，真正的类型校验在后端 special_files.py
  *   · 选好的文件上传后落到 char/<kind>/ 下，成功后闪一下「已保存」
  *
@@ -381,22 +383,105 @@
     reader.readAsArrayBuffer(file);
   }
 
-  /* ---------- 配置项：底框当背景，点框弹选文件 ---------- */
+  /* ---------- 配置项：点一下框头，箭头转 90° 并滑出面板 ----------
+     面板里两个按钮：
+       · 导入文件 → 原来的系统选文件窗口，选完上传落盘
+       · 查看文件 → 让后端在资源管理器里打开这一类资源的目录，方便自己看/替换 */
+  var PANEL_BTNS = [
+    { act: "import", img: "assets/ui/text/sp_btn_import.png", title: "导入文件" },
+    { act: "open",   img: "assets/ui/text/sp_btn_open.png",   title: "查看文件" }
+  ];
+
+  function buildPanel() {
+    var panel = document.createElement("div");
+    panel.className = "spPanel";
+    PANEL_BTNS.forEach(function (b) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "spPanelBtn";
+      btn.dataset.act = b.act;
+      btn.title = b.title;
+      var img = document.createElement("img");
+      img.src = b.img;
+      img.alt = b.title;
+      btn.appendChild(img);
+      panel.appendChild(btn);
+    });
+    return panel;
+  }
+
+  /* 同一时间只开一个：开新的先把别的收起来（箭头跟着转回去） */
+  function closePanels(except) {
+    var open = document.querySelectorAll("#specialScreen .spItem.open");
+    for (var i = 0; i < open.length; i++) {
+      if (open[i] === except) continue;
+      open[i].classList.remove("open");
+      var h = open[i].querySelector(".spHead");
+      if (h) h.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  function togglePanel(item, head) {
+    var willOpen = !item.classList.contains("open");
+    closePanels(item);
+    item.classList.toggle("open", willOpen);
+    head.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  }
+
+  /* 「查看文件」：让后端在资源管理器里打开这一类资源的目录 */
+  function openFolder(kind) {
+    fetch("/api/special/open", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: kind })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (!d || !d.ok) flash((d && d.error) || "打不开文件夹"); })
+      .catch(function () { flash("打不开文件夹"); });
+  }
+
   function bindFrames() {
     var items = document.querySelectorAll("#specialScreen .spItem");
     for (var i = 0; i < items.length; i++) {
-      (function (b) {
-        b.addEventListener("pointerdown", function (e) {
+      (function (item) {
+        var head = item.querySelector(".spHead");
+        if (!head) return;
+        var kind = item.dataset.item;
+        if (!item.querySelector(".spPanel")) item.appendChild(buildPanel());
+
+        head.addEventListener("pointerdown", function (e) {
           e.preventDefault();
-          b.classList.add("down");
+          head.classList.add("down");
         });
         ["pointerup", "pointercancel", "pointerleave"].forEach(function (n) {
-          b.addEventListener(n, function () { b.classList.remove("down"); });
+          head.addEventListener(n, function () { head.classList.remove("down"); });
         });
-        b.addEventListener("click", function () {
-          b.classList.remove("down");
-          picker(b.dataset.item).click();
+        head.addEventListener("click", function () {
+          head.classList.remove("down");
+          togglePanel(item, head);
         });
+        head.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            togglePanel(item, head);
+          }
+        });
+
+        var btns = item.querySelectorAll(".spPanelBtn");
+        for (var j = 0; j < btns.length; j++) {
+          (function (btn) {
+            btn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              if (btn.dataset.act === "import") {
+                item.classList.remove("open");            // 选完文件就收起来
+                head.setAttribute("aria-expanded", "false");
+                picker(kind).click();
+              } else if (btn.dataset.act === "open") {
+                openFolder(kind);
+              }
+            });
+          })(btns[j]);
+        }
       })(items[i]);
     }
   }
@@ -422,6 +507,7 @@
       if (rb) rb.addEventListener("click", resetDefaults);
     }
     layout();
+    closePanels(null);               // 每次打开都是收起状态
     loadCfg();                       // 读文件里的实际值，覆盖默认值
     renderNameView();                // 先摆默认名，读到 char/name.txt 再覆盖
     loadName();

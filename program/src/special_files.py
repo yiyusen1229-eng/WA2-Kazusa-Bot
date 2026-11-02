@@ -21,6 +21,7 @@
 import json
 import os
 import re
+import subprocess
 import sys
 
 ROOT_NAME = "char"
@@ -124,6 +125,42 @@ def save_upload(kind, filename, data):
                 pass
 
     return {"ok": True, "kind": kind, "name": name, "size": len(data), "path": target}
+
+
+# ------------------------------------------------------------------ 打开文件夹
+def folder_for(kind):
+    """这一类资源落在哪个目录（界面上的「查看文件」打开的就是它）"""
+    if kind == "portrait":
+        return os.path.join(_assets(), "sprites")
+    spec = KINDS.get(kind)
+    if not spec:
+        return None
+    return os.path.join(CHAR_DIR, spec["dir"])
+
+
+def open_folder(kind):
+    """在系统文件管理器里打开这一类资源的目录（没有就先建出来）
+
+    只认这 5 种 kind，路径全部由上面的常量拼出来，不接受外部路径，
+    避免前端传个任意路径过来就能打开/探测磁盘。
+    """
+    folder = folder_for(kind)
+    if not folder:
+        return {"ok": False, "error": "未知的资源类型"}
+    try:
+        os.makedirs(folder, exist_ok=True)
+    except Exception as e:
+        return {"ok": False, "error": "建不了目录：%s" % e}
+    try:
+        if os.name == "nt":
+            os.startfile(folder)                      # 资源管理器
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", folder])
+        else:
+            subprocess.Popen(["xdg-open", folder])
+    except Exception as e:
+        return {"ok": False, "error": "打不开文件夹：%s" % e}
+    return {"ok": True, "path": folder}
 
 
 # ------------------------------------------------------------------ 立绘
