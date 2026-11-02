@@ -1570,8 +1570,13 @@ document.addEventListener("click", function (e) {
 window.__setCharName = function (n) {
   if (!n) return;
   CHAR_NAME = n;
+  window.__charName = n;
   var el = document.getElementById("namePlate");
   if (el && typeof gdiRenderName === "function") gdiRenderName(n, el);
+  // 输入框占位符等跟着名字变（uitext.js 监听）
+  try {
+    document.dispatchEvent(new CustomEvent("wa2:charname", { detail: n }));
+  } catch (e) {}
 };
 fetch("/api/special/name", { cache: "no-store" })
   .then(function (r) { return r.json(); })

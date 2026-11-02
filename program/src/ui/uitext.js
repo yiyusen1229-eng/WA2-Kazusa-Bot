@@ -162,7 +162,7 @@
       }, opts.perLine || "", opts.tight ? "1" : "");
     };
 
-    // 输入框占位符
+    // 输入框占位符：走 /api/text（有磁盘缓存），角色名改了会跟着换
     var inp = document.getElementById("input");
     if (inp && inp.parentElement) {
       var bar = inp.parentElement;
@@ -171,12 +171,21 @@
       ph.style.cssText =
         "position:absolute;left:26px;top:50%;transform:translateY(-50%);" +
         "height:" + fs2.toFixed(1) + "px;pointer-events:none;opacity:.85;display:none";
-      ph.src = "/api/text?text=" + encodeURIComponent("对和纱说点什么…（Enter 发送）") +
-               "&plain=1&v=" + VER;
       bar.style.position = bar.style.position || "relative";
       bar.appendChild(ph);
       // 关键: 清掉原生占位符, 否则会有两份文字叠在一起
       inp.setAttribute("placeholder", "");
+      var lastHint = "";
+      function drawHint() {
+        var name = (window.__charName || "和纱");
+        var text = "对" + name + "说点什么…（Enter 发送）";
+        if (text === lastHint) return;
+        lastHint = text;
+        ph.src = "/api/text?text=" + encodeURIComponent(text) +
+                 "&plain=1&chars_per_line=40&v=" + VER;
+      }
+      drawHint();
+      document.addEventListener("wa2:charname", drawHint);
       function sync() {
         var hide = !!(inp.value && inp.value.length) || document.activeElement === inp;
         ph.style.display = hide ? "none" : "block";

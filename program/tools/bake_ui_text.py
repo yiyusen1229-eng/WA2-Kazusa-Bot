@@ -42,7 +42,6 @@ ITEMS = {
     "save_short":   ("对话不足两条不能存档", 12, True, None),
 
     # ---- 回想 / 输入框 ----
-    "log_ph":       ("对和纱说点什么…（Enter 发送）", 13, True, None),
     "log_act_on":   ("动作：开", 11, True, None),
     "log_act_off":  ("动作：关", 11, True, None),
     "log_send":     ("发送", 11, True, None),
