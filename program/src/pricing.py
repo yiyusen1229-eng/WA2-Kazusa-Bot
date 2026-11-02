@@ -210,3 +210,31 @@ def cost(model, usage):
     return (hit / 1e6 * p["hit"][key] +
             miss / 1e6 * p["miss"][key] +
             out / 1e6 * p["out"][key])
+
+
+def estimate(model, prompt_tokens, completion_tokens=0, cache_hit_tokens=0):
+    """给「还没发生的一轮」估价：和 cost() 用同一张价目表、同一套高峰判断。
+
+    特别模式那个「每轮费用预估」走这里，保证和右下角的花费是同口径
+    （换模型、进高峰时段两边一起变）。默认按「缓存未命中」算，偏保守。
+    """
+    p, src = prices_for(model)
+    key = "peak" if is_peak() else "off"
+    prompt_tokens = max(0, int(prompt_tokens or 0))
+    completion_tokens = max(0, int(completion_tokens or 0))
+    hit = min(prompt_tokens, max(0, int(cache_hit_tokens or 0)))
+    miss = prompt_tokens - hit
+    total = (hit / 1e6 * p["hit"][key] +
+             miss / 1e6 * p["miss"][key] +
+             completion_tokens / 1e6 * p["out"][key])
+    return {
+        "model": model,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "phase": key,
+        "peak": key == "peak",
+        "currency": currency(),
+        "price": {"hit": p["hit"][key], "miss": p["miss"][key], "out": p["out"][key]},
+        "cost": round(total, 6),
+        "source": src,
+    }

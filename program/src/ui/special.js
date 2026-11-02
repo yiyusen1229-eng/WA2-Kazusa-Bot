@@ -21,11 +21,13 @@
   /* ---------- 参数 ---------- */
   var CTX_MAX = 32000;            // 会被 /api/special/cfg 返回的 ctx_max 覆盖
   var FIXED_OVERHEAD = 1200;      // 人设 / 世界书 / 系统提示的固定开销（粗略）
-  var PRICE_PER_M = 1.0;          // 暂用未命中价 ¥1/百万，接入 pricing.py 后换实时价
+  var EST_OUT_TOKENS = 200;       // 估一轮的回复长度（真实花费含输出，不估会偏低）
 
   var state = { ctx: 100, trigger: 60, recent: 25, entries: 12 };
   /* 恢复默认用的值：打开时从后端 defaults 取，取不到就用上面这份 */
   var DEF = { ctx: 100, trigger: 60, recent: 25, entries: 12 };
+  /* 每轮费用：不开本地估算，直接问后端要（和右下角花费同口径，随模型/高峰变） */
+  var priceState = { cost: null, phase: "", model: "" };
 
   /* ---------- 统一字模 ----------
      实际渲染交给 uitext.js 的 __uiTextRender（和界面其它文字同一条 /api/text 链路），
@@ -47,8 +49,54 @@
     var recent = Math.round(ctx * state.recent / 100);
     var entries = Math.round(ctx * state.entries / 100);
     var turn = recent + entries + FIXED_OVERHEAD;
-    return { ctx: ctx, trigger: trigger, recent: recent, entries: entries,
-             turn: turn, cost: turn / 1e6 * PRICE_PER_M };
+    return { ctx: ctx, trigger: trigger, recent: recent, entries: entries, turn: turn };
+  }
+
+  /* ---------- 每轮费用：问后端，不自己乘常数 ----------
+     /api/price/estimate 走 pricing.py：同一个价目表、同一套高峰判断，
+     所以换模型 / 进高峰时段，这里和右下角的实际花费会一起变。 */
+  var priceTimer = null, priceSeq = 0;
+
+  function activeModel() {
+    try {
+      var a = JSON.parse(localStorage.getItem("app_active_model") || "{}");
+      return a.model || "";
+    } catch (e) { return ""; }
+  }
+
+  function refreshPrice() {
+    var seq = ++priceSeq;
+    var url = "/api/price/estimate?tokens=" + Math.max(1, Math.round(tokens().turn)) +
+              "&out=" + EST_OUT_TOKENS;
+    var m = activeModel();
+    if (m) url += "&model=" + encodeURIComponent(m);
+    fetch(url, { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (seq !== priceSeq || !d || !d.ok) return;
+        priceState = { cost: d.cost, phase: d.phase, model: d.model };
+        renderCost();
+      })
+      .catch(function () { /* 后端没起来就保留上一次的数 */ });
+  }
+
+  /* 和右下角花费同一套小数位规则（game.js 的 moneyStr），保证两边看起来同口径 */
+  function formatCost(c) {
+    if (typeof c !== "number" || !isFinite(c)) return null;
+    if (c === 0) return "0";
+    if (c < 0.01) return c.toFixed(6);
+    if (c < 1) return c.toFixed(4);
+    return c.toFixed(3);
+  }
+
+  function renderCost() {
+    var el = $("spv-cost");
+    if (!el) return;
+    var s = formatCost(priceState.cost);
+    setNum(el, s === null ? "¥—" : "¥" + s);
+    el.title = (s === null ? "取不到实时价格" :
+                ("按 " + (priceState.model || "当前模型") +
+                 (priceState.phase === "peak" ? "（高峰时段）" : "（空闲时段）") + " 估算"));
   }
 
   /* ---------- 读数 ---------- */
@@ -97,12 +145,15 @@
     setNum($("spv-recent"), state.recent + "% = " + t.recent);
     setNum($("spv-entries"), state.entries + "% = " + t.entries);
     setNum($("spv-turn"), "≈ " + t.turn);
-    setNum($("spv-cost"), "¥" + t.cost.toFixed(3));
+    renderCost();
   }
 
   function scheduleReadouts() {
     if (readTimer) clearTimeout(readTimer);
     readTimer = setTimeout(function () { readTimer = null; renderReadouts(); }, 60);
+    /* 价格问后端要，拖滑条时别每帧都发：250ms 一次，最后一个请求说了算 */
+    if (priceTimer) clearTimeout(priceTimer);
+    priceTimer = setTimeout(function () { priceTimer = null; refreshPrice(); }, 250);
   }
 
   /* ---------- 滑条 ---------- */
@@ -146,6 +197,7 @@
       placeKnob(s);
     });
     renderReadouts();
+    refreshPrice();          // 每次打开都重新取一次价（模型 / 时段可能变了）
   }
 
   function bindSlider(slider) {
@@ -488,6 +540,9 @@
 
   /* ---------- 打开 / 关闭 ---------- */
   var bound = false;
+
+  /* 调试/探针：读当前每轮费用估算 */
+  window.__spPrice = function () { return priceState; };
 
   window.__openSpecial = function () {
     var s = window.__showUIScreen

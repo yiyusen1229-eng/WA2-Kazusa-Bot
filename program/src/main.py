@@ -1160,6 +1160,22 @@ class Handler(SimpleHTTPRequestHandler):
                                    "hit": scene_cg.match(scene, prev)})
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)})
+        if self.path.startswith("/api/price/estimate"):
+            # 特别模式的「每轮费用预估」：和 /api/usage 同一张价目表、同一套高峰判断
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            try:
+                tokens = int((q.get("tokens") or ["0"])[0] or 0)
+                out = int((q.get("out") or ["0"])[0] or 0)
+            except ValueError:
+                return self._json({"ok": False, "error": "tokens / out 必须是数字"}, 400)
+            model = ((q.get("model") or [""])[0].strip()
+                     or (cloud_cfg() or {}).get("model") or DEFAULT_MODEL)
+            try:
+                d = _pricing.estimate(model, tokens, completion_tokens=out)
+                d["ok"] = True
+                return self._json(d)
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)})
         if self.path.startswith("/api/price"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             m = (q.get("model") or [""])[0]
