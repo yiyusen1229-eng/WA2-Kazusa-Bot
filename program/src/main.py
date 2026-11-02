@@ -41,6 +41,7 @@ import special_cfg
 import special_files
 import char_res
 import persona_ctx
+import persona_stage
 import scene_cg
 try:
     import gdi_text as GLIB
@@ -948,6 +949,10 @@ class Handler(SimpleHTTPRequestHandler):
                     log("记忆书：读档 %s 没有记忆书，缓存已清空" % slot)
             except Exception as e:
                 log("记忆书：读档恢复失败 %s" % e)
+            try:
+                persona_stage.reset()          # 关系阶段按读进来的历史重新判断
+            except Exception as e:
+                log("人设阶段：读档重置失败 %s" % e)
             if isinstance(d, dict):
                 d.pop("memory", None)          # 记忆书对前端不可见
             return self._json(d)
@@ -1415,7 +1420,7 @@ class Handler(SimpleHTTPRequestHandler):
         msgs, mem_note = _memory_context(msgs, bool(cc))
 
         wb_ctx, wb_names = persona_ctx.worldbook_context(msgs)
-        system = persona_ctx.persona_text()
+        system = persona_ctx.persona_text(msgs)
 
         # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
         #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）

@@ -40,8 +40,11 @@ ITEMS = [
     ("build_env/assets/subfont_charset.json", "file", True, "字形映射表"),
 
     # ---- 人设 / 世界书 / 检索索引 ----
-    ("src/persona/persona_core.txt", "file", True, "每轮注入的精简人设"),
-    ("src/persona/persona.txt", "file", True, "完整人设"),
+    ("src/persona/base.txt", "file", True, "人设共用底色"),
+    ("src/persona/stage1.txt", "file", True, "关系阶段 1：还没敞开"),
+    ("src/persona/stage2.txt", "file", True, "关系阶段 2：开始松动"),
+    ("src/persona/stage3.txt", "file", True, "关系阶段 3：完全敞开"),
+    ("src/persona/stage4.txt", "file", True, "关系阶段 4：婚后 / 同居"),
     ("src/worldbook/worldbook.json", "file", True, "世界书（关键词触发）"),
     ("src/story_index.json.gz", "file", False, "剧情检索索引（tools/build_story_index_v2.py 生成）"),
 

@@ -11,6 +11,7 @@
 | `test_memory_flow.py` | 记忆书端到端（读档复制 → 缓存 → 存档快照 → 6 轮重打包） | 改记忆书流程 |
 | `test_char_res.py` | 角色资源接线单测（提示词/世界书/记忆书/参考音频/立绘表情） | 改 `char_res` / `special_files` / `tts_client` |
 | `test_char_wiring.py` | 资源接线端到端（假模型，断言 system 内容） | 改人设/世界书/记忆书注入 |
+| `test_persona_stage.py` | 关系阶段判断（关键词 / 单调 / 变小重置） | 改 `persona_stage.py` |
 | `test_scene_cg.py` | 场景 CG 匹配单测 | 改 `scene_cg.py` |
 | `import_cg.py` | 场景图 → `res/assets/cg/*.webp` + `index.json` | 换/加场景图 |
 | `build_story_index_v2.py` | 从 `other/dev/dataset/L2_scene.jsonl` 重建 `src/story_index.json.gz` | 换了剧本数据 |

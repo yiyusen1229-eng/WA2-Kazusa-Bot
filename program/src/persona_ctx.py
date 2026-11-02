@@ -3,9 +3,13 @@
 
 数据位置（旧版本放在根目录的也认，按顺序回落）：
 
-    persona/persona_core.txt    每轮注入的精简人设（优先，和训练分布一致）
-    persona/persona.txt         完整人设
+    persona/base.txt            共用底色（身份 / 性格 / 说话 / 关系 / 不知道）
+    persona/stage1~4.txt        当前关系阶段（只注入命中那一份，省 token）
+    persona/persona_core.txt    旧的一整份（没有 base/stage 时兜底）
+    persona/persona.txt         中文兜底版
     worldbook/worldbook.json    世界书（关键词触发，最多 4 条 / 1200 字）
+
+阶段由 `persona_stage.py` 从最近对话判断，不调用模型；读档时重置。
 
 特别模式导入的 `char/prompt`、`char/worldbook` 优先级更高（由 char_res 读），
 这里只管"程序自带的那一份"。
@@ -16,12 +20,14 @@ import json
 import os
 
 import char_res
+import persona_stage
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 PERSONA_DIR = os.path.join(BASE, "persona")
 WORLDBOOK_DIR = os.path.join(BASE, "worldbook")
 PERSONA_FILE = os.path.join(PERSONA_DIR, "persona.txt")
 PERSONA_CORE_FILE = os.path.join(PERSONA_DIR, "persona_core.txt")
+PERSONA_BASE_FILE = os.path.join(PERSONA_DIR, "base.txt")
 WORLDBOOK_FILE = os.path.join(WORLDBOOK_DIR, "worldbook.json")
 # 旧版本在根目录的副本（回落用，不再写入）
 LEGACY_PERSONA_FILE = os.path.join(BASE, "persona.txt")
@@ -56,7 +62,9 @@ def _first_existing(*paths):
 def default_paths():
     """程序默认读的（没导入时）人设 / 世界书路径，给「查看文件」和 status 用"""
     return {
-        "prompt": _first_existing(PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
+        # 人设拆成 base + stageN；「查看文件」打开共用那份，阶段文件在同一个文件夹里
+        "prompt": _first_existing(PERSONA_BASE_FILE, PERSONA_CORE_FILE,
+                                  LEGACY_PERSONA_CORE_FILE,
                                   PERSONA_FILE, LEGACY_PERSONA_FILE),
         "worldbook": _first_existing(WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE),
     }
@@ -72,9 +80,20 @@ def _note_persona_src(name):
         _log("人设来源: %s" % name)
 
 
-def persona_text():
-    """人设：特别模式导入的提示词最优先（char/prompt/），其次精简人设 persona_core，
-    最后才是完整版 persona.txt —— 导入的东西删掉会自动回落，不破坏原文件。"""
+def _read(path):
+    try:
+        return open(path, encoding="utf-8").read().strip()
+    except Exception:
+        return ""
+
+
+def persona_text(messages=None):
+    """人设：特别模式导入的提示词最优先（char/prompt/）。
+
+    没有导入时用 `persona/base.txt` + 当前阶段那一份（`stage1~4.txt`），
+    阶段由 persona_stage 从最近对话判断——只注入命中的那一份，省 token。
+    没有拆分文件时，回落到旧的一整份 persona_core / persona.txt。
+    """
     try:
         imported = char_res.prompt_text()
     except Exception as e:
@@ -83,16 +102,28 @@ def persona_text():
     if imported:
         _note_persona_src("char/prompt")
         return imported
-    # 优先用训练时一致的精简人设(persona_core), 保证训练/推理分布一致
+
+    base = _read(PERSONA_BASE_FILE)
+    if base:
+        try:
+            stage = persona_stage.current(messages or [])
+        except Exception as e:
+            _log("关系阶段判断失败（按 1 处理）: %s" % e)
+            stage = 1
+        stage_txt = _read(os.path.join(PERSONA_DIR, "stage%d.txt" % stage))
+        if stage_txt:
+            _note_persona_src("persona/base+stage%d" % stage)
+            return base + "\n\n" + stage_txt
+        _note_persona_src("persona/base")
+        return base
+
+    # 旧的一整份（兼容没拆分的安装）
     for f in (PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
               PERSONA_FILE, LEGACY_PERSONA_FILE):
-        try:
-            t = open(f, encoding="utf-8").read().strip()
-            if t:
-                _note_persona_src(os.path.basename(f))
-                return t
-        except Exception:
-            continue
+        t = _read(f)
+        if t:
+            _note_persona_src(os.path.basename(f))
+            return t
     _note_persona_src("内置默认")
     return "你是示例角色，说话简短，只用简体中文。"
 
