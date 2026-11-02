@@ -446,6 +446,7 @@ def log(msg):
 
 
 persona_ctx.set_logger(log)      # 人设/世界书的日志也走这里
+persona_stage.set_logger(log)    # 关系阶段的日志
 
 
 def split_thinking(text):
@@ -600,6 +601,42 @@ def _usage_snapshot():
 
 # ---------------- 记忆书（见 memory.py） ----------------
 _MEM_PACK_LOCK = _th.Lock()
+
+
+def _stage_llm(system, user, max_tokens=6, timeout=20):
+    """关系阶段分类：只回一个数字，尽量便宜（不加载人设）"""
+    cc = cloud_cfg()
+    if not cc:
+        return ""
+    base_url = (os.environ.get("WA2_MEM_URL")
+                or cc.get("base_url") or OLLAMA).rstrip("/")
+    key = cc.get("api_key") or ""
+    model = cc.get("model") or DEFAULT_MODEL
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + key}
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": system},
+                     {"role": "user", "content": user}],
+        "stream": False,
+        "max_tokens": max_tokens,
+        "temperature": 0,
+    }
+    if "pro" in model:
+        payload["thinking"] = {"type": "disabled"}
+    rq = urllib.request.Request(
+        base_url + "/v1/chat/completions",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers=headers)
+    with urllib.request.urlopen(rq, timeout=timeout) as r:
+        d = json.loads(r.read().decode("utf-8"))
+    try:
+        _record_usage(model, d.get("usage") or {})
+    except Exception:
+        pass
+    return (d["choices"][0]["message"].get("content") or "").strip()
+
+
+persona_stage.set_llm(_stage_llm)      # 关系阶段用云端只回一个数字
 
 
 def _mem_llm(prompt, max_tokens=1200, timeout=90):
@@ -1413,6 +1450,7 @@ class Handler(SimpleHTTPRequestHandler):
         if not cc and model not in ollama_models():
             model = FALLBACK_MODEL if FALLBACK_MODEL in ollama_models() else model
         msgs = req.get("messages") or []
+        raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
         # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
         prev_bg = (req.get("bg") or "").strip()
 
@@ -1420,7 +1458,7 @@ class Handler(SimpleHTTPRequestHandler):
         msgs, mem_note = _memory_context(msgs, bool(cc))
 
         wb_ctx, wb_names = persona_ctx.worldbook_context(msgs)
-        system = persona_ctx.persona_text(msgs)
+        system = persona_ctx.persona_text(raw_msgs)
 
         # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
         #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
