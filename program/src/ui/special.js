@@ -428,7 +428,14 @@
         body: reader.result
       })
         .then(function (r) { return r.json(); })
-        .then(function (d) { flash(d && d.ok ? "已保存" : ((d && d.error) || "保存失败")); })
+        .then(function (d) {
+          if (d && d.ok) {
+            flash("已保存");
+            refreshStatus();          // 「当前：xxx（已导入）」立刻更新
+          } else {
+            flash((d && d.error) || "保存失败");
+          }
+        })
         .catch(function () { flash("保存失败"); });
     };
     reader.onerror = function () { flash("读取失败"); };
@@ -447,6 +454,8 @@
   function buildPanel() {
     var panel = document.createElement("div");
     panel.className = "spPanel";
+    var row = document.createElement("div");
+    row.className = "spPanelBtns";
     PANEL_BTNS.forEach(function (b) {
       var btn = document.createElement("button");
       btn.type = "button";
@@ -457,9 +466,50 @@
       img.src = b.img;
       img.alt = b.title;
       btn.appendChild(img);
-      panel.appendChild(btn);
+      row.appendChild(btn);
     });
+    panel.appendChild(row);
+    /* 「当前用的是哪个文件」——导入目录只是中转站，程序优先读这里，没有就用默认文件 */
+    var now = document.createElement("div");
+    now.className = "spPanelNow";
+    panel.appendChild(now);
     return panel;
+  }
+
+  /* ---------- 当前生效的资源（/api/special/status） ----------
+     没导入时显示程序默认读的文件，免得以为「查看文件」打开的目录就是全部。 */
+  function shortName(s, max) {
+    s = s || "";
+    return s.length > max ? (s.slice(0, max - 1) + "…") : s;
+  }
+
+  function renderResourceStatus(files) {
+    var items = document.querySelectorAll("#specialScreen .spItem");
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var kind = item.dataset.item;
+      var el = item.querySelector(".spPanelNow");
+      if (!el) continue;
+      if (kind === "portrait") {
+        setGlyph(el, "当前：assets/sprites（按变化的文件名归类）");
+        continue;
+      }
+      var f = files && files[kind];
+      if (!f) {
+        setGlyph(el, "当前：还没设置");
+        continue;
+      }
+      var name = f.file || ((f.path || "").split(/[\\/]/).pop() + "/");
+      setGlyph(el, "当前：" + shortName(name, 22) +
+                   (f.source === "imported" ? "（已导入）" : "（默认）"));
+    }
+  }
+
+  function refreshStatus() {
+    fetch("/api/special/status", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.ok) renderResourceStatus(d.files); })
+      .catch(function () { /* 后端没起来就不显示，不影响其它功能 */ });
   }
 
   /* 同一时间只开一个：开新的先把别的收起来（箭头跟着转回去） */
@@ -480,7 +530,8 @@
     head.setAttribute("aria-expanded", willOpen ? "true" : "false");
   }
 
-  /* 「查看文件」：让后端在资源管理器里打开这一类资源的目录 */
+  /* 「查看文件」：后端会打开这一类资源**实际被读取**的位置
+     （导入过就是导入的那份，没导入就是程序默认文件） */
   function openFolder(kind) {
     fetch("/api/special/open", {
       method: "POST",
@@ -488,7 +539,10 @@
       body: JSON.stringify({ kind: kind })
     })
       .then(function (r) { return r.json(); })
-      .then(function (d) { if (!d || !d.ok) flash((d && d.error) || "打不开文件夹"); })
+      .then(function (d) {
+        if (!d || !d.ok) { flash((d && d.error) || "打不开文件夹"); return; }
+        if (d.source === "empty") flash("还没有默认文件，先导入一份");
+      })
       .catch(function () { flash("打不开文件夹"); });
   }
 
@@ -564,6 +618,7 @@
     layout();
     closePanels(null);               // 每次打开都是收起状态
     loadCfg();                       // 读文件里的实际值，覆盖默认值
+    refreshStatus();                 // 每个框「当前用的是哪个文件」
     renderNameView();                // 先摆默认名，读到 char/name.txt 再覆盖
     loadName();
     /* 隐藏时 uitext 不会处理标签，显示后补扫一遍 */

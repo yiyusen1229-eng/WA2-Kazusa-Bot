@@ -32,29 +32,9 @@ MAX_WORLDBOOK_CHARS = 3000
 MAX_MEMORY_CHARS = 1500
 
 
-def _kind_dir(kind):
-    spec = _sf.KINDS.get(kind)
-    if not spec:
-        return ""
-    return os.path.join(_sf.CHAR_DIR, spec["dir"])
-
-
 def char_file(kind, exts=None):
-    """这一类资源当前用哪个文件（导入端只保留最新一份）"""
-    d = _kind_dir(kind)
-    if not d:
-        return ""
-    try:
-        names = sorted(os.listdir(d))
-    except OSError:
-        return ""
-    for name in names:
-        if exts and os.path.splitext(name)[1].lower() not in exts:
-            continue
-        p = os.path.join(d, name)
-        if os.path.isfile(p):
-            return p
-    return ""
+    """这一类资源当前导入的是哪个文件（统一由 special_files 找，别写两份）"""
+    return _sf.char_file(kind, exts)
 
 
 def _cached(path, loader):
@@ -132,7 +112,7 @@ def memory_text():
 # ------------------------------------------------------------------ 参考音频
 def voice_dir():
     """tts_client 也要用它判断「导入的参考音频有没有变」"""
-    return _kind_dir("voice")
+    return _sf.kind_dir("voice")
 
 
 def voice_refs():
@@ -164,16 +144,31 @@ def voice_refs():
 
 # ------------------------------------------------------------------ 调试
 def status():
-    """当前实际生效的是哪几个文件（给 /api/special/status 看）"""
+    """当前实际生效的是哪个文件（给 /api/special/status 和界面提示用）
+
+    每项：{file, path, source, size}；source = imported（导入的）/ default（程序默认）
+    """
     def one(kind, exts=None):
         p = char_file(kind, exts)
-        if not p:
-            return None
-        try:
-            size = os.path.getsize(p)
-        except OSError:
-            size = 0
-        return {"file": os.path.basename(p), "size": size}
+        if p:
+            try:
+                size = os.path.getsize(p)
+            except OSError:
+                size = 0
+            return {"file": os.path.basename(p), "path": p,
+                    "source": "imported", "size": size}
+        # 没导入：告诉前端程序实际用的是哪个默认文件/目录
+        d = _sf.DEFAULT_PATHS.get(kind) or ""
+        if d and os.path.isfile(d):
+            try:
+                size = os.path.getsize(d)
+            except OSError:
+                size = 0
+            return {"file": os.path.basename(d), "path": d,
+                    "source": "default", "size": size}
+        if d and os.path.isdir(d):
+            return {"file": "", "path": d, "source": "default", "size": 0}
+        return None
 
     return {
         "prompt": one("prompt", TEXT_EXTS),

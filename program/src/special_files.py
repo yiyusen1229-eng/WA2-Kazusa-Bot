@@ -145,39 +145,109 @@ def save_upload(kind, filename, data):
 
 
 # ------------------------------------------------------------------ 打开文件夹
+# 程序实际读取的默认位置（main.py 启动时注入）：没导入时「查看文件」打开这里，
+# 不然用户看到的是一个空的导入目录，会以为接错了。
+DEFAULT_PATHS = {"prompt": "", "worldbook": "", "memory": "", "voice": ""}
+
+
+def set_default_paths(prompt="", worldbook="", memory="", voice=""):
+    DEFAULT_PATHS.update({"prompt": prompt, "worldbook": worldbook,
+                          "memory": memory, "voice": voice})
+
+
+def kind_dir(kind):
+    """这一类资源的导入目录（char/<kind>/）"""
+    spec = KINDS.get(kind)
+    return os.path.join(CHAR_DIR, spec["dir"]) if spec else ""
+
+
+def char_file(kind, exts=None):
+    """导入端只保留最新一份：返回那一份的路径（没有就是空串）。
+
+    exts 不传就按这一类的白名单过滤 —— 参考音频目录里可能还有同名 .txt
+    （prompt_text），不能被当成"导入的音频"。
+    """
+    d = kind_dir(kind)
+    if not d:
+        return ""
+    if not exts:
+        exts = (KINDS.get(kind) or {}).get("exts") or ()
+    try:
+        names = sorted(os.listdir(d))
+    except OSError:
+        return ""
+    for name in names:
+        if exts and os.path.splitext(name)[1].lower() not in exts:
+            continue
+        p = os.path.join(d, name)
+        if os.path.isfile(p):
+            return p
+    return ""
+
+
 def folder_for(kind):
-    """这一类资源落在哪个目录（界面上的「查看文件」打开的就是它）"""
+    """这一类资源落在哪个目录（兼容旧调用）"""
     if kind == "portrait":
         return os.path.join(_assets(), "sprites")
-    spec = KINDS.get(kind)
-    if not spec:
+    return kind_dir(kind) or None
+
+
+def open_target(kind):
+    """「查看文件」到底该打开哪儿：优先指到导入的那份，没导入就指到程序实际用的默认。
+
+    返回 {folder, select, source}；source ∈ imported / default / empty / assets
+    """
+    if kind == "portrait":
+        return {"folder": os.path.join(_assets(), "sprites"), "select": "", "source": "assets"}
+    if kind not in KINDS:
         return None
-    return os.path.join(CHAR_DIR, spec["dir"])
+    p = char_file(kind)
+    if p:
+        return {"folder": os.path.dirname(p), "select": p, "source": "imported"}
+    d = DEFAULT_PATHS.get(kind) or ""
+    if d and os.path.isfile(d):
+        return {"folder": os.path.dirname(d), "select": d, "source": "default"}
+    if d and os.path.isdir(d):
+        return {"folder": d, "select": "", "source": "default"}
+    return {"folder": kind_dir(kind), "select": "", "source": "empty"}
 
 
 def open_folder(kind):
-    """在系统文件管理器里打开这一类资源的目录（没有就先建出来）
+    """在系统文件管理器里打开这一类资源**实际被读取**的位置。
 
-    只认这 5 种 kind，路径全部由上面的常量拼出来，不接受外部路径，
-    避免前端传个任意路径过来就能打开/探测磁盘。
+    · 导入过 → 打开 char/<kind>/ 并选中那个文件
+    · 没导入 → 打开程序真正在用的默认文件/目录（persona_core.txt、worldbook.json、
+      sessions/、tts/refs_touma），而不是一个空目录
+    只认这 5 种 kind，路径全部由常量拼出来，不接受外部路径。
     """
-    folder = folder_for(kind)
-    if not folder:
+    t = open_target(kind)
+    if not t:
         return {"ok": False, "error": "未知的资源类型"}
-    try:
-        os.makedirs(folder, exist_ok=True)
-    except Exception as e:
-        return {"ok": False, "error": "建不了目录：%s" % e}
+    folder, sel = t["folder"], t["select"]
+    if folder and t["source"] in ("imported", "assets", "empty"):
+        # 只给「导入目录 / 素材目录」兜底建目录；默认位置是程序原来就有的，别乱建
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except Exception as e:
+            return {"ok": False, "error": "建不了目录：%s" % e}
     try:
         if os.name == "nt":
-            os.startfile(folder)                      # 资源管理器
+            if sel:
+                # 打开目录并选中文件（资源管理器会高亮它）
+                subprocess.Popen(["explorer", "/select," + os.path.abspath(sel)])
+            else:
+                os.startfile(folder)
         elif sys.platform == "darwin":
-            subprocess.Popen(["open", folder])
+            if sel:
+                subprocess.Popen(["open", "-R", sel])
+            else:
+                subprocess.Popen(["open", folder])
         else:
             subprocess.Popen(["xdg-open", folder])
     except Exception as e:
         return {"ok": False, "error": "打不开文件夹：%s" % e}
-    return {"ok": True, "path": folder}
+    return {"ok": True, "path": folder, "file": os.path.basename(sel) if sel else "",
+            "source": t["source"]}
 
 
 # ------------------------------------------------------------------ 立绘

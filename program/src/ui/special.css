@@ -221,13 +221,15 @@
 #specialScreen .spItem.open .spArrow {
   transform: rotate(90deg);
 }
-/* 下拉面板：max-height 0 → 34，看起来就是从框里滑出来。
+/* 下拉面板：max-height 0 → 48，看起来就是从框里滑出来。
    上下 padding 只在打开时加：box-sizing 也夹不住 padding/边框，
    关着的时候留着会白占 10px，把下面的框顶开 */
 #specialScreen .spPanel {
   box-sizing: border-box;
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
   padding: 0 8px 0 24px;
   max-height: 0;
   opacity: 0;
@@ -241,9 +243,22 @@
 #specialScreen .spItem.open .spPanel {
   padding-top: 5px;
   padding-bottom: 5px;
-  max-height: 34px;
+  max-height: 48px;
   opacity: 1;
   transform: none;
+}
+#specialScreen .spPanelBtns {
+  display: flex;
+  gap: 8px;
+}
+/* 面板底部那行「当前用的是哪个文件」—— 免得以为导入目录就是程序读取的位置 */
+#specialScreen .spPanelNow {
+  height: 11px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 9.5px;
+  color: #9fd8f5;
+  line-height: 1;
 }
 /* 面板里的按钮：和「保存」同一套三帧图，文字是烤好的 sp_btn_import / sp_btn_open */
 #specialScreen .spPanelBtn {

@@ -395,6 +395,14 @@ import sessions as _sessions
 import memory as _memory
 import pricing as _pricing
 
+# 特别模式「查看文件」：没导入时要指到程序真正读的默认位置，而不是空的 char/ 目录
+special_files.set_default_paths(
+    prompt=PERSONA_CORE_FILE if os.path.exists(PERSONA_CORE_FILE) else PERSONA_FILE,
+    worldbook=WORLDBOOK_FILE,
+    memory=_sessions.SESS_DIR,
+    voice=tts_client.refs_dir(),
+)
+
 
 def qs(q, names, default=""):
     """从 parse_qs 结果里取第一个存在的参数名（正式名 + 兼容旧名）"""

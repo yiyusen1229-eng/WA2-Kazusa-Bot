@@ -112,6 +112,11 @@ EMOTION_ALIAS = {
 }
 
 _REFS_DIR = os.path.join(os.path.dirname(GSV), "refs_touma")
+
+
+def refs_dir():
+    """程序实际用的参考音频目录（特别模式的「查看文件」要打开它）"""
+    return _REFS_DIR
 _ref_cache = {}
 # 特别模式导入的参考音频（char/voice）：优先于 refs_touma
 _IMPORTED = {"global": [], "by_emo": {}}
