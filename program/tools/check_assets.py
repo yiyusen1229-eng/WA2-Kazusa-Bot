@@ -29,7 +29,7 @@ ITEMS = [
     ("res/assets/menu", "dir", True, "主菜单五项的两态图"),
     ("res/assets/tb", "dir", True, "工具栏按钮"),
     ("res/assets/tb2", "dir", True, "工具栏按钮（第二套）"),
-    ("res/assets/sprites", "dir", True, "立绘（assets/sprites/<衣服>/ 由特别模式导入）"),
+    ("res/assets/sprites", "dir", False, "立绘兜底目录（自带素材；现在立绘在角色的 portrait/ 里）"),
     ("res/assets/title.png", "file", True, "标题画面背景"),
     ("res/assets/ui_logo.png", "file", True, "WHITE ALBUM 2 标志"),
     ("res/assets/cg", "dir", False, "场景背景 CG（tools/import_cg.py 生成）"),

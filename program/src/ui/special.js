@@ -559,12 +559,18 @@
       var el = item.querySelector(".spPanelNow");
       if (!el) continue;
       if (kind === "portrait") {
-        setGlyph(el, "当前：角色文件夹的 portrait/（按变化的文件名归类）");
+        var sum = window.__spriteSummary ? window.__spriteSummary() : "";
+        setGlyph(el, sum ? ("当前：" + sum + "（角色文件夹的 portrait/）") : "当前：还没设置");
         continue;
       }
       var f = files && files[kind];
       if (!f) {
         setGlyph(el, "当前：还没设置");
+        continue;
+      }
+      /* 参考音频是按情绪分组的，显示条数比显示目录名有用 */
+      if (f.count) {
+        setGlyph(el, "当前：" + f.count + " 条参考音频（按情绪分组）");
         continue;
       }
       var name = f.file || ((f.path || "").split(/[\\/]/).pop() + "/");

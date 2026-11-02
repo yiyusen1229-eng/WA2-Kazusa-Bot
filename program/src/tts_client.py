@@ -46,23 +46,14 @@ T_PY = os.path.join(os.path.dirname(GSV), "翻译服务.py")
 _tproc = None
 URL = "http://%s:%d" % (HOST, PORT)
 
-# 本地 TTS 权重（由使用者自行准备并放入对应目录））
+# 本地 TTS 权重（由使用者自行准备并放入对应目录）
 GPT_W = os.path.join(GSV, "GPT_weights_v4", "Touma_Kazusa-e15.ckpt")
 SOVITS_W = os.path.join(GSV, "SoVITS_weights_v4", "Touma_Kazusa_e8_s33072_l32.pth")
-_WAV_DIR = os.path.join(os.path.dirname(GSV), "..", "语音训练集", "wav")
-_TOUMA_REF = os.path.join(os.path.dirname(GSV), "refs_touma", "1005_0427_01.wav")
-_TOUMA_TXT = "その程度のニュアンスの違い、成績優秀な委員長様なら正しく理解できるんじゃない?"
 
-# 按情绪准备参考音频: 语气由参考决定, 音色由模型决定
-# 该模型自带配套参考音频，所有情绪统一用它，保证音色一致
-REFS = {
-    "neutral": (_TOUMA_REF, _TOUMA_TXT),
-    "angry":   (_TOUMA_REF, _TOUMA_TXT),
-    "sad":     (_TOUMA_REF, _TOUMA_TXT),
-    "warm":    (_TOUMA_REF, _TOUMA_TXT),
-}
-REF_WAV = REFS["neutral"][0]
-REF_TEXT = REFS["neutral"][1]
+# 参考音频：按情绪准备（语气由参考决定，音色由模型决定）
+# 现在放在当前角色文件夹的 voice/<情绪>/ 下；老版本的 refs_touma 只当兜底
+LEGACY_REFS_DIR = os.path.join(os.path.dirname(GSV), "refs_touma")
+_REFS_OVERRIDE = ""      # 自测用：把参考音频目录指到临时位置
 
 _proc = None
 _ready = False
@@ -111,14 +102,37 @@ EMOTION_ALIAS = {
     "疑问": "问句", "疑惑": "问句",
 }
 
-_REFS_DIR = os.path.join(os.path.dirname(GSV), "refs_touma")
-
-
 def refs_dir():
-    """程序实际用的参考音频目录（特别模式的「查看文件」要打开它）"""
-    return _REFS_DIR
+    """参考音频根目录：当前角色 voice/ 里有情绪子目录就用它，否则回落到自带的 refs_touma。
+
+    「查看文件」也打开这里，所以两边是同一个地方。自测可以用 `_REFS_OVERRIDE` 指到临时目录。
+    """
+    if _REFS_OVERRIDE:
+        return _REFS_OVERRIDE
+    try:
+        d = char_res.voice_dir()
+    except Exception:
+        d = ""
+    if d and os.path.isdir(d):
+        try:
+            if any(os.path.isdir(os.path.join(d, n)) for n in os.listdir(d)):
+                return d
+        except OSError:
+            pass
+    return LEGACY_REFS_DIR
+
+
+def _has_refs():
+    """参考音频根目录里有没有 wav（递归，情绪子目录也算）"""
+    for _dp, _dn, files in os.walk(refs_dir()):
+        for f in files:
+            if f.lower().endswith(".wav"):
+                return True
+    return False
+
+
 _ref_cache = {}
-# 特别模式导入的参考音频（char/voice）：优先于 refs_touma
+# 特别模式导入的参考音频（角色 voice/ 顶层的散装 wav）：优先于按情绪分组的
 _IMPORTED = {"global": [], "by_emo": {}}
 _refs_sig = ""
 
@@ -126,7 +140,7 @@ _refs_sig = ""
 def _char_voice_sig():
     """参考音频目录的 mtime 签名：导入/删除了文件、或者换了角色，缓存都跟着失效"""
     sig = []
-    for d in (_REFS_DIR, char_res.voice_dir()):
+    for d in (refs_dir(), char_res.voice_dir()):
         try:
             sig.append(os.path.getmtime(d) if d and os.path.isdir(d) else 0)
         except Exception:
@@ -176,11 +190,12 @@ def load_refs():
     """
     global _ref_cache, _IMPORTED, _refs_sig
     out = {}
+    root = refs_dir()
     try:
-        if not os.path.isdir(_REFS_DIR):
+        if not os.path.isdir(root):
             return out
-        for name in os.listdir(_REFS_DIR):
-            p = os.path.join(_REFS_DIR, name)
+        for name in os.listdir(root):
+            p = os.path.join(root, name)
             if os.path.isdir(p):
                 emo = name.lower()
                 items = []
@@ -199,7 +214,7 @@ def load_refs():
                     out[emo] = items
             elif name.lower().endswith(".wav"):
                 base = os.path.splitext(name)[0]
-                tpath = os.path.join(_REFS_DIR, base + ".txt")
+                tpath = os.path.join(root, base + ".txt")
                 txt = ""
                 if os.path.exists(tpath):
                     try:
@@ -239,14 +254,10 @@ def pick_ref(emo="neutral"):
 
 
 def available():
-    """依赖是否齐全。
-
-    参考音频这里放宽：特别模式导入过 char/voice 的，就不再要求自带
-    的 refs_touma 那条必须在（否则导入自己的参考音频反而起不来）。
-    """
+    """依赖是否齐全：权重 / 运行时 / 参考音频（角色 voice/ 里按情绪分组的那些）。"""
     if not all(os.path.exists(p) for p in (API_PY, PY, GPT_W, SOVITS_W)):
         return False
-    if os.path.exists(REF_WAV):
+    if _has_refs():
         return True
     try:
         return bool(char_res.voice_refs())
@@ -434,15 +445,10 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
                         return _f.read()
             except Exception:
                 pass
-        # 按情绪挑参考音频；参数也跟着情绪走
+        # 按情绪挑参考音频；参数也跟着情绪走（一条都没有就别合成，交给上层回报）
         ref_path, ref_text = pick_ref(emo)
         if not ref_path:
-            try:
-                rw, rt = REFS.get(emo, REFS["neutral"])
-                ref_path = os.path.join(_WAV_DIR, rw)
-                ref_text = rt
-            except Exception:
-                ref_path, ref_text = "", ""
+            return None
         prm = EMOTION_PARAMS.get(EMOTION_ALIAS.get(emo, emo)) or EMOTION_PARAMS["neutral"]
         q = urllib.parse.urlencode({
             "text": text,

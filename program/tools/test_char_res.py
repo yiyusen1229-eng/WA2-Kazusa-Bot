@@ -62,7 +62,7 @@ def main():
     SF.CHAR_DIR = char_dir
     SF.set_assets_dir(assets)
     CR._CACHE.clear()
-    TTS._REFS_DIR = refs_dir
+    TTS._REFS_OVERRIDE = refs_dir
     TTS._ref_cache = {}
 
     print("[1] 没导入时一律回落")
@@ -114,27 +114,36 @@ def main():
     key2 = TTS._tts_cache_path("测试", "zh", "calm")
     check("换参考音频后缓存 key 变了", key1 != key2)
 
-    print("\n[6] 立绘：变化编号 → 表情映射（写进角色自己的 portrait/index.json）")
+    print("\n[6] 立绘：衣服名/表情名（写进角色自己的 portrait/index.json）")
     idx = {"height": 900, "outfits": {
-        "001": {"label": "旧", "default": "kaz001101.png",
-                "variants": [{"variant": "101", "file": "kaz001101.png"}],
-                "emotions": {"serious": "kaz001101.png"}}}}
+        "旧衣服": {"code": "001", "label": "旧衣服", "default": "认真.png",
+                 "variants": [{"variant": "101", "file": "认真.png"}],
+                 "emotions": {"serious": "认真.png"}}}}
     write(os.path.join(assets, "sprites", "index.json"), json.dumps(idx, ensure_ascii=False))
     own_idx = os.path.join(char_dir, "portrait", "index.json")
     r = SF.save_portrait("kaz001212.png", b"\x89PNGfake")
     check("立绘写入成功", r.get("ok") and r.get("emotion") == "angry", repr(r))
-    check("文件落在角色的 portrait/001/",
-          os.path.isfile(os.path.join(char_dir, "portrait", "001", "kaz001212.png")))
+    check("按衣服名 + 表情名落盘",
+          r.get("outfit") == "旧衣服" and r.get("name") == "生气.png", repr(r))
+    check("文件落在角色的 portrait/旧衣服/",
+          os.path.isfile(os.path.join(char_dir, "portrait", "旧衣服", "生气.png")), repr(r))
     got = json.load(open(own_idx, encoding="utf-8"))
-    o = got["outfits"]["001"]
-    check("emotions 补上 angry", o.get("emotions", {}).get("angry") == "kaz001212.png", repr(o.get("emotions")))
-    check("variants 里也有", any(v["file"] == "kaz001212.png" for v in o.get("variants", [])))
-    SF.save_portrait("kaz099115.png", b"\x89PNGfake")
+    o = got["outfits"]["旧衣服"]
+    check("emotions 补上 angry", o.get("emotions", {}).get("angry") == "生气.png", repr(o.get("emotions")))
+    check("variants 里也有", any(v["file"] == "生气.png" for v in o.get("variants", [])))
+    check("code 保留了", o.get("code") == "001", repr(o.get("code")))
+    # 同一套衣服再导入同一表情 → 不覆盖，名字加序号
+    r2 = SF.save_portrait("kaz001205.png", b"\x89PNGfake2")
+    check("同名表情自动加序号", r2.get("name") == "生气2.png", repr(r2))
+    # 新衣服：自带索引里没有这个编号 → 建一条「衣服099」
+    SF.save_portrait("kaz099115.png", b"\x89PNGfake3")
     got2 = json.load(open(own_idx, encoding="utf-8"))
     check("新衣服也能建条并映射 surprise",
-          got2["outfits"]["099"]["emotions"].get("surprise") == "kaz099115.png", repr(got2["outfits"].get("099")))
+          got2["outfits"]["衣服099"]["emotions"].get("surprise") == "惊讶.png",
+          repr(got2["outfits"].get("衣服099")))
     check("自带 assets/sprites/index.json 没被动过",
-          "099" not in json.load(open(os.path.join(assets, "sprites", "index.json"), encoding="utf-8"))["outfits"])
+          "衣服099" not in json.load(open(os.path.join(assets, "sprites", "index.json"),
+                                        encoding="utf-8"))["outfits"])
 
     print("\n[7] synthesize 真的把导入的参考音频传给合成接口")
     import urllib.parse as _up
@@ -159,17 +168,21 @@ def main():
 
     print("\n[8] 语音边界：依赖判断 / 启动失败复位 / 挂掉后自动重拉")
     import urllib.error
-    # 依赖：自带参考音频缺失时，只要导入过 char/voice 也算齐全
-    real = {k: getattr(TTS, k) for k in ("API_PY", "PY", "GPT_W", "SOVITS_W", "REF_WAV")}
+    # 依赖：参考音频在角色 voice/ 里（按情绪分组）才算齐全
+    real = {k: getattr(TTS, k) for k in ("API_PY", "PY", "GPT_W", "SOVITS_W")}
     for k in ("API_PY", "PY", "GPT_W", "SOVITS_W"):
         setattr(TTS, k, write(os.path.join(tmp, "deps", k), b"x", binary=True))
-    TTS.REF_WAV = os.path.join(tmp, "deps", "not_there.wav")
+    TTS._REFS_OVERRIDE = os.path.join(tmp, "no_refs")      # 分组目录不存在
     check("导入过参考音频 → 依赖算齐全", TTS.available() is True)
     for wav, _t in list(CR.voice_refs()):
         os.remove(wav)
     check("没参考音频 → 依赖不齐", TTS.available() is False)
+    TTS._REFS_OVERRIDE = refs_dir
     for k, v in real.items():
         setattr(TTS, k, v)
+    # 后面的合成测试要有一条参考音频（前面把导入的都删了）
+    write(os.path.join(refs_dir, "calm", "ref.wav"), b"RIFFtest", binary=True)
+    TTS.load_refs()
 
     # 启动失败必须复位 _starting，否则之后永远「启动中」
     old_avail = TTS.available

@@ -196,11 +196,23 @@ def status():
             return {"file": "", "path": d, "source": "default", "size": 0}
         return None
 
+    def voice_one():
+        """参考音频在角色 voice/ 里是按情绪分组的（calm/、撒娇/…），顶层的单文件反而少见"""
+        d = _sf.kind_dir("voice")
+        if not d:
+            return one("voice")
+        n = 0
+        for _dp, _dn, files in os.walk(d):
+            n += sum(1 for f in files if f.lower().endswith(".wav"))
+        if n:
+            return {"file": "", "path": d, "source": "character", "size": 0, "count": n}
+        return None
+
     return {
         "prompt": one("prompt", TEXT_EXTS),
         "worldbook": one("worldbook", JSON_EXTS + TEXT_EXTS),
         "memory": one("memory", TEXT_EXTS),
-        "voice": one("voice"),
+        "voice": voice_one(),
         "prompt_chars": len(prompt_text()),
         "worldbook_text_chars": len(worldbook_text()),
         "memory_chars": len(memory_text()),

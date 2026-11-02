@@ -469,19 +469,35 @@ def _read_index(path):
 
 
 def sprite_index(assets_sprites):
-    """合并：自带 assets/sprites/index.json + 当前角色的 portrait/index.json（角色优先）"""
+    """合并：自带 assets/sprites/index.json + 当前角色的 portrait/index.json（角色优先）
+
+    key 现在都是**衣服名（中文）**；老安装的自带索引还是数字编号，按 `code` 对齐，
+    保证同一套衣服不会同时出现「礼服」和「027」两条。
+    """
     base = _read_index(os.path.join(assets_sprites, "index.json"))
     own = _read_index(os.path.join(sprite_dir(), "index.json")) if sprite_dir() else {}
     outfits = dict(base.get("outfits") or {})
+    code_key = {}
+    for k, o in outfits.items():
+        if isinstance(o, dict) and o.get("code"):
+            code_key[str(o["code"])] = k
     for k, v in (own.get("outfits") or {}).items():
-        o = dict(outfits.get(k) or {})
-        o.update(v or {})
+        v = v if isinstance(v, dict) else {}
+        code = str(v.get("code") or "")
+        old = code_key.get(code) if code else None
+        merged = dict(outfits.get(old) or {}) if old and old != k else dict(outfits.get(k) or {})
+        if old and old != k:
+            outfits.pop(old, None)          # 角色这份用中文名，自带那份丢掉
+            code_key[code] = k
+        merged.update(v)
         # 角色自己加的情绪映射要叠在自带上面，不能把自带的整套覆盖掉
-        emo = dict(((outfits.get(k) or {}).get("emotions")) or {})
-        emo.update((v or {}).get("emotions") or {})
+        emo = dict((outfits.get(k) or {}).get("emotions") or {})
+        emo.update(v.get("emotions") or {})
         if emo:
-            o["emotions"] = emo
-        outfits[k] = o
+            merged["emotions"] = emo
+        merged.setdefault("code", code)
+        merged["label"] = v.get("label") or merged.get("label") or k
+        outfits[k] = merged
     out = dict(base)
     out["outfits"] = outfits
     return out

@@ -18,6 +18,7 @@
 | `bake_ui_text.py` | 固定文案 → `res/assets/ui/text/*.png` | 改界面文案 |
 | `bake_cost_ui.py` | 花费栏字模（数字/字母单独排版） | 改花费栏 |
 | `bake_page_cursor.py` | 对话框末尾的翻页图标（原版 page_02 的 120 帧 → 横向精灵图） | 换图标 / 重新烤素材 |
+| `rename_sprites.py` | 立绘改名：编号目录 / kaz 文件名 → 中文衣服名 / 表情名，并重写 index.json | 整理立绘命名 |
 | `make_special_ui.py` | 生成特别模式用图：滑条/恢复按钮/配置项底框与箭头 | 换素材 / 缺图 |
 | `check_assets.py` | 素材自检（缺什么、该放哪） | 换机器 / 缺素材 |
 | `preview_assets.py` | 预览 tga/bmp 素材与坐标 | 调界面坐标 |

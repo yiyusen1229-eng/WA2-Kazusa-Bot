@@ -441,24 +441,26 @@ function setBg(name) {
 let currentSprite = null;
 
 
-/* ---------- 立绘：按服装编号（用户提供的对应关系） ---------- */
-// 场景 → 服装编号
+/* ---------- 立绘：衣服名（中文）+ 表情 ----------
+   目录和文件都用中文：characters/<角色>/portrait/<衣服名>/<表情名>.png，
+   索引是同一层的 index.json（自带素材里也有一份，读取时合并）。
+   <outfit> 标签用衣服名；模型偶尔给旧编号（001/027…）也认，靠 index 里的 code 兜底。 */
 const OUTFIT_BY_SCENE = {
-  classroom: "001",   // 高中·春秋JK
-  corridor:  "001",
-  music:     "003",   // 舞台演出服（练琴/演奏）
-  street:    "008",   // coda 常服（眼镜）
-  cafe:      "022",   // coda 第二套常服
-  home:      "020",   // 婚后居家服
-  night:     "029",   // 睡衣
-  stage:     "003",
-  dress:     "027",   // 礼服
-  yukata:    "036",   // 和服
-  winter:    "004",   // 高中冬装
-  summer:    "007"    // 高中夏季JK
+  classroom: "高中·春秋JK制服",
+  corridor:  "高中·春秋JK制服",
+  music:     "舞台演出服",       // 练琴 / 演奏
+  stage:     "舞台演出服",
+  street:    "coda·常服（眼镜）",
+  cafe:      "coda·第二套常服",
+  home:      "婚后·居家服",
+  night:     "睡衣",
+  dress:     "礼服",
+  yukata:    "和服（浴衣）",
+  winter:    "高中·冬装",
+  summer:    "高中·夏季JK制服"
 };
-const SPRITE_INDEX = {};      // outfit -> {label, default, variants}
-let currentOutfit = "001";
+const SPRITE_INDEX = {};      // 衣服名 -> {code, label, default, emotions, variants}
+let currentOutfit = "";       // 空 = 按场景表推
 
 fetch("/api/character/sprite/index.json")
   .then(function (r) { return r.json(); })
@@ -479,8 +481,36 @@ window.__reloadSprites = function () {
     .catch(function () {});
 };
 
+/* 给配置角色界面显示：一共几套衣服、几张图 */
+window.__spriteSummary = function () {
+  var outfits = 0, files = 0;
+  for (var k in SPRITE_INDEX) {
+    outfits++;
+    var vs = (SPRITE_INDEX[k] || {}).variants || [];
+    files += vs.length;
+  }
+  return outfits ? (outfits + " 套衣服 · " + files + " 张") : "";
+};
+
+/* 名字 / 旧编号 / label → index 里的衣服名 */
+function resolveOutfit(v) {
+  v = (v || "").trim();
+  if (!v) return "";
+  if (SPRITE_INDEX[v]) return v;
+  for (const k in SPRITE_INDEX) {
+    const o = SPRITE_INDEX[k] || {};
+    if (o.code === v || o.label === v) return k;
+  }
+  return "";
+}
+
 function outfitOf(scene) {
-  return OUTFIT_BY_SCENE[scene] || "001";
+  const name = OUTFIT_BY_SCENE[scene];
+  if (name && SPRITE_INDEX[name]) return name;
+  /* 场景表没命中（或这套衣服没有立绘）：优先校服，再退到索引里的第一套 */
+  if (SPRITE_INDEX["高中·春秋JK制服"]) return "高中·春秋JK制服";
+  const keys = Object.keys(SPRITE_INDEX);
+  return keys.length ? keys[0] : "";
 }
 
 // 程序情绪 → 立绘情绪（warm 用微笑）
@@ -493,21 +523,20 @@ function spritePath(outfit, emotion) {
   const o = SPRITE_INDEX[outfit];
   if (!o) return "assets/kaz_cold.png";
   const emo = emotion ? (MOOD_TO_EMO[emotion] || emotion) : "";
-  /* 立绘走 /api/character/sprite/：当前角色的 portrait/ 优先，没有的图回落自带素材 */
-  if (emo && o.emotions && o.emotions[emo]) {
-    return "/api/character/sprite/" + outfit + "/" + o.emotions[emo];
-  }
+  /* 衣服名 / 文件名都是中文，拼 URL 时按段转义 */
+  const u = function (name) {
+    return "/api/character/sprite/" + encodeURIComponent(outfit) + "/" + encodeURIComponent(name);
+  };
+  if (emo && o.emotions && o.emotions[emo]) return u(o.emotions[emo]);
   // 该套衣服没有这个情绪 → 退到「认真」，再退到默认
-  if (o.emotions && o.emotions.serious) {
-    return "/api/character/sprite/" + outfit + "/" + o.emotions.serious;
-  }
-  return "/api/character/sprite/" + outfit + "/" + o.default;
+  if (o.emotions && o.emotions.serious) return u(o.emotions.serious);
+  return u(o.default);
 }
 
 /** 按场景切换服装 */
 function setSpriteByScene(scene, mood, force, wantOutfit) {
   // 服装以 currentOutfit 为准；只有对话明确换衣服（wantOutfit）才改
-  const outfit = wantOutfit || currentOutfit || outfitOf(scene);
+  const outfit = resolveOutfit(wantOutfit) || currentOutfit || outfitOf(scene) || "";
   const key = outfit + "|" + (mood || "");
   if (currentSprite === key && !force) return;
   currentOutfit = outfit;

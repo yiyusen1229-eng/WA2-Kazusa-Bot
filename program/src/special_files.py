@@ -13,9 +13,10 @@
 
 立绘为什么单独处理：
     对话框换立绘用的是「衣服目录 + index.json」，所以立绘必须按同样的结构摆：
-        文件名 kaz + 衣服编号(3位) + 变化编号(3位) + 扩展名   例：kaz001101.png → portrait/001/
-    文件名对不上就拒绝（不做内容识别）。角色自己的 portrait/ 优先，
-    没有的图回落到自带的 assets/sprites/。
+    文件名 kaz<衣服编号3位><变化编号3位>.png（老编号，导入时用来反查衣服和表情），
+    落盘会变成 characters/<角色>/portrait/<衣服名>/<表情名>.png，
+    同名表情自动加序号（认真.png / 认真2.png）；index.json 里保留 code 和 variant。
+    文件名对不上就拒绝（不做内容识别）。
 
 其余四类只保留最新一份（它们本来就是一个配置）。
 文件类型在这里做硬校验（前端的 accept 只是筛选提示，不能当安全边界）。
@@ -30,9 +31,22 @@ import characters
 
 MAX_BYTES = 25 * 1024 * 1024
 
-# 立绘文件名：kaz + 衣服 3 位 + 变化 3 位
+# 立绘文件名：kaz + 衣服 3 位 + 变化 3 位（导入时用；落盘会改成中文衣服名 / 表情名）
 SPRITE_RE = re.compile(r"^kaz(\d{3})(\d{3})\.(png|jpg|jpeg|webp|bmp|gif)$", re.I)
-SPRITE_HINT = "文件名要像 kaz001101.png（kaz + 衣服编号3位 + 变化编号3位）"
+SPRITE_HINT = ("文件名要像 kaz001101.png（kaz + 衣服编号3位 + 变化编号3位）；"
+               "导入后会存成「衣服名/表情名.png」")
+
+# 表情（内部英文键）→ 中文文件名
+EMOTION_CN = {
+    "serious": "认真",
+    "cold": "冷淡",
+    "smile": "微笑",
+    "angry": "生气",
+    "sad": "难过",
+    "surprise": "惊讶",
+    "shy": "害羞",
+}
+SPRITE_OTHER = "其他"
 
 # 「变化编号 → 表情」：从现有 index.json 的 emotions 里统计出来的一致规律
 # （同一个尾号在不同衣服上都指向同一种表情）。导入新立绘时按尾号自动补映射，
@@ -261,8 +275,42 @@ def open_folder(kind):
 
 
 # ------------------------------------------------------------------ 立绘
+def _portrait_index():
+    """当前角色的立绘索引（没有就是空表）"""
+    pdir = portrait_dir()
+    path = os.path.join(pdir, "index.json") if pdir else ""
+    if path and os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                d = json.load(f)
+            if isinstance(d, dict):
+                d.setdefault("outfits", {})
+                return d
+        except Exception:
+            pass
+    return {"outfits": {}}
+
+
+def _outfit_name_of(outfits, code):
+    """旧编号 → 字典里的衣服名（立绘目录现在用中文衣服名）"""
+    for name, o in outfits.items():
+        if isinstance(o, dict) and str(o.get("code") or "") == code:
+            return name
+    return ""
+
+
+def _unique_file(folder, base, ext):
+    """同一套衣服里同名就加序号：认真.png / 认真2.png"""
+    n = base
+    i = 2
+    while os.path.exists(os.path.join(folder, n + ext)):
+        n = "%s%d" % (base, i)
+        i += 1
+    return n + ext
+
+
 def save_portrait(filename, data):
-    """立绘：按 kaz<衣服3><变化3>.png 归类进当前角色的 portrait/<衣服>/"""
+    """立绘：kaz<衣服3><变化3>.png → 当前角色 portrait/<中文衣服名>/<中文表情名>.png"""
     if not data:
         return {"ok": False, "error": "文件是空的"}
     if len(data) > MAX_BYTES:
@@ -271,7 +319,7 @@ def save_portrait(filename, data):
     m = SPRITE_RE.match(name)
     if not m:
         return {"ok": False, "error": SPRITE_HINT}
-    outfit, variant = m.group(1), m.group(2)
+    code, variant = m.group(1), m.group(2)
     ext = os.path.splitext(name)[1].lower()
     if ext not in IMAGE_EXTS:
         return {"ok": False, "error": "只能放图片文件"}
@@ -279,55 +327,72 @@ def save_portrait(filename, data):
     pdir = portrait_dir()
     if not pdir:
         return {"ok": False, "error": "没有当前角色文件夹"}
-    folder = os.path.join(pdir, outfit)
+    idx = _portrait_index()
+    outfits = idx.setdefault("outfits", {})
+    oname = _outfit_name_of(outfits, code)
+    if not oname:
+        # 角色索引里还没有这个编号：去合并后的索引（自带 + 角色）里找对应的衣服名
+        try:
+            import characters as _chars
+            merged = _chars.sprite_index(os.path.join(_assets(), "sprites"))
+            for nm, o in (merged.get("outfits") or {}).items():
+                if isinstance(o, dict) and str(o.get("code") or "") == code:
+                    oname = nm
+                    break
+        except Exception:
+            oname = ""
+    oname = oname or ("衣服" + code)
+    emo = VARIANT_EMOTION.get(variant, "")
+    base = EMOTION_CN.get(emo, "") or SPRITE_OTHER
+
+    folder = os.path.join(pdir, oname)
     try:
         os.makedirs(folder, exist_ok=True)
-        target = os.path.join(folder, name)
+        fname = _unique_file(folder, base, ext)
+        target = os.path.join(folder, fname)
         with open(target, "wb") as f:
             f.write(data)
     except Exception as e:
         return {"ok": False, "error": "写入失败: %s" % e}
 
-    _register_sprite(outfit, variant, name)
-    emo = VARIANT_EMOTION.get(variant, "")
-    return {"ok": True, "kind": "portrait", "name": name, "outfit": outfit,
-            "variant": variant, "emotion": emo, "size": len(data), "path": target}
+    _register_sprite(idx, oname, code, variant, fname, emo)
+    return {"ok": True, "kind": "portrait", "name": fname, "outfit": oname,
+            "code": code, "variant": variant, "emotion": emo,
+            "size": len(data), "path": target}
 
 
-def _register_sprite(outfit, variant, filename):
-    """把新立绘写进**角色自己的** portrait/index.json（没有这套衣服就新建一条）。
+def _register_sprite(idx, outfit_name, code, variant, filename, emotion):
+    """把新立绘写进**角色自己的** portrait/index.json。
 
-    自带的 assets/sprites/index.json 一个字都不改：读取时由 characters.sprite_index()
-    把两份合起来（角色的优先），所以不导入也照样能用自带立绘。
+    结构：outfits[<中文衣服名>] = {code, label, default, emotions{英文情绪: 文件}, variants[]}
+    自带 assets/sprites/index.json 不动：读取时由 characters.sprite_index() 合并（角色优先）。
     """
     pdir = portrait_dir()
     if not pdir:
         return False
     idx_path = os.path.join(pdir, "index.json")
     try:
-        data = {}
-        if os.path.isfile(idx_path):
-            with open(idx_path, encoding="utf-8") as f:
-                data = json.load(f)
-        if not isinstance(data, dict):
-            data = {}
-        outfits = data.setdefault("outfits", {})
-        o = outfits.get(outfit)
+        outfits = idx.setdefault("outfits", {})
+        o = outfits.get(outfit_name)
         if not isinstance(o, dict):
-            o = {"label": "自定义 " + outfit, "default": filename, "variants": []}
-            outfits[outfit] = o
+            o = {"code": code, "label": outfit_name, "default": filename, "variants": []}
+            outfits[outfit_name] = o
+        o.setdefault("code", code)
+        o.setdefault("label", outfit_name)
         if not o.get("default"):
             o["default"] = filename
         variants = o.setdefault("variants", [])
         if not any((v or {}).get("file") == filename for v in variants):
-            variants.append({"variant": variant, "file": filename})
-        # 变化编号 → 表情：补上 emotions，对话换表情时才会选中这张图
-        emo = VARIANT_EMOTION.get(variant)
-        if emo:
-            o.setdefault("emotions", {})[emo] = filename
+            item = {"variant": variant, "file": filename}
+            if emotion:
+                item["emotion"] = emotion
+            variants.append(item)
+        # 表情键：对话换表情时才会选中这张图
+        if emotion:
+            o.setdefault("emotions", {})[emotion] = filename
         tmp = idx_path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=1)
+            json.dump(idx, f, ensure_ascii=False, indent=1)
         os.replace(tmp, idx_path)
         return True
     except Exception:
