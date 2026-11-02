@@ -18,27 +18,6 @@
 }
 .uiFoot img { width:100%; height:100%; display:block; }
 
-/* ---------- 设置 ---------- */
-.optPanel {
-  position:absolute; left:50%; transform:translateX(-50%);
-  top:86px; width:702px; height:318px;
-  background-size:100% 100%; background-repeat:no-repeat;
-}
-.optPanel .hit { position:absolute; cursor:pointer; overflow:hidden; }
-.optPanel .hit.arr { border-radius:3px; }
-.optPanel .hit:hover { background:rgba(140,225,255,.14); }
-.optPanel .sbar {
-  position:absolute; pointer-events:none;
-  background:linear-gradient(90deg, rgba(120,220,250,.75), rgba(170,240,255,.95));
-  box-shadow:0 0 5px rgba(120,225,255,.75);
-  border-radius:1px;
-}
-
-.optPanel .optLayer {
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:fill; pointer-events:none;
-}
-
 /* ---------- 回想 ---------- */
 .blogWrap {
   position:absolute; left:44px; right:52px; top:34px; bottom:32px;

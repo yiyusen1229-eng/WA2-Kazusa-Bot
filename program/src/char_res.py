@@ -75,10 +75,6 @@ def prompt_text():
 
 
 # ------------------------------------------------------------------ 世界书
-def worldbook_path():
-    return char_file("worldbook", JSON_EXTS + TEXT_EXTS)
-
-
 def worldbook():
     """导入的 .json 世界书（结构同 worldbook.json）；不是 JSON 就返回 None"""
     path = char_file("worldbook", JSON_EXTS)

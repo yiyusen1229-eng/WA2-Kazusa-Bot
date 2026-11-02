@@ -1,19 +1,33 @@
 # -*- coding: utf-8 -*-
-"""用完整剧本(L2_scene, 366 万汉字)重建检索索引"""
+"""用完整剧本重建剧情检索索引（story_rag 用）
+
+源：`other/dev/dataset/L2_scene.jsonl`
+    每行一个场景：{scene_id, chapter, context, response}
+出：`program/src/story_index.json.gz`
+    story_rag.get_index() 优先读 .gz（体积约为 json 的 1/14，启动更快）
+
+用法：
+    python tools/build_story_index_v2.py                 # 默认源
+    python tools/build_story_index_v2.py --src <文件>    # 换源
+    python tools/build_story_index_v2.py --chunk 1200    # 每块字符数
+
+索引结构：[{src: 章节, text: 剧本片段}]，story_rag 按 BM25 检索。
+"""
+import argparse
+import gzip
 import json
 import os
-import sys
+import time
 
-BASE = r"E:\IDM下载目录\DSH工作产生文件\WA2-Kazusa-Bot"
-SRC = os.path.join(BASE, "dataset", "L2_scene.jsonl")
-OUT = os.path.join(BASE, "app", "story_index.json")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC_DEFAULT = os.path.join(os.path.dirname(ROOT), "other", "dev", "dataset", "L2_scene.jsonl")
+OUT_DEFAULT = os.path.join(ROOT, "src", "story_index.json.gz")
+OVERLAP = 100          # 相邻块重叠的字数，避免一句话被切断后检索不到
 
-CHUNK = 1200   # 每块字符数
 
-
-def main():
+def build(src, out, chunk):
     scenes = []
-    with open(SRC, encoding="utf-8") as f:
+    with open(src, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -21,42 +35,55 @@ def main():
             d = json.loads(line)
             ctx = (d.get("context") or "").strip()
             resp = (d.get("response") or "").strip()
-            ch = (d.get("chapter") or "").strip()
             if not ctx:
                 continue
-            scenes.append((ch, ctx, resp))
+            scenes.append(((d.get("chapter") or "").strip(), ctx, resp))
+    print("场景: %d" % len(scenes))
 
-    print("场景:", len(scenes))
-
-    chunks = []
+    chunks, seen = [], set()
     for chapter, ctx, resp in scenes:
         full = ctx + ("\n" + resp if resp else "")
-        # 长场景切成多块
         start = 0
         while start < len(full):
-            piece = full[start:start + CHUNK]
+            piece = full[start:start + chunk]
             if len(piece) >= 200:
-                chunks.append({
-                    "src": chapter or "本篇",
-                    "text": piece,
-                })
-            start += CHUNK - 100   # 轻微重叠
+                key = piece[:200]
+                if key not in seen:            # 相同开头的块去重
+                    seen.add(key)
+                    chunks.append({"src": chapter or "本篇", "text": piece})
+            start += chunk - OVERLAP
 
-    # 去重(相同文本)
-    seen, uniq = set(), []
-    for c in chunks:
-        key = c["text"][:200]
-        if key in seen:
-            continue
-        seen.add(key)
-        uniq.append(c)
+    total = sum(len(c["text"]) for c in chunks)
+    print("索引块: %d  汉字总量: %.1f 万" % (len(chunks), total / 10000))
 
-    total = sum(len(c["text"]) for c in uniq)
-    print("索引块:", len(uniq), " 汉字总量: %.1f 万" % (total / 10000))
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    tmp = out + ".tmp"
+    with gzip.open(tmp, "wt", encoding="utf-8") as f:
+        json.dump(chunks, f, ensure_ascii=False)
+    os.replace(tmp, out)
+    print("已写入 %s  %.1f MB" % (out, os.path.getsize(out) / 1048576))
 
-    json.dump(uniq, open(OUT, "w", encoding="utf-8"), ensure_ascii=False)
-    print("已写入 %s  %.1f MB" % (OUT, os.path.getsize(OUT) / 1048576))
+    # 旧的未压缩索引（12MB）没必要留着：运行时优先读 .gz
+    plain = out[:-3] if out.endswith(".gz") else ""
+    if plain and os.path.exists(plain):
+        os.remove(plain)
+        print("已删除旧的无压缩索引 %s" % plain)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="重建剧情检索索引")
+    ap.add_argument("--src", default=SRC_DEFAULT)
+    ap.add_argument("--out", default=OUT_DEFAULT)
+    ap.add_argument("--chunk", type=int, default=1200, help="每块字符数")
+    a = ap.parse_args()
+    if not os.path.exists(a.src):
+        print("找不到剧本：%s" % a.src)
+        return 2
+    t0 = time.time()
+    build(a.src, a.out, max(200, a.chunk))
+    print("耗时 %.1f 秒" % (time.time() - t0))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

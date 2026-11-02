@@ -7,34 +7,6 @@
   left: 21px !important; top: 8px !important;
   width: 227px !important;
 }
-.optPanel {
-  left: 94px !important; top: 85.6px !important;
-  width: 637px !important; height: 255px !important;
-  transform: none !important;
-}
-
-/* ===== 滑块: 方格分段(对齐游戏) ===== */
-.optPanel .sbar {
-  display: flex !important; gap: 1px;
-  background: none !important;
-}
-.optPanel .sbar i {
-  flex: 1 1 0; min-width: 0;
-  background: rgba(6,34,52,.55);
-  border: 1px solid rgba(120,210,250,.30);
-  border-radius: 1px;
-}
-.optPanel .sbar i.on {
-  background: #35d2ee;
-  border-color: #9bf0ff;
-  box-shadow: 0 0 3px rgba(80,220,255,.55) inset;
-}
-/* OPTION 2 音量页用橙色 */
-#optScreen[data-page="1"] .optPanel .sbar i.on {
-  background: #ffa53a;
-  border-color: #ffd390;
-  box-shadow: 0 0 3px rgba(255,170,60,.6) inset;
-}
 
 /* ===== 底栏高度 ===== */
 .uiFoot { height: 35px !important; }
@@ -70,8 +42,8 @@
 
 
 /* 滑块: 更细的格子 */
-.optPanel .sbar { gap: 2px !important; }
-.optPanel .sbar i { border-width: 1px !important; }
+
+
 /* 底栏左侧 BGM 名 */
 
 

@@ -185,13 +185,6 @@ def char_file(kind, exts=None):
     return ""
 
 
-def folder_for(kind):
-    """这一类资源落在哪个目录（兼容旧调用）"""
-    if kind == "portrait":
-        return os.path.join(_assets(), "sprites")
-    return kind_dir(kind) or None
-
-
 def open_target(kind):
     """「查看文件」到底该打开哪儿：优先指到导入的那份，没导入就指到程序实际用的默认。
 

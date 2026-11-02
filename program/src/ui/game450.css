@@ -360,19 +360,6 @@ html, body {
 #thinkBox.hidden { display: none !important; }
 
 
-/* ===== 句末翻页图标（游戏原版素材） ===== */
-#msgText .pageIcon {
-  position: absolute;
-  pointer-events: none;
-  image-rendering: pixelated;
-  animation: pageBlink 1.2s steps(1, end) infinite;
-}
-@keyframes pageBlink {
-  0%, 60%   { opacity: 1; }
-  61%, 100% { opacity: 0.15; }
-}
-
-
 /* 旧的 ▼ 提示由游戏原版翻页图标取代（JS 会把 display 改成 block，这里必须 !important） */
 #moreHint { display: none !important; }
 
@@ -383,7 +370,10 @@ html, body {
 /* ===================== 历史对话（按截图逐像素实测） ===================== */
 #historyPanel { position:absolute; inset:0; z-index:60; display:none; }
 #historyPanel.show { display:block; }
-body.histOpen .mbBar { display:none !important; }   /* 菜单栏保留：鼠标移到顶部照样能唤出 */
+/* 打开历史面板时收起其它 UI */
+body.histOpen #msgWrap,
+body.histOpen #inputBar,
+body.histOpen #toolbar { display:none !important; }
 
 /* 顶栏: 通栏，下沿 y=4.04%（游戏实测 62/1536） */
 #historyHead { position:absolute; left:0; right:0; top:0; height:auto; line-height:0; }
@@ -451,11 +441,6 @@ body.histOpen .mbBar { display:none !important; }   /* 菜单栏保留：鼠标�
 #historyExit .on { display:none; }
 #historyExit:hover .off { display:none; }
 #historyExit:hover .on { display:block; }
-
-/* 打开历史时收起其它 UI */
-body.histOpen #msgWrap,
-body.histOpen #inputBar,
-body.histOpen #toolbar { display:none !important; }
 
 /* 对话界面底部蓝色微光条：素材 sys_00013.tga（1280x48）
    alpha 自 0 递增到 175，贴在画面最下沿形成渐亮 */

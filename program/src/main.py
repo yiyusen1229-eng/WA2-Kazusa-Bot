@@ -4,26 +4,25 @@ AI 聊天界面架构 —— 可插拔的桌面聊天 UI 框架
 内嵌本地 HTTP 服务 + WebView2 原生窗口
 """
 # ============================================================================
-# 目录 —— 这个文件有 1900+ 行，按段读，别整篇读
-#   ※ 行号是 2026-11-01 的快照，改代码后会漂移；找位置请搜 §标题。
+# 目录 —— 这个文件 1700+ 行，按段读，别整篇读
+#   ※ 行号会漂移；找位置请搜 §标题。
 #
-#   §0  顶部常量             L.31    路径 / 窗口尺寸 / 模型名 / 安全模式开关
-#   §1  偏好设置             L.122   prefs.json 读写（GET/POST /api/prefs）
-#   §2  模型配置             L.220   cloud_cfg / probe_endpoint / model_cfg_*
-#   §3  标签解析             L.319   fewshot + <scene> <emotion> <action> 拆分
-#   §4  人设 / 世界书 / 翻译  L.533   persona_text / load_worldbook / translate_ja
-#   §5  训练管理             L.560   /api/train/*
-#   §6  token 与花费         L.762   _record_usage / /api/usage（算钱在 pricing.py）
-#   §7  记忆书胶水           L.809   _memory_context / 后台打包（核心逻辑在 memory.py）
-#   §8  HTTP 服务            L.965   class Handler
-#        8.1 路由 do_GET / do_POST
-#        8.2 静态文件 translate_path / send_head（Range）
-#        8.3 窗口控制 _window_ctl
-#        8.4 语音 _tts
-#        8.5 模型配置接口 _modelcfg
-#        8.6 文字渲染 _text_img
-#        8.7 对话 _chat  ← 最大的一块（约 350 行）
-#   §9  启动                 L.1696  ollama_models / _warm_font / serve / main
+#   §0  顶部常量             路径 / 窗口尺寸 / 模型名 / 安全模式开关
+#   §1  偏好设置             prefs.json 读写（GET/POST /api/prefs）
+#   §2  模型配置             cloud_cfg / probe_endpoint / model_cfg_*
+#   §3  标签解析             fewshot + <scene> <emotion> <action> 拆分
+#   §4  翻译                 translate_ja（人设/世界书在 persona_ctx.py）
+#   §5  token 与花费         _record_usage / /api/usage（算钱在 pricing.py）
+#   §6  记忆书胶水           _memory_context / 后台打包（核心逻辑在 memory.py）
+#   §7  HTTP 服务            class Handler
+#        7.1 路由 do_GET / do_POST
+#        7.2 静态文件 translate_path / send_head（Range）
+#        7.3 窗口控制 _window_ctl
+#        7.4 语音 _tts
+#        7.5 模型配置接口 _modelcfg
+#        7.6 文字渲染 _text_img
+#        7.7 对话 _chat  ← 最大的一块
+#   §8  启动                 ollama_models / _warm_font / serve / main
 #
 # 新功能请**新建独立文件**，不要再往这个文件里堆（见交接文档「一个功能一个文件」）。
 # ============================================================================
@@ -34,7 +33,6 @@ import tts_client
 import json
 import time
 import threading
-import subprocess
 try:
     import story_rag as STORY
 except Exception:
@@ -42,6 +40,7 @@ except Exception:
 import special_cfg
 import special_files
 import char_res
+import persona_ctx
 import scene_cg
 try:
     import gdi_text as GLIB
@@ -91,25 +90,7 @@ ASSETS_DIR = os.environ.get("WA2_ASSETS_DIR") or os.path.join(UI_DIR, "assets")
 special_files.set_assets_dir(ASSETS_DIR)
 # 场景背景图（assets/cg/index.json）也走同一个素材目录
 scene_cg.set_assets_dir(ASSETS_DIR)
-# 人设 / 世界书：各自一个文件夹。用户可以直接改这里，也可以用特别模式导入
-# （导入的放 char/prompt、char/worldbook，优先级更高）。
-PERSONA_DIR = os.path.join(BASE, "persona")
-WORLDBOOK_DIR = os.path.join(BASE, "worldbook")
-PERSONA_FILE = os.path.join(PERSONA_DIR, "persona.txt")
-PERSONA_CORE_FILE = os.path.join(PERSONA_DIR, "persona_core.txt")
-# 旧版本把这两个文件直接放在根目录：留一份回落，老安装不搬家也能跑
-LEGACY_PERSONA_FILE = os.path.join(BASE, "persona.txt")
-LEGACY_PERSONA_CORE_FILE = os.path.join(BASE, "persona_core.txt")
-
-
-def _first_existing(*paths):
-    """按顺序找第一个存在的文件；都不存在就返回第一个（让后面的 open 报错可控）"""
-    for p in paths:
-        if p and os.path.exists(p):
-            return p
-    return paths[0] if paths else ""
-
-
+# 人设 / 世界书：各自一个文件夹（persona/、worldbook/），逻辑在 persona_ctx.py
 EXE_DIR = (os.path.dirname(os.path.abspath(sys.executable))
            if getattr(sys, "frozen", False) else BASE)
 CLOUD_CFG_FILE = os.path.join(EXE_DIR, "config.json")
@@ -400,11 +381,7 @@ def split_action(text):
     rest = ACTION_RE.sub("", text or "").strip()
     return acts, rest
 
-WORLDBOOK_FILE = os.path.join(WORLDBOOK_DIR, "worldbook.json")
-LEGACY_WORLDBOOK_FILE = os.path.join(BASE, "worldbook.json")
-
-
-# ---------------- 人设 / 世界书 ----------------
+# ---------------- 人设 / 世界书（见 persona_ctx.py） ----------------
 import threading as _th
 from winutil import _win_hwnd, _user32, _quiet_act
 from sessions import session_save, session_load, session_list, session_thumb
@@ -413,10 +390,10 @@ import memory as _memory
 import pricing as _pricing
 
 # 特别模式「查看文件」：没导入时要指到程序真正读的默认位置，而不是空的 char/ 目录
+_defaults = persona_ctx.default_paths()
 special_files.set_default_paths(
-    prompt=_first_existing(PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
-                           PERSONA_FILE, LEGACY_PERSONA_FILE),
-    worldbook=_first_existing(WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE),
+    prompt=_defaults["prompt"],
+    worldbook=_defaults["worldbook"],
     memory=_sessions.SESS_DIR,
     voice=tts_client.refs_dir(),
 )
@@ -462,9 +439,12 @@ def log(msg):
         import datetime
         p = os.path.join(os.environ.get("TEMP", "."), "wa2_app.log")
         with open(p, "a", encoding="utf-8") as f:
-            f.write("[%s] %s\\n" % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
+            f.write("[%s] %s\n" % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
     except Exception:
         pass
+
+
+persona_ctx.set_logger(log)      # 人设/世界书的日志也走这里
 
 
 def split_thinking(text):
@@ -566,233 +546,6 @@ def translate_ja(text):
     except Exception as e:
         log('翻译失败: %s' % e)
     return ''
-
-
-_PERSONA_SRC = {"v": ""}
-
-
-def _note_persona_src(name):
-    """人设来源变了才记一行日志，免得每条消息刷屏"""
-    if _PERSONA_SRC["v"] != name:
-        _PERSONA_SRC["v"] = name
-        log("人设来源: %s" % name)
-
-
-def persona_text():
-    """人设：特别模式导入的提示词最优先（char/prompt/），其次精简人设 persona_core，
-    最后才是完整版 persona.txt —— 导入的东西删掉会自动回落，不破坏原文件。"""
-    try:
-        imported = char_res.prompt_text()
-    except Exception as e:
-        log("读取导入提示词失败: %s" % e)
-        imported = ""
-    if imported:
-        _note_persona_src("char/prompt")
-        return imported
-    # 优先用训练时一致的精简人设(persona_core), 保证训练/推理分布一致
-    for f in (PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
-              PERSONA_FILE, LEGACY_PERSONA_FILE):
-        try:
-            t = open(f, encoding="utf-8").read().strip()
-            if t:
-                _note_persona_src(os.path.basename(f))
-                return t
-        except Exception:
-            continue
-    _note_persona_src("内置默认")
-    return "你是示例角色，说话简短，只用简体中文。"
-
-
-def load_worldbook():
-    """世界书：特别模式导入的 json 优先（char/worldbook/），没有再用 worldbook/ 里的
-    worldbook.json（旧安装还在根目录的也认）。char_res 按 mtime 缓存，导入后立刻生效。"""
-    try:
-        wb = char_res.worldbook()
-        if wb:
-            return wb
-    except Exception as e:
-        log("读取导入世界书失败: %s" % e)
-    for f in (WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE):
-        try:
-            return json.load(open(f, encoding="utf-8"))
-        except Exception:
-            continue
-    return {"entries": []}
-
-# ---------------- 训练管理 ----------------
-TRAIN_DIR = os.environ.get("KAZUSA_TRAIN_DIR",
-                           r"E:\IDM下载目录\DSH工作产生文件\WA2-Kazusa-Bot\train")
-_train_proc = {"p": None}
-
-
-def train_status():
-    """返回完整训练状态(与旧 WebUI 一致)"""
-    info = {"ok": True, "dir": TRAIN_DIR, "exists": os.path.isdir(TRAIN_DIR),
-            "state": "idle", "step": 0, "total_steps": 0, "progress": 0,
-            "loss": None, "lr": None, "eta": None, "speed": None,
-            "losses": [], "logs": [], "meta": {}, "gpu_mem": None}
-    pf = os.path.join(TRAIN_DIR, "progress.json")
-    if os.path.exists(pf):
-        try:
-            d = json.load(open(pf, encoding="utf-8"))
-            for k in ("state", "step", "total_steps", "progress", "loss",
-                      "lr", "elapsed", "eta", "speed", "losses", "logs",
-                      "meta", "gpu_mem", "updated_at", "preview", "eval_loss"):
-                if k in d:
-                    info[k] = d[k]
-        except Exception as e:
-            info["error"] = str(e)
-    out = os.path.join(TRAIN_DIR, "output")
-    ckpts = []
-    if os.path.isdir(out):
-        for n in os.listdir(out):
-            if n.startswith("checkpoint-"):
-                f = os.path.join(out, n, "adapter_model.safetensors")
-                if os.path.exists(f):
-                    ckpts.append({"name": n,
-                                  "mb": round(os.path.getsize(f) / 1048576, 1),
-                                  "mtime": time.strftime("%m-%d %H:%M",
-                                                         time.localtime(os.path.getmtime(f)))})
-    info["can_resume"] = len(ckpts) > 0
-    info["last_ckpt"] = max([int(c["name"].split("-")[1]) for c in ckpts] or [0])
-    info["checkpoints"] = sorted(ckpts, key=lambda c: int(c["name"].split("-")[1]))
-    # 进程可能在应用之外启动, 用进度文件是否新鲜兜底判断
-    _alive = bool(_train_proc["p"] and _train_proc["p"].poll() is None)
-    try:
-        _fresh = (time.time() - os.path.getmtime(pf)) < 180
-    except Exception:
-        _fresh = False
-    info["running"] = bool(_alive or (_fresh and info.get("state") == "running"))
-
-    # 续训位移: 进度文件里的 step 是本次相对计数, 显示时补上检查点基数
-    try:
-        _base = max([int(c["name"].split("-")[1]) for c in ckpts] or [0])
-        _step = int(info.get("step") or 0)
-        if _base and _step < _base:
-            info["step"] = _step + _base
-            if info.get("total_steps"):
-                info["total_steps"] = int(info["total_steps"]) + _base
-            info["progress"] = round(100.0 * info["step"] / max(1, info.get("total_steps") or 1), 2)
-            info["resumed_from"] = _base
-    except Exception:
-        pass
-    # 日志: 进度文件里的 logs + stdout 末尾
-    logs = list(info.get("logs") or [])
-    lf = os.path.join(TRAIN_DIR, "train.log")
-    if os.path.exists(lf):
-        try:
-            tail = open(lf, encoding="utf-8", errors="ignore").read().splitlines()[-40:]
-            logs = logs + [t for t in tail if t.strip()]
-        except Exception:
-            pass
-    info["logs"] = logs[-60:]
-    return info
-
-
-def train_info():
-    """模型/数据配置(与旧 WebUI 一致)"""
-    def rd(p, default):
-        try:
-            return json.load(open(p, encoding="utf-8"))
-        except Exception:
-            return default
-    prog = rd(os.path.join(TRAIN_DIR, "progress.json"), {})
-    return {"config": rd(os.path.join(TRAIN_DIR, "config.json"), {}),
-            "stats": rd(os.path.join(TRAIN_DIR, "data", "stats.json"), {}),
-            "meta": prog.get("meta", {})}
-
-
-
-def train_start(extra=None):
-    # 已在训练则拒绝重复启动(避免双开爆显存)
-    _pf = os.path.join(TRAIN_DIR, "progress.json")
-    try:
-        _pg = json.load(open(_pf, encoding="utf-8"))
-        _fresh = (time.time() - os.path.getmtime(_pf)) < 180
-        _alive = bool(_train_proc["p"] and _train_proc["p"].poll() is None)
-        if _alive or (_fresh and _pg.get("state") == "running"):
-            return {"error": "训练正在进行中", "running": True}
-    except Exception:
-        pass
-    if _train_proc["p"] and _train_proc["p"].poll() is None:
-        return {"ok": False, "error": "已经在跑了"}
-    py = os.path.join(TRAIN_DIR, "venv", "Scripts", "python.exe")
-    if not os.path.exists(py):
-        py = sys.executable
-    log = open(os.path.join(TRAIN_DIR, "train.log"), "a", encoding="utf-8")
-    env = dict(os.environ, PYTHONIOENCODING="utf-8")
-    # 自动续训: 若存在检查点则从最新一个恢复, 只补剩余轮数
-    out = os.path.join(TRAIN_DIR, "output")
-    ckpts = []
-    if os.path.isdir(out):
-        for n in os.listdir(out):
-            if n.startswith("checkpoint-") and os.path.exists(
-                    os.path.join(out, n, "adapter_model.safetensors")):
-                try:
-                    ckpts.append((int(n.split("-")[1]), os.path.join(out, n)))
-                except Exception:
-                    pass
-    cfgp = os.path.join(TRAIN_DIR, "config.json")
-    try:
-        _cfg = json.load(open(cfgp, encoding="utf-8-sig"))
-        _total = int(_cfg.get("epochs", 3))
-    except Exception:
-        _total = 3
-    if ckpts and not os.environ.get("KAZUSA_NO_RESUME"):
-        ckpts.sort()
-        last_step, last_path = ckpts[-1]
-        env["KAZUSA_RESUME"] = last_path
-        # 已完成轮数(按 849 步/轮估算)
-        done = max(0, min(_total - 1, last_step // 849))
-        env["KAZUSA_EPOCHS"] = str(max(1, _total - done))
-    if extra:
-        env.update({k: str(v) for k, v in extra.items()})
-    flags = 0x08000000 if os.name == "nt" else 0   # CREATE_NO_WINDOW
-    _train_proc["p"] = subprocess.Popen([py, "train_qlora.py"], cwd=TRAIN_DIR,
-                                        stdout=log, stderr=subprocess.STDOUT,
-                                        env=env, creationflags=flags)
-    return {"ok": True, "pid": _train_proc["p"].pid}
-
-
-def train_stop():
-    p = _train_proc["p"]
-    if p and p.poll() is None:
-        p.terminate()
-        return {"ok": True}
-    return {"ok": False, "error": "没有在跑"}
-
-
-def worldbook_context(messages, depth=None, max_entries=None, max_chars=None):
-    """按关键词匹配注入世界书（每轮重读，导入的新世界书立刻生效）"""
-    wb = load_worldbook()
-    depth = depth or wb.get("scan_depth", 3)
-    max_entries = max_entries or wb.get("max_entries", 3)
-    max_chars = max_chars or wb.get("max_chars", 1200)
-    recent = " ".join((m.get("content") or "") for m in messages[-depth:])
-    hits = []
-    for e in wb.get("entries", []):
-        cs = e.get("case_sensitive", False)
-        hay = recent if cs else recent.lower()
-        for kw in e.get("keywords", []):
-            k = kw if cs else kw.lower()
-            if k and k in hay:
-                hits.append(e)
-                break
-    hits.sort(key=lambda e: -e.get("priority", 0))
-    hits = hits[:max_entries]
-    if not hits:
-        return "", []
-    parts, names, total = [], [], 0
-    for e in hits:
-        c = e.get("content", "").strip()
-        if not c:
-            continue
-        if total + len(c) > max_chars:
-            break
-        parts.append("【%s】\n%s" % (e.get("name", ""), c))
-        names.append(e.get("name", ""))
-        total += len(c)
-    return "\n\n".join(parts), names
 
 
 # ---------------- token / 花费统计 ----------------
@@ -1217,10 +970,6 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/api/text"):
             return self._text_img()
-        if self.path == "/api/train/status":
-            return self._json(train_status())
-        if self.path == "/api/train/info":
-            return self._json(train_info())
         return super().do_GET()
 
     def do_POST(self):
@@ -1289,13 +1038,6 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(session_save(body))
         if self.path == "/api/chat":
             return self._chat()
-        if self.path == "/api/train/start":
-            try:
-                return self._json(train_start())
-            except Exception as e:
-                return self._json({"ok": False, "error": str(e)}, 500)
-        if self.path == "/api/train/stop":
-            return self._json(train_stop())
         self.send_error(404)
 
     def _window_ctl(self):
@@ -1672,8 +1414,8 @@ class Handler(SimpleHTTPRequestHandler):
         # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
         msgs, mem_note = _memory_context(msgs, bool(cc))
 
-        wb_ctx, wb_names = worldbook_context(msgs)
-        system = persona_text()
+        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs)
+        system = persona_ctx.persona_text()
 
         # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
         #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
@@ -1893,7 +1635,6 @@ def serve_only(prefer_port=None):
     log("  对话      POST %s/api/chat" % base)
     log("  文字渲染  GET  %s/api/text?text=测试" % base)
     log("  语音      GET  %s/api/tts?text=テスト" % base)
-    log("  训练进度  GET  %s/api/train/status" % base)
     log("")
     log("  Ctrl+C 退出")
     log("=" * 60)

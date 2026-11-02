@@ -130,13 +130,6 @@ body.mbOpen #stage { filter: brightness(.94); }
   z-index: 100000; -webkit-app-region: no-drag;
 }
 
-/* ===== 全屏模式: 不允许拖动窗口 ===== */
-body.isFull #menuBar,
-body.isFull #menuBar .mbSpacer,
-body.isFull #menuBar .mbTitle {
-  -webkit-app-region: no-drag !important;
-}
-
 /* 标题栏：右侧不留内边距，窗口按钮紧贴边缘 */
 #menuBar { padding-right: 0 !important; }
 

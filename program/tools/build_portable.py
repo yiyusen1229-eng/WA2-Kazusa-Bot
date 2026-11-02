@@ -2,8 +2,8 @@
 """打包「绿色版」（--onedir）：启动快，分发时打包成 zip
 
 产物：
-    program/最新版/和纱绿色版/             <-- 文件夹，双击 和纱.exe 直接跑
-    program/最新版/和纱绿色版_v1.zip        <-- 发给别人的压缩包
+    release/和纱绿色版/            <-- 文件夹，双击 和纱.exe 直接跑
+    release/和纱绿色版_v1.zip       <-- 发给别人的压缩包
 """
 import io
 import os
