@@ -91,9 +91,25 @@ ASSETS_DIR = os.environ.get("WA2_ASSETS_DIR") or os.path.join(UI_DIR, "assets")
 special_files.set_assets_dir(ASSETS_DIR)
 # 场景背景图（assets/cg/index.json）也走同一个素材目录
 scene_cg.set_assets_dir(ASSETS_DIR)
-PERSONA_FILE = os.path.join(BASE, "persona.txt")
-PERSONA_CORE_FILE = os.path.join(BASE, "persona_core.txt")
-# 用户可改的文件放 exe 同目录（打包后 BASE 是临时解包目录，不能放这里）
+# 人设 / 世界书：各自一个文件夹。用户可以直接改这里，也可以用特别模式导入
+# （导入的放 char/prompt、char/worldbook，优先级更高）。
+PERSONA_DIR = os.path.join(BASE, "persona")
+WORLDBOOK_DIR = os.path.join(BASE, "worldbook")
+PERSONA_FILE = os.path.join(PERSONA_DIR, "persona.txt")
+PERSONA_CORE_FILE = os.path.join(PERSONA_DIR, "persona_core.txt")
+# 旧版本把这两个文件直接放在根目录：留一份回落，老安装不搬家也能跑
+LEGACY_PERSONA_FILE = os.path.join(BASE, "persona.txt")
+LEGACY_PERSONA_CORE_FILE = os.path.join(BASE, "persona_core.txt")
+
+
+def _first_existing(*paths):
+    """按顺序找第一个存在的文件；都不存在就返回第一个（让后面的 open 报错可控）"""
+    for p in paths:
+        if p and os.path.exists(p):
+            return p
+    return paths[0] if paths else ""
+
+
 EXE_DIR = (os.path.dirname(os.path.abspath(sys.executable))
            if getattr(sys, "frozen", False) else BASE)
 CLOUD_CFG_FILE = os.path.join(EXE_DIR, "config.json")
@@ -384,7 +400,8 @@ def split_action(text):
     rest = ACTION_RE.sub("", text or "").strip()
     return acts, rest
 
-WORLDBOOK_FILE = os.path.join(BASE, "worldbook.json")
+WORLDBOOK_FILE = os.path.join(WORLDBOOK_DIR, "worldbook.json")
+LEGACY_WORLDBOOK_FILE = os.path.join(BASE, "worldbook.json")
 
 
 # ---------------- 人设 / 世界书 ----------------
@@ -397,8 +414,9 @@ import pricing as _pricing
 
 # 特别模式「查看文件」：没导入时要指到程序真正读的默认位置，而不是空的 char/ 目录
 special_files.set_default_paths(
-    prompt=PERSONA_CORE_FILE if os.path.exists(PERSONA_CORE_FILE) else PERSONA_FILE,
-    worldbook=WORLDBOOK_FILE,
+    prompt=_first_existing(PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
+                           PERSONA_FILE, LEGACY_PERSONA_FILE),
+    worldbook=_first_existing(WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE),
     memory=_sessions.SESS_DIR,
     voice=tts_client.refs_dir(),
 )
@@ -572,7 +590,8 @@ def persona_text():
         _note_persona_src("char/prompt")
         return imported
     # 优先用训练时一致的精简人设(persona_core), 保证训练/推理分布一致
-    for f in (PERSONA_CORE_FILE, PERSONA_FILE):
+    for f in (PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
+              PERSONA_FILE, LEGACY_PERSONA_FILE):
         try:
             t = open(f, encoding="utf-8").read().strip()
             if t:
@@ -585,18 +604,20 @@ def persona_text():
 
 
 def load_worldbook():
-    """世界书：特别模式导入的 json 优先（char/worldbook/），没有再用同目录的
-    worldbook.json。char_res 按 mtime 缓存，导入后下一条消息就生效。"""
+    """世界书：特别模式导入的 json 优先（char/worldbook/），没有再用 worldbook/ 里的
+    worldbook.json（旧安装还在根目录的也认）。char_res 按 mtime 缓存，导入后立刻生效。"""
     try:
         wb = char_res.worldbook()
         if wb:
             return wb
     except Exception as e:
         log("读取导入世界书失败: %s" % e)
-    try:
-        return json.load(open(WORLDBOOK_FILE, encoding="utf-8"))
-    except Exception:
-        return {"entries": []}
+    for f in (WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE):
+        try:
+            return json.load(open(f, encoding="utf-8"))
+        except Exception:
+            continue
+    return {"entries": []}
 
 # ---------------- 训练管理 ----------------
 TRAIN_DIR = os.environ.get("KAZUSA_TRAIN_DIR",

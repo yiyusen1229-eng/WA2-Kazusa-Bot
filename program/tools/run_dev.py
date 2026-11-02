@@ -15,8 +15,10 @@ RES = os.path.join(BASE, "res")
 ENV = os.path.join(BASE, "build_env")
 PY = os.path.join(ENV, "venv", "Scripts", "python.exe")
 
-DATA = ("persona.txt", "persona_core.txt", "wordbook.json",
-        "worldbook.json", "story_index.json", "fewshot.json")
+# 根目录的单文件
+DATA = ("story_index.json", "fewshot.json")
+# 各自一个文件夹的数据（人设 / 世界书）
+DATA_DIRS = ("persona", "worldbook")
 
 # 1. 同步后端代码与数据
 n = 0
@@ -24,6 +26,20 @@ for f in os.listdir(SRC):
     if f.endswith(".py") or f in DATA:
         shutil.copy2(os.path.join(SRC, f), os.path.join(ENV, f))
         n += 1
+for d in DATA_DIRS:
+    s = os.path.join(SRC, d)
+    if os.path.isdir(s):
+        shutil.copytree(s, os.path.join(ENV, d), dirs_exist_ok=True)
+        n += 1
+# 人设 / 世界书已经迁到子文件夹：删掉根目录的旧副本，免得两份同时存在
+for legacy in ("persona.txt", "persona_core.txt", "worldbook.json"):
+    p = os.path.join(ENV, legacy)
+    if os.path.exists(p):
+        try:
+            os.remove(p)
+            print("  清掉旧位置的 %s" % legacy)
+        except OSError:
+            pass
 print("  同步 %d 个后端文件 → build_env/" % n)
 
 # 2. 组装前端（src/ui + res/assets → build_env/ui2）
@@ -33,6 +49,11 @@ os.makedirs(ui2, exist_ok=True)
 for f in os.listdir(os.path.join(SRC, "ui")):
     shutil.copy2(os.path.join(SRC, "ui", f), os.path.join(ui2, f))
 print("  组装 ui2 完成（素材不再复制，运行时直接读 res/assets）")
+
+# 只同步不启动（自测 / 打包前刷新用）
+if "--sync-only" in sys.argv:
+    print("  --sync-only：同步完成，不启动")
+    sys.exit(0)
 
 # 3. 启动
 print("  启动程序…")

@@ -41,10 +41,15 @@ io.open(p, "w", encoding="utf-8").write(s)
 print("  版本 %s" % v)
 
 # 同步 src 到 build_env（保证打包内容就是当前源码）
-DATA = ("persona.txt", "persona_core.txt", "worldbook.json", "story_index.json", "fewshot.json")
+DATA = ("story_index.json", "fewshot.json")
+DATA_DIRS = ("persona", "worldbook")
 for _f in os.listdir(SRC):
     if _f.endswith(".py") or _f in DATA:
         shutil.copy2(os.path.join(SRC, _f), os.path.join(BASE, "build_env", _f))
+for _d in DATA_DIRS:
+    _s = os.path.join(SRC, _d)
+    if os.path.isdir(_s):
+        shutil.copytree(_s, os.path.join(BASE, "build_env", _d), dirs_exist_ok=True)
 
 # ---------- 3. 拷进 app/ 并打包 ----------
 shutil.rmtree(os.path.join(APP, "ui2"), ignore_errors=True)
@@ -52,8 +57,8 @@ shutil.copytree(UI2, os.path.join(APP, "ui2"))
 args = [PY, "-m", "PyInstaller", "--noconfirm", "--onefile", "--windowed",
         "--name", NAME, "--icon", os.path.join("ui2", "assets", "wa2.ico"),
         "--add-data", "ui2;ui2", "--add-data", "assets;assets",
-        "--add-data", "persona.txt;.", "--add-data", "persona_core.txt;.",
-        "--add-data", "worldbook.json;.", "--add-data", "story_index.json;.",
+        "--add-data", "persona;persona", "--add-data", "worldbook;worldbook",
+        "--add-data", "story_index.json;.",
         "--collect-all", "webview", "--collect-all", "PIL",
         "--collect-submodules", "PIL", "--hidden-import", "clr_loader",
         "--hidden-import", "fontTools", "--hidden-import", "tts_client",
