@@ -12,12 +12,32 @@ let bgmEnabled = true;
 let CHAR_NAME = "和纱";
 
 /* ---------- 素材表 ---------- */
+/* 旧的四张通用背景：新场景图还没导入、或读档时遇到旧存档的场景名，就退回这里 */
 const BGS = {
   classroom: "assets/bg_classroom.png",
   music:     "assets/bg_music.png",
   corridor:  "assets/bg_corridor.png",
   street:    "assets/bg_street.png",
 };
+
+/* 场景 CG：assets/cg/index.json 由 tools/import_cg.py 生成，id 就是图片文件名（去掉扩展名）。
+   对话里换场景时后端已经按文件名标签匹配好了（scene_cg.py），这里只负责按 id 取图。 */
+const CG_URL = {};
+fetch("assets/cg/index.json", { cache: "no-store" })
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    (d && d.items || []).forEach(function (it) { CG_URL[it.id] = "assets/cg/" + it.file; });
+    /* 目录比背景晚到时（刚打开页面就读档）补渲染一次，免得停在兜底教室图上 */
+    if (currentBg) { var _n = currentBg; currentBg = null; setBg(_n); }
+  })
+  .catch(function () {});
+
+/* 场景名 → 图片地址。认三种：CG 的 id / 旧的四张背景 / 都没有就用教室 */
+function bgSrc(name) {
+  if (name && CG_URL[name]) return CG_URL[name];
+  if (name && BGS[name]) return BGS[name];
+  return BGS.classroom;
+}
 
 
 const BGM_KEY = { menu: "bgmMenu", calm: "bgmCalm", warm: "bgmWarm", sad: "bgmSad", tense: "bgmTense" };
@@ -357,7 +377,9 @@ window.__saveMeta = function () {
   };
 };
 /* 存档界面用：按场景名取背景图，给槽位缩略图用 */
-window.__bgThumb = function (name) { return BGS[name] || BGS.classroom; };
+window.__bgThumb = function (name) { return bgSrc(name); };
+/* 调试/探针用：直接切到某张场景图（传 CG 的 id，或旧背景名） */
+window.__scenePreview = function (name) { currentBg = null; setBg(name); return { bg: currentBg, url: bgSrc(name) }; };
 /* 工具栏提示（快速存档/读档暂未开放时用） */
 window.__saveHint = function (msg) {
   var h = document.getElementById("tbHint");
@@ -408,7 +430,7 @@ function setBg(name) {
   const l = $("bgLayer");
   l.style.opacity = "0.25";
   setTimeout(() => {
-    const bgUrl = BGS[name] || BGS.classroom;
+    const bgUrl = bgSrc(name);
     l.style.backgroundImage = `url("${bgUrl}")`;
     l.style.opacity = "1";
     window.__curBg = new Image();
@@ -995,6 +1017,8 @@ async function send() {
       const body = { messages: history.map(function (m) { return { role: m.role, content: m.content }; }) };
       if (act.model) body.model = act.model;
     if (act.url) body.base_url = act.url;
+    // 当前背景一并带上：模型只说地点没说时间时，新场景沿用现在的时段（白天/晚上）
+    if (currentBg) body.bg = currentBg;
     return body;
   })()),
     });
@@ -1005,7 +1029,7 @@ async function send() {
       const replyZh = (d.reply_zh || "").trim();
       const actZh = (d.action_zh || "").trim();
   window.__lastEmo = (d.emotion || "").trim();   // 服务端给的情绪标签
-  window.__nextScene = (d.scene || "").trim();   // 只有明确换场景才有值
+  window.__nextScene = (d.bg || "").trim();      // 服务端已按文件名标签匹配好；没匹配上就是空
   window.__nextOutfit = (d.outfit || "").trim(); // 只有明确换衣服才有值
   window.__lastThinking = (d.thinking || "").trim();
   window.__lastAction = (d.action_zh || d.action || "").trim();

@@ -41,6 +41,7 @@ except Exception:
     STORY = None
 import special_cfg
 import special_files
+import scene_cg
 try:
     import gdi_text as GLIB
 except Exception:
@@ -87,6 +88,8 @@ UI_DIR = os.path.join(BASE, "ui2")
 ASSETS_DIR = os.environ.get("WA2_ASSETS_DIR") or os.path.join(UI_DIR, "assets")
 # 特别模式的立绘要直接放进 assets/sprites/<衣服>/，把这个目录告诉它
 special_files.set_assets_dir(ASSETS_DIR)
+# 场景背景图（assets/cg/index.json）也走同一个素材目录
+scene_cg.set_assets_dir(ASSETS_DIR)
 PERSONA_FILE = os.path.join(BASE, "persona.txt")
 PERSONA_CORE_FILE = os.path.join(BASE, "persona_core.txt")
 # 用户可改的文件放 exe 同目录（打包后 BASE 是临时解包目录，不能放这里）
@@ -337,13 +340,17 @@ import re as _re
 ACTION_RE = _re.compile(r"<action>\s*(.*?)\s*</action>", _re.S)
 
 def split_scene(text):
-    """取出 <scene>地点</scene> 与 <outfit>编号</outfit>，返回 (正文, 场景, 服装)"""
+    """取出 <scene>地点</scene> 与 <outfit>编号</outfit>，返回 (正文, 场景, 服装)
+
+    场景名放宽到 40 字：素材里的地名带括号标签（如「和纱家别墅（客厅）」），
+    模型偶尔会整串抄过来，别被卡掉。
+    """
     import re
     scene = ""
     outfit = ""
     if not text:
         return text, scene, outfit
-    m = re.search(r"<scene>\s*([^<]{1,24})\s*</scene>", text)
+    m = re.search(r"<scene>\s*([^<]{1,40})\s*</scene>", text)
     if m:
         scene = m.group(1).strip()
         text = text[:m.start()] + text[m.end():]
@@ -1106,6 +1113,19 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"ok": True, "name": special_cfg.get_name()})
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)})
+        if self.path.startswith("/api/scene/list"):
+            # 背景图目录（调试用；前端直接读 assets/cg/index.json，不依赖这个接口）
+            return self._json(scene_cg.catalog_public())
+        if self.path.startswith("/api/scene/match"):
+            # 试匹配：/api/scene/match?q=大学图书馆（黄昏）&prev=咖啡厅（白天）
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            scene = (q.get("q") or [""])[0]
+            prev = (q.get("prev") or [""])[0]
+            try:
+                return self._json({"ok": True, "query": scene, "prev": prev,
+                                   "hit": scene_cg.match(scene, prev)})
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)})
         if self.path.startswith("/api/price"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             m = (q.get("model") or [""])[0]
@@ -1606,6 +1626,8 @@ class Handler(SimpleHTTPRequestHandler):
         if not cc and model not in ollama_models():
             model = FALLBACK_MODEL if FALLBACK_MODEL in ollama_models() else model
         msgs = req.get("messages") or []
+        # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
+        prev_bg = (req.get("bg") or "").strip()
 
         # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
         msgs, mem_note = _memory_context(msgs, bool(cc))
@@ -1637,11 +1659,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         if cc:
             # 云端：人设末尾补语言/格式约束，前面插 few-shot
+            # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
             system = system + (
                 "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
-                "\n【场景】只有在对话里明确发生了地点变化时才输出 <scene>地点</scene>，"
-                "可选值：classroom(教室) corridor(走廊) music(音乐室) street(街道) cafe(咖啡馆) "
-                "home(家里) night(夜晚) stage(舞台)。没有换地点就不要输出这个标记。"
+                + scene_cg.prompt_hint() +
                 "\n【服装】只有明确换了一套衣服时才输出 <outfit>编号</outfit>："
                 "001(校服) 003(演出服) 008(常服) 022(常服2) 020(居家) 027(礼服) 029(睡衣) 036(和服)。"
                 "平时绝对不要输出。"
@@ -1696,8 +1717,20 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 log("日译中失败: %s" % e)
 
+            # 场景：把 <scene> 的地点/时间对上素材里的背景图（匹配逻辑在 scene_cg.py）
+            bg_hit = {}
+            if scene_now:
+                try:
+                    bg_hit = scene_cg.match(scene_now, prev_bg)
+                except Exception as e:
+                    log("场景匹配失败: %s" % e)
+                if not bg_hit:
+                    log("场景没匹配上：%r（当前背景 %r）" % (scene_now, prev_bg))
+
             self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                         "action": action, "action_zh": action_zh,
+                        "scene": scene_now, "outfit": outfit_now,
+                        "bg": bg_hit.get("id", ""),
                         "usage": _uinfo,
                         "model": model,
                         "ms": int((time.time() - t0) * 1000),

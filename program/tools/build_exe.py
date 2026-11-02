@@ -35,7 +35,7 @@ p = os.path.join(UI2, "index.html")
 s = io.open(p, encoding="utf-8").read()
 v = time.strftime("%m%d%H%M%S")
 for name in ("opt.css", "opt.js", "uitext.js", "menubar.css", "menubar.js",
-             "screens.css", "screens.js", "game450.css", "savetabs.js"):
+             "screens.css", "screens.js", "game450.css", "game.js", "savetabs.js"):
     s = re.sub(re.escape(name) + r"\?v=[^\"']+", name + "?v=" + v, s)
 io.open(p, "w", encoding="utf-8").write(s)
 print("  版本 %s" % v)
