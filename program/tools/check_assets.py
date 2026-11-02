@@ -41,10 +41,10 @@ ITEMS = [
 
     # ---- 人设 / 世界书 / 检索索引 ----
     ("src/persona/base.txt", "file", True, "人设共用底色"),
-    ("src/persona/stage1.txt", "file", True, "关系阶段 1：还没敞开"),
-    ("src/persona/stage2.txt", "file", True, "关系阶段 2：开始松动"),
-    ("src/persona/stage3.txt", "file", True, "关系阶段 3：完全敞开"),
-    ("src/persona/stage4.txt", "file", True, "关系阶段 4：婚后 / 同居"),
+    ("src/persona/stage1.txt", "file", True, "关系阶段 1（关系初期）"),
+    ("src/persona/stage2.txt", "file", True, "关系阶段 2（关系升温）"),
+    ("src/persona/stage3.txt", "file", True, "关系阶段 3（关系确认）"),
+    ("src/persona/stage4.txt", "file", True, "关系阶段 4（婚后 / 同居）"),
     ("src/worldbook/worldbook.json", "file", True, "世界书（关键词触发）"),
     ("src/story_index.json.gz", "file", False, "剧情检索索引（tools/build_story_index_v2.py 生成）"),
 
