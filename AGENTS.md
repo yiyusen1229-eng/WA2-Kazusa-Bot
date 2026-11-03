@@ -47,6 +47,15 @@ python program\tools\check_assets.py                  # 素材自检
 5. **一任务一会话**：新会话只喂 `交接速览.md` + 本次任务，不要把历史对话贴回来。
 6. **机械活交给便宜模型**：改名、批量替换、跑测试、跑探针。
 
+## 代码落位规矩（硬性）
+
+1. **目录即层级**：新代码放进 `core/`（稳定原语）、`chat/`（对话管线）、`api/`（HTTP 分组）、
+   `character/`（角色与资源）、`ui/`（前端按功能）——不要往 `main.py` 里继续加。
+2. **单文件上限 400 行**：超过就要拆；超过 800 行的（`main.py`、`game.js`、`opt.js`）已在待拆清单。
+3. **新文件必须登记**到 `program/tools/arch_map.py` 的 `LEVELS` / `UI_LEVELS`，否则映射表显示「未登记」。
+4. **改完代码跑** `python program/tools/arch_map.py --write`；提交前 `--check` 必须通过。
+5. **只读一层**：先看 `other/docs/架构/映射表.md` 的「层级 / 被谁调用」两列，再决定读哪个文件。
+
 ## 不许动的东西
 
 - `characters/`、`res/assets/`、`persona/`、`worldbook/`、`sessions/`、`release/` 是本地数据，**不入库、不上传**。
