@@ -409,7 +409,12 @@ special_files.set_default_paths(
 
 
 def _set_character_sessions():
-    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。"""
+    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。
+
+    显式设了 WA2_SESS_DIR（自测 / 便携版）时尊重它，不覆盖。
+    """
+    if os.environ.get("WA2_SESS_DIR"):
+        return
     try:
         d = os.path.join(characters.active_dir(), "sessions")
         os.makedirs(d, exist_ok=True)
