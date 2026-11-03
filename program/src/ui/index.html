@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="unifont.css?v=11022135">
 <link rel="stylesheet" href="opt.css?v=202611031205">
   <link rel="stylesheet" href="menubar.css?v=202611031205">
-<link rel="stylesheet" href="special.css?v=202611032110">
+<link rel="stylesheet" href="special.css?v=202611031430">
 </head>
 <body>
 <div id="stage">
@@ -175,11 +175,13 @@
       </div>
     </div>
 
-    <!-- 角色切换：直接列出现有角色，一键切换 -->
+    <!-- 角色切换：直接列出现有角色，一键切换（标题在框外，列表可滚动） -->
     <div id="spCharPick" class="spCharPick" data-no-uitext="1" role="dialog" aria-hidden="true">
-      <div class="spcpBox">
+      <div class="spcpWrap">
         <img class="spcpTitle" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
-        <div id="spcpList" class="spcpList"></div>
+        <div class="spcpBox">
+          <div id="spcpList" class="spcpList"></div>
+        </div>
         <button id="spcpCancel" class="spcpCancel" type="button"><img src="assets/ui/text/sp_cancel.png" alt="取消"></button>
       </div>
     </div>
