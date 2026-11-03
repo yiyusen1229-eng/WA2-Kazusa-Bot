@@ -1,8 +1,66 @@
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 0000000..02e7cdb
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,36 @@
++# AGENTS.md · 给 AI 代理的接手须知
++
++**先读 `other/docs/交接速览.md`（1 页）。** 需要细节再看 `other/docs/新对话交接说明.md`（32 KB，别整份读：
++用 `python tools/digest.py --outline <file>` 看目录，再按节读）。
++
++## 项目是什么
++
++WA2 冬马和纱桌面聊天程序：Python 本地 HTTP 服务 + WebView2 无边框窗口，galgame 界面，
++对话走云端 LLM，语音走本地 GPT-SoVITS。角色 = `characters/<角色>/` 一个文件夹（自包含）。
++
++## 常用命令
++
++```powershell
++program\启动程序.bat                                  # 启动（同步 src → build_env 再开窗）
++python program\tools\run_dev.py --sync-only           # 只同步代码到 build_env
++cd program\build_env; $env:WA2_ASSETS_DIR="..\res\assets"
++.\venv\Scripts\python.exe main.py --serve-only --port 8791   # 只起后端（自测/探针用）
++python program\tools\test_char_res.py                 # 6 个自测，全绿才算过
++python program\tools\ui_probe.py --url http://127.0.0.1:8791/game/index.html `
++    --js setup.js --check check.js --wait 1500        # 界面探针（--js/--check 收文件路径）
++python program\tools\check_assets.py                  # 素材自检
++```
++
++## 省钱规则（每次任务都适用）
++
++1. **不要整份读文件**：先 `tools/digest.py --outline`，再只读需要的那几节。
++2. **diff 先 `--stat`**，确认涉及哪些文件，再看单个文件的 diff。
++3. **界面问题先看探针返回的 JSON 数字**（高度、是否可滚、是否报错），截图只在必须判断视觉时看，别连拍。
++4. **一任务一会话**：新会话只喂 `交接速览.md` + 本次任务，不要把历史对话贴回来。
++5. **机械活交给便宜模型**：改名、批量替换、跑测试、跑探针。
++
++## 不许动的东西
++
++- `characters/`、`res/assets/`、`persona/`、`worldbook/`、`sessions/`、`release/` 是本地数据，**不入库、不上传**。
++- 世界书结构不改；人设/记忆书内容只留本机，文档里不抄设定细节。
++- 发布流程见 `新对话交接说明.md` 第 12、13 条（先整合旧补丁再发新补丁，旧补丁保留）。
 diff --git a/README.md b/README.md
-index 8a416dc..591efb7 100644
+index 8a416dc..dce9aa3 100644
 --- a/README.md
 +++ b/README.md
-@@ -38,12 +38,28 @@
+@@ -1,10 +1,11 @@
+ > ## 📌 接手前必读
+ >
+-> **每次接手本项目（新的对话 / 新的开发者）之前，必须先读交接文档：**
+-> [`other/docs/新对话交接说明.md`](other/docs/新对话交接说明.md)
++> **新接手（新的对话 / 新的开发者 / AI 代理）先读这一页：[`other/docs/交接速览.md`](other/docs/交接速览.md)**
++> —— 1 页写完现状、目录、命令、坑和待办，够开工，也省 token。
+ >
+-> 那里写了协作约定、目录结构、当前状态、踩坑记录和待办；不读容易重复踩坑，
+-> 或者改坏别人已经调好的东西。
++> 需要细节再读 [`other/docs/新对话交接说明.md`](other/docs/新对话交接说明.md)（32 KB，
++> 用 `python program/tools/digest.py --outline <文件>` 先看目录，只读需要的那几节）。
++> AI 代理另见根目录 [`AGENTS.md`](AGENTS.md)（命令 + 省钱规则 + 不许动的东西）。
+ 
+ ---
+ 
+@@ -38,12 +39,28 @@
  
  ## 近期更新（2026-11-03）
  
@@ -34,12 +92,14 @@ index 8a416dc..591efb7 100644
  - 想退回旧版：[回滚补丁](other/docs/patches/2026-11-03_回滚补丁_代码.patch)（只回代码，不动文档）
  
  ## 版本与回滚
-@@ -291,8 +307,12 @@ WA2-Kazusa-Bot/
+@@ -291,8 +308,14 @@ WA2-Kazusa-Bot/
  
  | 文档 | 内容 |
  |---|---|
 -| [other/docs/更新日志_2026-11-02.md](other/docs/更新日志_2026-11-02.md) | **最近一轮的全部改动**（多角色 / 立绘中文 / 世界书 / 记忆书 / 收敛清理）+ 变更文件表 |
 -| [other/docs/patches/2026-11-02_更新补丁.patch](other/docs/patches/2026-11-02_更新补丁.patch) | **一键更新补丁**（`git apply`，基于上一版 GitHub 提交） |
++| [other/docs/交接速览.md](other/docs/交接速览.md) | **新会话先读这一页**（现状 / 目录 / 命令 / 坑 / 待办 / 省钱） |
++| [AGENTS.md](AGENTS.md) | 给 AI 代理的接手须知：命令、省钱规则、不许动的东西 |
 +| [other/docs/更新日志_2026-11-03_第二轮.md](other/docs/更新日志_2026-11-03_第二轮.md) | **最新**：角色切换面板 + 结束游戏 + 白底修复 |
 +| [other/docs/patches/2026-11-03_第二轮_更新补丁.patch](other/docs/patches/2026-11-03_第二轮_更新补丁.patch) | **最新补丁**（基线 `0bee16d`，先打第一轮再打这个） |
 +| [other/docs/更新日志_2026-11-03.md](other/docs/更新日志_2026-11-03.md) | 同日第一轮：框架更新（时期/顶部菜单/角色列表/按角色存档语音） |
@@ -49,6 +109,83 @@ index 8a416dc..591efb7 100644
  | [other/docs/重要参考_踩坑记录.md](other/docs/重要参考_踩坑记录.md) | **改代码前先看**：拆模块/路由/前端/全屏 的九个坑与排查手法 |
  | [other/docs/界面像素测量方法.md](other/docs/界面像素测量方法.md) | 怎么把原版界面搬到 800×450：系数、测量步骤、交叉验证 |
  | [other/docs/创作手记.md](other/docs/创作手记.md) | 完整创作过程、失败的尝试、踩过的坑 |
+diff --git a/other/docs/交接速览.md b/other/docs/交接速览.md
+new file mode 100644
+index 0000000..40655cf
+--- /dev/null
++++ b/other/docs/交接速览.md
+@@ -0,0 +1,71 @@
++# 交接速览（1 页）
++
++> 这份是**省 token 的入口**：新会话先读这一页就够开工。
++> 需要细节再去 `新对话交接说明.md`（32 KB，按节读，用 `tools/digest.py --outline` 看目录）。
++
++## 一句话
++
++WA2 冬马和纱桌面聊天程序：Python 本地 HTTP + WebView2 无边框窗口，galgame 界面；
++对话走云端 LLM，语音走本地 GPT-SoVITS。角色 = `characters/<角色>/`，一个文件夹自包含。
++
++## 现在什么状态
++
++能正常玩。最近几轮做完的事：
++
++- 多角色（切换/新建，总目录 `characters/`，每个角色自带 人设/世界书/记忆书/立绘/语音）
++- 立绘中文命名（衣服名/表情名，14 套 278 张）
++- 世界书 18 条、常驻记忆书 252 字、剧情检索按角色开关
++- 框架更新：IC/CC/CODA 时期、顶部场景/服装菜单、角色列表切换、按角色存档与语音配置
++- 角色切换面板：底框等比 400×159、条目三段烘焙 300×30、列表可滚
++- 「结束游戏」改走 pywebview 桥接 + HTTP 关窗口
++
++## 目录（只记要紧的）
++
++```
++program/src/          源码（改这里）
++program/build_env/    运行时（run_dev.py 从 src 同步过来，别手改）
++program/res/assets/   素材（不入库）
++program/tools/        工具与自测
++characters/<角色>/    name.txt prompt/ worldbook/ memory/ voice/ portrait/ sessions/ story.json
++other/docs/           文档（日志、踩坑、路线图）
++```
++
++## 命令
++
++```powershell
++program\启动程序.bat                                   # 启动
++python program\tools\run_dev.py --sync-only            # 只同步到 build_env
++python program\tools\test_char_res.py                  # 自测（共 6 个）
++python program\tools\ui_probe.py --url <url> --js a.js --check b.js --wait 1500
++python program\tools\bake_char_bar.py                  # 面板条目三段图（素材不入库，换机要跑）
++python program\tools\check_assets.py                   # 素材自检
++```
++
++## 几个必知的坑
++
++1. **只起后端**必须带 `WA2_ASSETS_DIR`，否则 `/game/assets/**` 404。
++2. 前端改了要 **bump `index.html` 的 `?v=`**，否则 WebView2 可能用旧缓存。
++3. 探针 `--js/--check` 收的是**文件路径**，不是 JS 字符串。
++4. `ui_probe` 截图偶尔会缩成 391×66，重跑一次即可。
++5. 存档按角色隔离在 `characters/<角色>/sessions/`；`WA2_SESS_DIR` 设了就以它为准。
++6. 发布流程：先打 tag → 把上一版补丁合进 master → 再生成新补丁，**旧补丁不删**。
++
++## 待办（用户没让做就别做）
++
++- 立绘里 128 张叫「其他N」的还没表情名
++- 时期补丁 `persona_ic/cc/coda.txt` 还没写内容（时期目前只影响世界书过滤）
++- 世界书「时间线/同好会/说话方式」与记忆书有意重叠，嫌重复可删
++
++## 省钱的办法（给用户和代理都看）
++
++| 做法 | 省什么 |
++|---|---|
++| 新会话只喂这一页 + 本次任务 | 省掉每次 1 万+ token 的历史和长文档 |
++| `tools/digest.py --outline` 先看目录 | 省掉整份读 32 KB 交接文档 |
++| diff 先 `--stat` | 省掉整段 diff |
++| 界面先看探针 JSON，别连拍截图 | 截图很贵，一张就上千 token |
++| 机械活换便宜模型 | 单价直接降一个档 |
++
++## 最近提交
++
++`5d3e71f` 拆分 11-03 两份日志/补丁 · `e441f30` 第二轮日志 · `5851edc` README 更新摘要
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
 index 14b4a03..b05da09 100644
 --- a/other/docs/更新日志_2026-11-03.md
@@ -380,3 +517,107 @@ index 0000000..6d31780
 +
 +if __name__ == "__main__":
 +    main()
+diff --git a/program/tools/digest.py b/program/tools/digest.py
+new file mode 100644
+index 0000000..40cdf10
+--- /dev/null
++++ b/program/tools/digest.py
+@@ -0,0 +1,98 @@
++# -*- coding: utf-8 -*-
++"""省 token 的读书工具：先看结构，再只读需要的那几行。
++
++用法：
++    python tools/digest.py --outline other/docs/新对话交接说明.md
++    python tools/digest.py --head 40 README.md
++    python tools/digest.py --slice 120-180 other/docs/新对话交接说明.md
++    python tools/digest.py --patch other/docs/patches/xxx.patch
++    python tools/digest.py --stat other/docs/新对话交接说明.md
++
++--outline 输出标题行 + 行号，配合 --slice 就能只读某一节。
++"""
++import argparse
++import os
++import re
++import sys
++
++sys.stdout.reconfigure(encoding="utf-8", errors="replace")
++
++
++def read_lines(path):
++    with open(path, encoding="utf-8", errors="replace") as f:
++        return f.read().splitlines()
++
++
++def cmd_outline(path):
++    lines = read_lines(path)
++    print("%s  %d 行 / %.1f KB" % (path, len(lines), os.path.getsize(path) / 1024))
++    for i, ln in enumerate(lines, 1):
++        if re.match(r"^#{1,4}\s", ln):
++            print("%5d | %s" % (i, ln[:110]))
++    if not any(re.match(r"^#{1,4}\s", ln) for ln in lines):
++        print("（没有 Markdown 标题，用 --head / --slice 看）")
++
++
++def cmd_head(path, n):
++    for i, ln in enumerate(read_lines(path)[:n], 1):
++        print("%5d | %s" % (i, ln))
++
++
++def cmd_slice(path, a, b):
++    lines = read_lines(path)
++    for i in range(max(1, a), min(len(lines), b) + 1):
++        print("%5d | %s" % (i, lines[i - 1]))
++
++
++def cmd_patch(path):
++    """只看补丁动了哪些文件、加减多少行，不看内容。"""
++    text = open(path, encoding="utf-8", errors="replace").read()
++    print("%s  %.1f KB" % (path, os.path.getsize(path) / 1024))
++    blocks = re.split(r"^diff --git ", text, flags=re.M)[1:]
++    print("%d 个文件：" % len(blocks))
++    for b in blocks:
++        head = b.splitlines()[0] if b.splitlines() else ""
++        files = re.findall(r"a/(\S+) b/(\S+)", head)
++        name = files[0][1] if files else head[:60]
++        add = len(re.findall(r"^\+(?!\+\+)", b, flags=re.M))
++        dele = len(re.findall(r"^-(?!--)", b, flags=re.M))
++        print("  %-58s +%-4d -%d" % (name, add, dele))
++
++
++def cmd_stat(path):
++    lines = read_lines(path)
++    print("%s\n  %d 行 / %.1f KB" % (path, len(lines), os.path.getsize(path) / 1024))
++
++
++def main():
++    ap = argparse.ArgumentParser(description="省 token 的文档摘要工具")
++    ap.add_argument("path", help="文件路径")
++    ap.add_argument("--outline", action="store_true", help="只列标题（默认）")
++    ap.add_argument("--head", type=int, help="前 N 行")
++    ap.add_argument("--slice", help="行范围，如 120-180")
++    ap.add_argument("--patch", action="store_true", help="补丁只列文件与增删行数")
++    ap.add_argument("--stat", action="store_true", help="只报大小")
++    a = ap.parse_args()
++
++    if not os.path.exists(a.path):
++        print("找不到文件：%s" % a.path)
++        return 2
++    if a.patch:
++        cmd_patch(a.path)
++    elif a.head:
++        cmd_head(a.path, a.head)
++    elif a.slice:
++        m = re.match(r"^(\d+)-(\d+)$", a.slice.strip())
++        if not m:
++            print("--slice 格式：120-180")
++            return 2
++        cmd_slice(a.path, int(m.group(1)), int(m.group(2)))
++    elif a.stat:
++        cmd_stat(a.path)
++    else:
++        cmd_outline(a.path)
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
