@@ -1,3 +1,91 @@
+diff --git a/README.md b/README.md
+index 463bc92..8a416dc 100644
+--- a/README.md
++++ b/README.md
+@@ -40,10 +40,23 @@
+ 
+ > 框架更新：场景/服装顶部菜单、IC/CC/CODA 时期系统、角色切换列表、
+ > 按角色隔离存档与语音配置；只含代码，不含素材与角色设定。
++> **本版代码已经合进 `master`**，clone 下来直接就是最新版；补丁只给老安装用。
+ 
+ - [更新日志 2026-11-03](other/docs/更新日志_2026-11-03.md)
+-- [一键更新补丁](other/docs/patches/2026-11-03_更新补丁.patch) —— 仓库根目录执行
+-  `git apply "other/docs/patches/2026-11-03_更新补丁.patch"`
++- 老安装升级：[一键更新补丁](other/docs/patches/2026-11-03_更新补丁.patch)
++- 想退回旧版：[回滚补丁](other/docs/patches/2026-11-03_回滚补丁_代码.patch)（只回代码，不动文档）
++
++## 版本与回滚
++
++| 用途 | 命令 / 位置 |
++|---|---|
++| 旧版代码锚点 | tag `v2026-11-02-old`（框架更新之前的最后一版） |
++| 看旧版代码 | GitHub：`.../tree/v2026-11-02-old/program/src` |
++| 老安装升级到最新 | `git apply "other/docs/patches/2026-11-03_更新补丁.patch"` |
++| 已经是最新、想退回旧版 | `git apply -R "other/docs/patches/2026-11-03_回滚补丁_代码.patch"` |
++| 整个工作区硬退回旧版 | `git checkout v2026-11-02-old -- program` |
++
++> 补丁和旧版 tag 都会保留，不会因为发布新版被删掉。
+ 
+ ## 近期更新（2026-11-02 22:50）
+ 
+diff --git a/other/docs/新对话交接说明.md b/other/docs/新对话交接说明.md
+index 3b6dac4..1bc5f05 100644
+--- a/other/docs/新对话交接说明.md
++++ b/other/docs/新对话交接说明.md
+@@ -407,8 +407,14 @@ cd program
+ 
+ ## 十二、最近提交（便于回溯）
+ 
++> 2026-11-03：旧版锚点 tag **`v2026-11-02-old`**（框架更新前最后一版）；
++> 框架更新（时期 / 顶部菜单 / 角色列表 / 按角色存档与语音）已合进 `master`；
++> 升级补丁 `2026-11-03_更新补丁.patch`、回滚补丁 `2026-11-03_回滚补丁_代码.patch` 都在 `other/docs/patches/`。
++
+ | 提交 | 内容 |
+ |---|---|
++| `3429d42` | 框架更新 2026-11-03（11 个文件，来自补丁） |
++| `c7dea24` | 交接约定第 13 条 + README 接手前必读 |
+ | `本轮` | 见第十四节（多角色 / 立绘中文 / 世界书扩容 / 收敛清理，`27eab6c..HEAD`） |
+ | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
+ | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
+diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
+index 40657bb..14b4a03 100644
+--- a/other/docs/更新日志_2026-11-03.md
++++ b/other/docs/更新日志_2026-11-03.md
+@@ -123,3 +123,34 @@ cd program
+ 路线图补上 `.md` 后缀并加进 README 文档表、交接文档开头被截断的句子、
+ `bake_ui_text.py` 增加 `sp_switch_title` / `sp_cancel` 两个条目。
+ 
++## 七、代码已合进 master（2026-11-03 下午）
++
++按交接约定第 13 条，发布新补丁前先把旧补丁整合进仓库：
++
++- 旧版打了 tag **`v2026-11-02-old`**（框架更新之前的最后一版，永久保留）
++- 补丁里的 11 个文件已提交进 `master`（提交「框架更新 2026-11-03…」），
++  clone 下来直接就是最新代码，不再需要先打补丁
++- `2026-11-03_更新补丁.patch` 重新生成为 `v2026-11-02-old → HEAD` 的 diff（14 文件 / 55 KB；
++  含本轮文档改动）
++- 新增 `2026-11-03_回滚补丁_代码.patch`（`HEAD → v2026-11-02-old`，只回 `program/`，不动文档），
++  用法 `git apply -R`
++- 旧补丁文件全部保留在 `other/docs/patches/`，方便回滚与追溯
++
++### 本地升级实测（同一台机器）
++
++| 项 | 结果 |
++|---|---|
++| `run_dev.py --sync-only` | 20 个源文件同步进 `build_env` |
++| 老存档迁移 | `build_env/sessions/*.json`（1/6/7/8/auto）**复制**进 `characters/和纱/sessions/`，原件保留 |
++| 自测 | 6 个测试全过（`test_memory_flow` 需让 `WA2_SESS_DIR` 优先，已修 `_set_character_sessions`） |
++| 角色切换面板 | 点「切换角色」弹出面板：2 个角色（和纱 / 新角色）、标题和取消的字模都加载成功、无 JS 报错 |
++| 时期判断 | 衣服 `coda·第二套常服` 自动判成 coda；手动 `period=ic` / `coda` 都生效 |
++| 旧功能回归 | 常驻记忆书、世界书命中、剧情检索片段都还在（system 约 2.4 KB） |
++| 开场白 | 没 `opening.json` 时 `/api/character/opening` 返回 `{"ok": false}`，前端用默认「……」 |
++
++> 时期补丁目前**没有内容**：本地角色文件夹里还没有 `persona_ic.txt / persona_cc.txt / persona_coda.txt`，
++> 所以时期只体现在世界书 `period` 过滤上（现有条目没有 `period` 字段，等于全放行）。
++> 要真正分时期，需要给角色补这三份时期补丁，并给世界书条目加 `period` 字段。
++
++
++
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
 --- a/program/src/char_res.py
@@ -23,7 +111,7 @@ index 34f826c..6f21164 100644
  
  
 diff --git a/program/src/main.py b/program/src/main.py
-index d12d314..ab85d5c 100644
+index d12d314..ab7f706 100644
 --- a/program/src/main.py
 +++ b/program/src/main.py
 @@ -28,6 +28,7 @@ AI 聊天界面架构 —— 可插拔的桌面聊天 UI 框架
@@ -45,12 +133,17 @@ index d12d314..ab85d5c 100644
  OLLAMA = "http://127.0.0.1:11434"
  # 安全模式: 存在 模型开关.txt(或环境变量 WA2_NO_MODELS=1) 时不加载任何模型
  def _no_models_flag():
-@@ -407,6 +408,34 @@ special_files.set_default_paths(
+@@ -407,6 +408,39 @@ special_files.set_default_paths(
  )
  
  
 +def _set_character_sessions():
-+    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。"""
++    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。
++
++    显式设了 WA2_SESS_DIR（自测 / 便携版）时尊重它，不覆盖。
++    """
++    if os.environ.get("WA2_SESS_DIR"):
++        return
 +    try:
 +        d = os.path.join(characters.active_dir(), "sessions")
 +        os.makedirs(d, exist_ok=True)
@@ -80,7 +173,7 @@ index d12d314..ab85d5c 100644
  def qs(q, names, default=""):
      """从 parse_qs 结果里取第一个存在的参数名（正式名 + 兼容旧名）"""
      for n in names:
-@@ -628,8 +657,9 @@ def _stage_llm(system, user, max_tokens=6, timeout=20):
+@@ -628,8 +662,9 @@ def _stage_llm(system, user, max_tokens=6, timeout=20):
          "max_tokens": max_tokens,
          "temperature": 0,
      }
@@ -91,7 +184,7 @@ index d12d314..ab85d5c 100644
      rq = urllib.request.Request(
          base_url + "/v1/chat/completions",
          data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-@@ -672,8 +702,9 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
+@@ -672,8 +707,9 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
      }
      if not cc:
          payload["reasoning_effort"] = "none"
@@ -102,7 +195,7 @@ index d12d314..ab85d5c 100644
      rq = urllib.request.Request(
          base_url + "/v1/chat/completions",
          data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-@@ -1267,6 +1298,19 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1267,6 +1303,19 @@ class Handler(SimpleHTTPRequestHandler):
          """
          if self.path.startswith("/api/character/sprite/index.json"):
              return self._json(characters.sprite_index(os.path.join(ASSETS_DIR, "sprites")))
@@ -122,7 +215,7 @@ index d12d314..ab85d5c 100644
          if self.path.startswith("/api/character/list"):
              return self._json({"ok": True,
                                 "active": characters.active_id(),
-@@ -1281,6 +1325,10 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1281,6 +1330,10 @@ class Handler(SimpleHTTPRequestHandler):
                  persona_stage.reset()
              except Exception:
                  pass
@@ -133,7 +226,7 @@ index d12d314..ab85d5c 100644
              try:
                  res["name"] = special_cfg.get_name()
                  res["dir"] = characters.active_dir()
-@@ -1324,6 +1372,8 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1324,6 +1377,8 @@ class Handler(SimpleHTTPRequestHandler):
                      log("日文配音: %s" % ja)
                  else:
                      lang = "zh"          # 翻译失败就退回中文
@@ -142,7 +235,7 @@ index d12d314..ab85d5c 100644
              applog.log("TTS 准备: lang=%s emo=%s 文本=%s (翻译耗时 %.1fs)"
                         % (lang, emotion, speak_text[:24], time.time() - t_t0), "TTS")
              t_s0 = time.time()
-@@ -1521,12 +1571,18 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1521,12 +1576,18 @@ class Handler(SimpleHTTPRequestHandler):
          raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
          # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
          prev_bg = (req.get("bg") or "").strip()
@@ -163,7 +256,7 @@ index d12d314..ab85d5c 100644
  
          # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
          #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
-@@ -1570,6 +1626,12 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1570,6 +1631,12 @@ class Handler(SimpleHTTPRequestHandler):
          except Exception as e:
              log("story_rag 失败: %s" % e)
  
@@ -176,7 +269,7 @@ index d12d314..ab85d5c 100644
          if cc:
              # 云端：人设末尾补语言/格式约束，前面插 few-shot
              # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
-@@ -1577,8 +1639,7 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1577,8 +1644,7 @@ class Handler(SimpleHTTPRequestHandler):
                  "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
                  + scene_cg.prompt_hint() +
                  "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
@@ -186,7 +279,7 @@ index d12d314..ab85d5c 100644
                  "平时绝对不要输出。"
                  "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
                  "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
-@@ -1594,8 +1655,9 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1594,8 +1660,9 @@ class Handler(SimpleHTTPRequestHandler):
          }
          if not cc:
              payload["reasoning_effort"] = "none"
@@ -197,7 +290,7 @@ index d12d314..ab85d5c 100644
          t0 = time.time()
          try:
              rq = urllib.request.Request(
-@@ -1643,8 +1705,10 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1643,8 +1710,10 @@ class Handler(SimpleHTTPRequestHandler):
  
              self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                          "action": action, "action_zh": action_zh,

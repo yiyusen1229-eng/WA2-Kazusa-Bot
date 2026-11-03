@@ -23,7 +23,7 @@ index 6f21164..34f826c 100644
  
  
 diff --git a/program/src/main.py b/program/src/main.py
-index ab85d5c..d12d314 100644
+index ab7f706..d12d314 100644
 --- a/program/src/main.py
 +++ b/program/src/main.py
 @@ -28,7 +28,6 @@ AI 聊天界面架构 —— 可插拔的桌面聊天 UI 框架
@@ -45,12 +45,17 @@ index ab85d5c..d12d314 100644
  OLLAMA = "http://127.0.0.1:11434"
  # 安全模式: 存在 模型开关.txt(或环境变量 WA2_NO_MODELS=1) 时不加载任何模型
  def _no_models_flag():
-@@ -408,34 +407,6 @@ special_files.set_default_paths(
+@@ -408,39 +407,6 @@ special_files.set_default_paths(
  )
  
  
 -def _set_character_sessions():
--    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。"""
+-    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。
+-
+-    显式设了 WA2_SESS_DIR（自测 / 便携版）时尊重它，不覆盖。
+-    """
+-    if os.environ.get("WA2_SESS_DIR"):
+-        return
 -    try:
 -        d = os.path.join(characters.active_dir(), "sessions")
 -        os.makedirs(d, exist_ok=True)
@@ -80,7 +85,7 @@ index ab85d5c..d12d314 100644
  def qs(q, names, default=""):
      """从 parse_qs 结果里取第一个存在的参数名（正式名 + 兼容旧名）"""
      for n in names:
-@@ -657,9 +628,8 @@ def _stage_llm(system, user, max_tokens=6, timeout=20):
+@@ -662,9 +628,8 @@ def _stage_llm(system, user, max_tokens=6, timeout=20):
          "max_tokens": max_tokens,
          "temperature": 0,
      }
@@ -91,7 +96,7 @@ index ab85d5c..d12d314 100644
      rq = urllib.request.Request(
          base_url + "/v1/chat/completions",
          data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-@@ -702,9 +672,8 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
+@@ -707,9 +672,8 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
      }
      if not cc:
          payload["reasoning_effort"] = "none"
@@ -102,7 +107,7 @@ index ab85d5c..d12d314 100644
      rq = urllib.request.Request(
          base_url + "/v1/chat/completions",
          data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-@@ -1298,19 +1267,6 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1303,19 +1267,6 @@ class Handler(SimpleHTTPRequestHandler):
          """
          if self.path.startswith("/api/character/sprite/index.json"):
              return self._json(characters.sprite_index(os.path.join(ASSETS_DIR, "sprites")))
@@ -122,7 +127,7 @@ index ab85d5c..d12d314 100644
          if self.path.startswith("/api/character/list"):
              return self._json({"ok": True,
                                 "active": characters.active_id(),
-@@ -1325,10 +1281,6 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1330,10 +1281,6 @@ class Handler(SimpleHTTPRequestHandler):
                  persona_stage.reset()
              except Exception:
                  pass
@@ -133,7 +138,7 @@ index ab85d5c..d12d314 100644
              try:
                  res["name"] = special_cfg.get_name()
                  res["dir"] = characters.active_dir()
-@@ -1372,8 +1324,6 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1377,8 +1324,6 @@ class Handler(SimpleHTTPRequestHandler):
                      log("日文配音: %s" % ja)
                  else:
                      lang = "zh"          # 翻译失败就退回中文
@@ -142,7 +147,7 @@ index ab85d5c..d12d314 100644
              applog.log("TTS 准备: lang=%s emo=%s 文本=%s (翻译耗时 %.1fs)"
                         % (lang, emotion, speak_text[:24], time.time() - t_t0), "TTS")
              t_s0 = time.time()
-@@ -1571,18 +1521,12 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1576,18 +1521,12 @@ class Handler(SimpleHTTPRequestHandler):
          raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
          # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
          prev_bg = (req.get("bg") or "").strip()
@@ -163,7 +168,7 @@ index ab85d5c..d12d314 100644
  
          # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
          #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
-@@ -1626,12 +1570,6 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1631,12 +1570,6 @@ class Handler(SimpleHTTPRequestHandler):
          except Exception as e:
              log("story_rag 失败: %s" % e)
  
@@ -176,7 +181,7 @@ index ab85d5c..d12d314 100644
          if cc:
              # 云端：人设末尾补语言/格式约束，前面插 few-shot
              # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
-@@ -1639,7 +1577,8 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1644,7 +1577,8 @@ class Handler(SimpleHTTPRequestHandler):
                  "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
                  + scene_cg.prompt_hint() +
                  "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
@@ -186,7 +191,7 @@ index ab85d5c..d12d314 100644
                  "平时绝对不要输出。"
                  "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
                  "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
-@@ -1655,9 +1594,8 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1660,9 +1594,8 @@ class Handler(SimpleHTTPRequestHandler):
          }
          if not cc:
              payload["reasoning_effort"] = "none"
@@ -197,7 +202,7 @@ index ab85d5c..d12d314 100644
          t0 = time.time()
          try:
              rq = urllib.request.Request(
-@@ -1705,10 +1643,8 @@ class Handler(SimpleHTTPRequestHandler):
+@@ -1710,10 +1643,8 @@ class Handler(SimpleHTTPRequestHandler):
  
              self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                          "action": action, "action_zh": action_zh,
