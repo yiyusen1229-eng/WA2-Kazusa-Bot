@@ -837,7 +837,7 @@ index 1c95631..4e29320 100644
 +  .catch(function () {});
 \ No newline at end of file
 diff --git a/program/src/ui/index.html b/program/src/ui/index.html
-index 5ed03cd..8a8c84e 100644
+index 1c1a04c..8a8c84e 100644
 --- a/program/src/ui/index.html
 +++ b/program/src/ui/index.html
 @@ -3,15 +3,15 @@
@@ -854,7 +854,7 @@ index 5ed03cd..8a8c84e 100644
  <link rel="stylesheet" href="unifont.css?v=11022135">
 -<link rel="stylesheet" href="opt.css?v=202611031205">
 -  <link rel="stylesheet" href="menubar.css?v=202611031205">
--<link rel="stylesheet" href="special.css?v=202611031430">
+-<link rel="stylesheet" href="special.css?v=202611031730">
 +<link rel="stylesheet" href="opt.css?v=11022135">
 +  <link rel="stylesheet" href="menubar.css?v=11022135">
 +<link rel="stylesheet" href="special.css?v=11022135">
@@ -917,7 +917,7 @@ index 5ed03cd..8a8c84e 100644
    <script src="savepages.js?v=11022135"></script>
    <script src="screens.js?v=11022135"></script>
 -  <script src="special.js?v=202611032030"></script>
--<script src="game.js?v=202611031220"></script>
+-<script src="game.js?v=202611031500"></script>
 +  <script src="special.js?v=11022135"></script>
 +<script src="game.js?v=11022135"></script>
  <script src="sound.js?v=11022135"></script>
@@ -1127,10 +1127,10 @@ index fd7fd1e..138e9dd 100644
 +window.addEventListener("app:ready", restoreCt1);
 \ No newline at end of file
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 07c770c..37660ed 100644
+index 27c20c6..37660ed 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,83 +406,4 @@
+@@ -406,89 +406,4 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1176,12 +1176,18 @@ index 07c770c..37660ed 100644
 -#specialScreen .spcpItem {
 -  position: relative;
 -  flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
--  /* 原版条目底板 sys_00110（480x112）：先缩到 30px 高，再用九宫格拉长——
--     上下/左右四角等比，只有中间段横向拉伸，所以又细又长也不变形 */
+-  /* 原版条目底板 sys_00110：烘成三段（左右帽 + 中间段），
+-     左右帽原样、中间段横向拉长，高度都是 30，所以不变形也不露白 */
 -  width: 300px; height: 30px; box-sizing: border-box;
--  border: 7px solid transparent;
--  border-image: url("assets/ui/sys_00110.png") 34 68 50 68 fill / 7px 14px stretch;
--  background: rgba(3,20,32,.55);  /* 点睛：压住 button 默认白底，同时让条子有对比 */
+-  border: 0;
+-  background-color: transparent;   /* 不要 button 默认白底 */
+-  background-image:
+-    url("assets/ui/text/sp_bar_left.png"),
+-    url("assets/ui/text/sp_bar_right.png"),
+-    url("assets/ui/text/sp_bar_mid.png");
+-  background-repeat: no-repeat;
+-  background-position: left center, right center, left 14px center;
+-  background-size: 14px 30px, 14px 30px, calc(100% - 28px) 30px;
 -  color: #eaf7ff; cursor: pointer;
 -  display: flex; align-items: center; justify-content: center;
 -  appearance: none; -webkit-appearance: none;
@@ -1355,3 +1361,56 @@ index 7840fee..6bb488b 100644
    var keepInput = false;
  
    /* 平时：字模显示，输入框藏起来 */
+diff --git a/program/tools/bake_char_bar.py b/program/tools/bake_char_bar.py
+deleted file mode 100644
+index 6d31780..0000000
+--- a/program/tools/bake_char_bar.py
++++ /dev/null
+@@ -1,47 +0,0 @@
+-# -*- coding: utf-8 -*-
+-"""把 sys_00110 的按钮底板切成三段（左帽 / 中间 / 右帽），给九宫格用。
+-
+-为什么要烘：原图 480x112，上下有透明留白；直接拿去做 border-image，
+-四角会带上透明边、中间 fill 又被压得很薄。先裁掉留白、等比缩到目标高度，
+-左右帽保持原样、只横向拉伸中间段，就不会变形也不会露白。
+-
+-用法：
+-    python tools/bake_char_bar.py            # 默认高 30，左右帽各 14
+-    python tools/bake_char_bar.py --height 34 --cap 16
+-"""
+-import argparse
+-import os
+-
+-from PIL import Image
+-
+-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+-SRC = os.path.join(ROOT, "res", "assets", "ui", "sys_00110.png")
+-OUT_DIR = os.path.join(ROOT, "res", "assets", "ui", "text")
+-
+-
+-def main():
+-    ap = argparse.ArgumentParser()
+-    ap.add_argument("--height", type=int, default=30, help="成品高度（px）")
+-    ap.add_argument("--cap", type=int, default=14, help="左右帽宽度（px）")
+-    args = ap.parse_args()
+-
+-    im = Image.open(SRC).convert("RGBA")
+-    bbox = im.getbbox()          # 去掉四周透明留白
+-    im = im.crop(bbox)
+-    w, h = im.size
+-    nw = max(1, round(w * args.height / h))
+-    im = im.resize((nw, args.height), Image.LANCZOS)
+-    cap = min(args.cap, nw // 3)
+-    left = im.crop((0, 0, cap, args.height))
+-    right = im.crop((nw - cap, 0, nw, args.height))
+-    mid = im.crop((cap, 0, nw - cap, args.height))
+-    os.makedirs(OUT_DIR, exist_ok=True)
+-    for name, part in (("sp_bar_left.png", left), ("sp_bar_mid.png", mid), ("sp_bar_right.png", right)):
+-        p = os.path.join(OUT_DIR, name)
+-        part.save(p)
+-        print("%-18s %s  %s" % (name, part.size, p))
+-    print("裁切后原图：%dx%d → 缩放 %dx%d，左右帽 %d px" % (w, h, nw, args.height, cap))
+-
+-
+-if __name__ == "__main__":
+-    main()
