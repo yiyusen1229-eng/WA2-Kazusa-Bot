@@ -48,10 +48,10 @@ index 3b6dac4..1bc5f05 100644
  | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
  | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
-index 40657bb..14b4a03 100644
+index 40657bb..52aaeb6 100644
 --- a/other/docs/更新日志_2026-11-03.md
 +++ b/other/docs/更新日志_2026-11-03.md
-@@ -123,3 +123,34 @@ cd program
+@@ -123,3 +123,47 @@ cd program
  路线图补上 `.md` 后缀并加进 README 文档表、交接文档开头被截断的句子、
  `bake_ui_text.py` 增加 `sp_switch_title` / `sp_cancel` 两个条目。
  
@@ -86,6 +86,20 @@ index 40657bb..14b4a03 100644
 +
 +
 +
++
++## 八、角色切换面板 UI 修正（2026-11-03 下午）
++
++用户反馈：角色多了列表被压扁、标题压在框线上。改为：
++
++- **标题移到框外**（框上方，居中）
++- **列表可滚动**：条目固定 30px 高（`flex: 0 0 auto`），装不下就滚，不再压缩
++- 滚动条用回想同款（5px、青色半透明滑杆）
++- **取消按钮移到框外**（框下方），不再压住面板花纹
++- 面板高度自适应：少角色时 176px，多角色最高 64vh，列表内部滚动
++
++实测（真实 WebView2）：2 个角色时紧凑无滚动；注入 13 个条目时 `itemHeight=30.4`、
++`scrollHeight 442 > clientHeight 232`（可滚）、标题在框外、无 JS 报错。
+\ No newline at end of file
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
 --- a/program/src/char_res.py
@@ -887,7 +901,7 @@ index 4e29320..7e0af89 100644
 +  setTimeout(applyStartupWinMode, 300);
 +});
 diff --git a/program/src/ui/index.html b/program/src/ui/index.html
-index 8a8c84e..0e2c611 100644
+index 8a8c84e..5ed03cd 100644
 --- a/program/src/ui/index.html
 +++ b/program/src/ui/index.html
 @@ -3,15 +3,15 @@
@@ -907,19 +921,21 @@ index 8a8c84e..0e2c611 100644
 -<link rel="stylesheet" href="special.css?v=11022135">
 +<link rel="stylesheet" href="opt.css?v=202611031205">
 +  <link rel="stylesheet" href="menubar.css?v=202611031205">
-+<link rel="stylesheet" href="special.css?v=202611032110">
++<link rel="stylesheet" href="special.css?v=202611031430">
  </head>
  <body>
  <div id="stage">
-@@ -175,6 +175,15 @@
+@@ -175,6 +175,17 @@
        </div>
      </div>
  
-+    <!-- 角色切换：直接列出现有角色，一键切换 -->
++    <!-- 角色切换：直接列出现有角色，一键切换（标题在框外，列表可滚动） -->
 +    <div id="spCharPick" class="spCharPick" data-no-uitext="1" role="dialog" aria-hidden="true">
-+      <div class="spcpBox">
++      <div class="spcpWrap">
 +        <img class="spcpTitle" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
-+        <div id="spcpList" class="spcpList"></div>
++        <div class="spcpBox">
++          <div id="spcpList" class="spcpList"></div>
++        </div>
 +        <button id="spcpCancel" class="spcpCancel" type="button"><img src="assets/ui/text/sp_cancel.png" alt="取消"></button>
 +      </div>
 +    </div>
@@ -927,7 +943,7 @@ index 8a8c84e..0e2c611 100644
      <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
      <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
    </div>
-@@ -191,6 +200,9 @@
+@@ -191,6 +202,9 @@
  
  
  
@@ -937,7 +953,7 @@ index 8a8c84e..0e2c611 100644
  <!-- ================= 对话画面 ================= -->
  <div id="gameScreen" class="screen">
    <div id="bgLayer"></div>
-@@ -222,7 +234,7 @@
+@@ -222,7 +236,7 @@
    <div id="msgWrap">
      <div id="msgBox">
        <div class="fill"></div>
@@ -946,7 +962,7 @@ index 8a8c84e..0e2c611 100644
        <div id="msgText"></div>
        <div class="walogo">AI CHAT UI</div>
      </div>
-@@ -231,7 +243,7 @@
+@@ -231,7 +245,7 @@
    <div id="inputBar">
      <img id="inputFrame" src="assets/input_frame.png" alt="">
      <input id="input" type="text" placeholder="" autocomplete="off">
@@ -955,7 +971,7 @@ index 8a8c84e..0e2c611 100644
      <button id="sendBtn">发送</button>
    </div>
  
-@@ -259,17 +271,17 @@
+@@ -259,17 +273,17 @@
  
  <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
  <script src="config.js?v=11022135"></script>
@@ -1175,10 +1191,10 @@ index 138e9dd..fd7fd1e 100644
 \ No newline at end of file
 +window.addEventListener("app:ready", restoreCt1);
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 37660ed..9168490 100644
+index 37660ed..3135ec8 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,4 +406,63 @@
+@@ -406,4 +406,77 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1191,23 +1207,37 @@ index 37660ed..9168490 100644
 +  background: rgba(0, 6, 14, .58);
 +}
 +#specialScreen .spCharPick.show { display: flex; }
++/* 标题在框外；列表在框内滚动；取消也在框外，避免压住边框花纹 */
++#specialScreen .spcpWrap {
++  display: flex; flex-direction: column; align-items: center;
++  width: 380px; max-height: 82vh;
++}
 +#specialScreen .spcpBox {
 +  position: relative;
-+  width: 380px; height: 156px; box-sizing: border-box;
-+  padding: 12px 30px 0;
++  width: 100%; min-height: 176px; max-height: 64vh; box-sizing: border-box;
++  padding: 34px 32px 26px;
++  display: flex; flex-direction: column;
 +  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
 +  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 +}
 +#specialScreen .spcpTitle {
-+  display: block; height: 13px; width: auto;
-+  margin: 0 auto 4px;
++  display: block; height: 14px; width: auto;
++  margin: 0 auto 6px;
 +  filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
 +}
 +#specialScreen .spcpList {
-+  display: flex; flex-direction: column; gap: 3px; align-items: center;
++  display: flex; flex-direction: column; gap: 4px; align-items: center;
++  flex: 1 1 auto; min-height: 0; padding: 2px 4px;
++  overflow-y: auto; overflow-x: hidden;
++  scrollbar-width: thin; scrollbar-color: rgba(120,210,255,.55) rgba(8,40,64,.35);
 +}
++#specialScreen .spcpList::-webkit-scrollbar { width: 5px; }
++#specialScreen .spcpList::-webkit-scrollbar-track { background: rgba(8,40,64,.35); border-radius: 3px; }
++#specialScreen .spcpList::-webkit-scrollbar-thumb { background: rgba(120,210,255,.55); border-radius: 3px; }
++#specialScreen .spcpList::-webkit-scrollbar-thumb:hover { background: rgba(150,230,255,.75); }
 +#specialScreen .spcpItem {
 +  position: relative;
++  flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
 +  width: 300px; height: 30px; padding: 0 16px; box-sizing: border-box;
 +  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
 +  border: 0; color: #eaf7ff; cursor: pointer;
@@ -1232,10 +1262,10 @@ index 37660ed..9168490 100644
 +  color: #bfe6f7; font-size: 11px;
 +}
 +#specialScreen .spcpCancel {
-+  position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%);
++  margin: 10px auto 0;
 +  width: 76px; height: 18px; padding: 0; box-sizing: border-box;
 +  background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat;
-+  border: 0; cursor: pointer; isolation: isolate;
++  border: 0; cursor: pointer; isolation: isolate; display: block;
 +}
 +#specialScreen .spcpCancel:active { background-position: 0 50%; }
 +#specialScreen .spcpCancel:hover { filter: brightness(1.12); }
