@@ -448,12 +448,18 @@
 #specialScreen .spcpItem {
   position: relative;
   flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
-  /* 原版条目底板 sys_00110（480x112）：先缩到 30px 高，再用九宫格拉长——
-     上下/左右四角等比，只有中间段横向拉伸，所以又细又长也不变形 */
+  /* 原版条目底板 sys_00110：烘成三段（左右帽 + 中间段），
+     左右帽原样、中间段横向拉长，高度都是 30，所以不变形也不露白 */
   width: 300px; height: 30px; box-sizing: border-box;
-  border: 7px solid transparent;
-  border-image: url("assets/ui/sys_00110.png") 34 68 50 68 fill / 7px 14px stretch;
-  background: rgba(3,20,32,.55);  /* 点睛：压住 button 默认白底，同时让条子有对比 */
+  border: 0;
+  background-color: transparent;   /* 不要 button 默认白底 */
+  background-image:
+    url("assets/ui/text/sp_bar_left.png"),
+    url("assets/ui/text/sp_bar_right.png"),
+    url("assets/ui/text/sp_bar_mid.png");
+  background-repeat: no-repeat;
+  background-position: left center, right center, left 14px center;
+  background-size: 14px 30px, 14px 30px, calc(100% - 28px) 30px;
   color: #eaf7ff; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   appearance: none; -webkit-appearance: none;
