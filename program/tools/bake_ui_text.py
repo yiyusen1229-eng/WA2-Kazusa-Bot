@@ -77,6 +77,9 @@ ITEMS = {
     "sp_pct":           ("%", 12, False, None),
     "sp_eq":            ("=", 12, False, None),
     "sp_approx":        ("≈", 12, False, None),
+    # 角色切换面板（spcp）的两个固定文案：标题 13px、取消 9px
+    "sp_switch_title":  ("切换角色", 13, False, None),
+    "sp_cancel":        ("取消", 9, False, None),
 }
 
 
