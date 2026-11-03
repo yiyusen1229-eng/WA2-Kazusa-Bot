@@ -156,3 +156,5 @@ body.mbOpen #stage { filter: brightness(.94); }
 /* 拖动时降低重绘开销，减少迟滞 */
 body.mbDragging #stage { pointer-events: none; }
 body.mbDragging * { transition: none !important; animation: none !important; }
+
+.mbSub { max-height: 70vh; overflow-y: auto; }

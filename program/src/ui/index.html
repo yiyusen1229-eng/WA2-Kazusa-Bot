@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 聊天界面架构</title>
+<title>WHITE ALBUM 2</title>
 <link rel="stylesheet" href="screens-base.css?v=11022135">
 <link rel="stylesheet" href="opt-screen.css?v=11022135">
 <link rel="stylesheet" href="save-screen.css?v=11022135">
-<link rel="stylesheet" href="game450.css?v=11022135">
+<link rel="stylesheet" href="game450.css?v=202611031130">
 <link rel="stylesheet" href="unifont.css?v=11022135">
-<link rel="stylesheet" href="opt.css?v=11022135">
-  <link rel="stylesheet" href="menubar.css?v=11022135">
-<link rel="stylesheet" href="special.css?v=11022135">
+<link rel="stylesheet" href="opt.css?v=202611031205">
+  <link rel="stylesheet" href="menubar.css?v=202611031205">
+<link rel="stylesheet" href="special.css?v=202611032110">
 </head>
 <body>
 <div id="stage">
@@ -175,6 +175,15 @@
       </div>
     </div>
 
+    <!-- 角色切换：直接列出现有角色，一键切换 -->
+    <div id="spCharPick" class="spCharPick" data-no-uitext="1" role="dialog" aria-hidden="true">
+      <div class="spcpBox">
+        <img class="spcpTitle" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
+        <div id="spcpList" class="spcpList"></div>
+        <button id="spcpCancel" class="spcpCancel" type="button"><img src="assets/ui/text/sp_cancel.png" alt="取消"></button>
+      </div>
+    </div>
+
     <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
     <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
   </div>
@@ -189,6 +198,9 @@
     <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
   </div>
 
+
+
+<!-- ================= 场景 / 服装手动选择 ================= -->
 
 
 <!-- ================= 对话画面 ================= -->
@@ -222,7 +234,7 @@
   <div id="msgWrap">
     <div id="msgBox">
       <div class="fill"></div>
-      <div id="namePlate">和纱</div>
+      <div id="namePlate">角色</div>
       <div id="msgText"></div>
       <div class="walogo">AI CHAT UI</div>
     </div>
@@ -231,7 +243,7 @@
   <div id="inputBar">
     <img id="inputFrame" src="assets/input_frame.png" alt="">
     <input id="input" type="text" placeholder="" autocomplete="off">
-    <button id="thinkBtn" title="显示/隐藏 和纱的动作描写"><img class="lbl" src="assets/ui/text/log_act_label.png" alt=""><img class="val" src="assets/ui/text/log_act_offv.png" alt=""></button>
+    <button id="thinkBtn" title="显示/隐藏 角色的动作描写"><img class="lbl" src="assets/ui/text/log_act_label.png" alt=""><img class="val" src="assets/ui/text/log_act_offv.png" alt=""></button>
     <button id="sendBtn">发送</button>
   </div>
 
@@ -259,17 +271,17 @@
 
 <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
 <script src="config.js?v=11022135"></script>
-<script src="opt.js?v=11022135"></script>
+<script src="opt.js?v=202611031205"></script>
   <script src="savetabs4.js?v=11022135"></script>
   <script src="savepages.js?v=11022135"></script>
   <script src="screens.js?v=11022135"></script>
-  <script src="special.js?v=11022135"></script>
-<script src="game.js?v=11022135"></script>
+  <script src="special.js?v=202611032030"></script>
+<script src="game.js?v=202611031220"></script>
 <script src="sound.js?v=11022135"></script>
 <script src="zoom.js?v=11022135"></script>
 <script src="debug.js?v=11022135"></script>
 <script src="scale.js?v=11022135"></script>
-<script src="menubar.js?v=11022135"></script>
+<script src="menubar.js?v=202611031205"></script>
 <script src="uitext.js?v=11022135"></script>
 <script>
 /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */

@@ -50,6 +50,37 @@ URL = "http://%s:%d" % (HOST, PORT)
 GPT_W = os.path.join(GSV, "GPT_weights_v4", "Touma_Kazusa-e15.ckpt")
 SOVITS_W = os.path.join(GSV, "SoVITS_weights_v4", "Touma_Kazusa_e8_s33072_l32.pth")
 
+_model_key = ""      # 合并版：当前已加载的角色语音配置签名
+
+
+def _char_json(name):
+    """读当前角色文件夹里的可选配置文件；没有/坏了都返回 {}。"""
+    try:
+        import characters
+        p = os.path.join(characters.active_dir(), name)
+        if os.path.isfile(p):
+            import json
+            with open(p, encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, dict) else {}
+    except Exception:
+        pass
+    return {}
+
+
+def _character_tts():
+    """角色的 tts.json：{gpt, sovits}；相对路径按 GPT-SoVITS 根目录解析"""
+    d = _char_json("tts.json")
+    g = (d.get("gpt") or "").strip()
+    s = (d.get("sovits") or "").strip()
+    if not g or not s:
+        return {}
+    if not os.path.isabs(g):
+        g = os.path.join(GSV, g)
+    if not os.path.isabs(s):
+        s = os.path.join(GSV, s)
+    return {"gpt": g, "sovits": s}
+
 # 参考音频：按情绪准备（语气由参考决定，音色由模型决定）
 # 现在放在当前角色文件夹的 voice/<情绪>/ 下；老版本的 refs_touma 只当兜底
 LEGACY_REFS_DIR = os.path.join(os.path.dirname(GSV), "refs_touma")
@@ -72,6 +103,11 @@ EMOTION_PARAMS = {
     "angry":   {"speed_factor": 1.14, "temperature": 0.75, "top_k": 8,  "top_p": 0.95},
     "shy":     {"speed_factor": 0.90, "temperature": 0.70, "top_k": 6,  "top_p": 0.92},
     "surprised": {"speed_factor": 1.12, "temperature": 0.80, "top_k": 9, "top_p": 0.95},
+    "毒舌":     {"speed_factor": 1.02, "temperature": 0.55, "top_k": 4,  "top_p": 0.88},
+    "撒娇":     {"speed_factor": 0.94, "temperature": 0.70, "top_k": 6,  "top_p": 0.92},
+    "哭腔":     {"speed_factor": 0.90, "temperature": 0.55, "top_k": 4,  "top_p": 0.88},
+    "调侃吐槽": {"speed_factor": 1.05, "temperature": 0.72, "top_k": 7,  "top_p": 0.93},
+    "问句":     {"speed_factor": 1.00, "temperature": 0.60, "top_k": 5,  "top_p": 0.90},
 }
 
 # 别名：前端按关键字判断出来的是 sad / warm，映射到新情绪
@@ -270,6 +306,25 @@ def _post(path, timeout=30):
         return r.read()
 
 
+def _ensure_char_model():
+    """合并版：切到当前角色 tts.json 里的 GPT/SoVITS 权重（同一进程，不重启）"""
+    global _model_key, _last_err
+    m = _character_tts()
+    if not m:
+        return True
+    key = m["gpt"] + "|" + m["sovits"]
+    if key == _model_key:
+        return True
+    try:
+        _post("/set_gpt_weights?weights_path=" + urllib.parse.quote(m["gpt"]))
+        _post("/set_sovits_weights?weights_path=" + urllib.parse.quote(m["sovits"]))
+        _model_key = key
+        return True
+    except Exception as e:
+        _last_err = "切换角色权重失败: %s" % e
+        return False
+
+
 def _wait_ready(timeout=120):
     import socket
     t0 = time.time()
@@ -280,6 +335,22 @@ def _wait_ready(timeout=120):
         except Exception:
             time.sleep(1.0)
     return False
+
+
+def _child_env():
+    """给 GPT-SoVITS 子进程准备环境：runtime/ 里的 ffmpeg 进 PATH，TMP 指到 tts/tmp。"""
+    env = os.environ.copy()
+    rt = os.path.dirname(PY)
+    if os.path.isdir(rt):
+        env["PATH"] = rt + os.pathsep + env.get("PATH", "")
+    tmp = os.path.join(os.path.dirname(GSV), "tmp")
+    try:
+        os.makedirs(tmp, exist_ok=True)
+        env["TMP"] = tmp
+        env["TEMP"] = tmp
+    except Exception:
+        pass
+    return env
 
 
 def start():
@@ -332,6 +403,7 @@ def _start_locked():
         _proc = subprocess.Popen(
             [PY, API_PY, "-a", HOST, "-p", str(PORT), "-c", cfg],
             cwd=GSV,
+            env=_child_env(),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             creationflags=0x08000000 if os.name == "nt" else 0,
@@ -370,7 +442,7 @@ def start_translate():
         pass
     try:
         _tproc = subprocess.Popen(
-            [PY, T_PY], cwd=GSV,
+            [PY, T_PY], cwd=GSV, env=_child_env(),
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             creationflags=0x08000000 if os.name == "nt" else 0)
     except Exception:
@@ -424,6 +496,50 @@ def clear_tts_cache():
         pass
 
 
+
+# 角色名的中文写法 → 日文读音。数据放当前角色文件夹的 pronunciation.json，
+# 代码里不写死具体角色；没有这个文件就原样送 TTS。
+_NAME_CACHE = {"path": "", "mtime": 0, "pairs": []}
+
+
+def _name_pairs():
+    try:
+        import characters
+        p = os.path.join(characters.active_dir(), "pronunciation.json")
+        if not os.path.isfile(p):
+            return []
+        mt = os.path.getmtime(p)
+        if _NAME_CACHE["path"] == p and _NAME_CACHE["mtime"] == mt:
+            return _NAME_CACHE["pairs"]
+        import json
+        with open(p, encoding="utf-8") as f:
+            d = json.load(f)
+        pairs = []
+        if isinstance(d, dict):
+            pairs = [(str(k), str(v)) for k, v in d.items()]
+        elif isinstance(d, list):
+            for it in d:
+                if isinstance(it, (list, tuple)) and len(it) >= 2:
+                    pairs.append((str(it[0]), str(it[1])))
+                elif isinstance(it, dict) and it.get("from") and it.get("to"):
+                    pairs.append((str(it["from"]), str(it["to"])))
+        pairs.sort(key=lambda x: -len(x[0]))
+        _NAME_CACHE.update({"path": p, "mtime": mt, "pairs": pairs})
+        return pairs
+    except Exception:
+        return []
+
+
+def normalize_ja_names(text):
+    """按角色 pronunciation.json 把名字换成假名；界面文字不变。"""
+    if not text:
+        return text
+    for a, b in _name_pairs():
+        if a in text:
+            text = text.replace(a, b)
+    return text
+
+
 def synthesize(text, lang="zh", timeout=60, emo="neutral"):
     """返回 wav 字节；失败返回 None
 
@@ -433,11 +549,15 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
     global _last_err, _ready
     if not _ready:
         return None
+    if lang == "ja":
+        text = normalize_ja_names(text)
     try:
         _cp = _tts_cache_path(text, lang, emo)
     except Exception:
         _cp = None
     with _synth_lock:
+        if not _ensure_char_model():
+            return None
         if _cp:
             try:
                 if os.path.exists(_cp):

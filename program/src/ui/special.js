@@ -301,6 +301,7 @@
     renderNameView();
     if (window.__setCharName && res.name) window.__setCharName(res.name);
     try { if (window.__reloadSprites) window.__reloadSprites(); } catch (e) {}
+    try { if (window.__loadOpeningLine) window.__loadOpeningLine(); } catch (e) {}
     refreshStatus();
     loadName();
   }
@@ -315,27 +316,84 @@
 
   var charBusy = false;
 
-  function switchCharacter() {
-    if (charBusy) return;
+  function openCharPicker() {
+    var panel = $("spCharPick");
+    var list = $("spcpList");
+    if (!panel || !list) return;
+    list.innerHTML = "";
+    var loading = document.createElement("div");
+    loading.className = "spcpMsg";
+    loading.textContent = "读取角色列表…";
+    list.appendChild(loading);
+    panel.classList.add("show");
+    panel.setAttribute("aria-hidden", "false");
+    fetch("/api/character/list", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var chars = (d && d.characters) || [];
+        list.innerHTML = "";
+        if (!chars.length) {
+          var empty = document.createElement("div");
+          empty.className = "spcpMsg";
+          empty.textContent = "还没有角色";
+          list.appendChild(empty);
+          return;
+        }
+        chars.forEach(function (c) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "spcpItem" + (c.active ? " active" : "");
+          var name = document.createElement("span");
+          name.className = "spcpName";
+          var display = c.name || c.id || "未命名";
+          name.textContent = display;
+          b.appendChild(name);
+          b.addEventListener("click", function () {
+            if (c.active) { closeCharPicker(); return; }
+            doSwitchCharacter(c.id);
+          });
+          list.appendChild(b);
+          try { setGlyph(name, display); } catch (e) {}
+        });
+      })
+      .catch(function () {
+        list.innerHTML = "";
+        var err = document.createElement("div");
+        err.className = "spcpMsg";
+        err.textContent = "读取失败";
+        list.appendChild(err);
+      });
+  }
+
+  function closeCharPicker() {
+    var panel = $("spCharPick");
+    if (!panel) return;
+    panel.classList.remove("show");
+    panel.setAttribute("aria-hidden", "true");
+  }
+
+  function doSwitchCharacter(id) {
+    if (charBusy || !id) return;
     charBusy = true;
-    flash("正在选择角色文件夹…");
-    postCharacter("/api/character/pick")
+    postCharacter("/api/character/switch", { id: id })
       .then(function (d) {
         charBusy = false;
-        if (d && d.ok) { afterCharacter(d); flash("已切换到 " + (d.name || d.id)); return; }
-        /* 取消 / 选错：也从后端重读一次名字和状态，
-           让「角色名称」永远显示真正生效的那个角色，而不是上一屏残留 */
-        loadName();
-        refreshStatus();
-        if (d && d.error) flash(d.error);
-        else if (d && d.cancelled) flash("已取消，当前角色：" + (d.name || d.active || ""));
+        if (d && d.ok) {
+          closeCharPicker();
+          afterCharacter(d);
+          flash("已切换到 " + (d.name || d.id));
+        } else {
+          flash((d && d.error) || "切换失败");
+        }
       })
       .catch(function () {
         charBusy = false;
-        loadName();
-        refreshStatus();
         flash("切换失败");
       });
+  }
+
+  function switchCharacter() {
+    openCharPicker();
   }
 
   function newCharacter() {
@@ -358,6 +416,18 @@
     var nw = $("spNew");
     if (sw) sw.addEventListener("click", function (e) { e.stopPropagation(); switchCharacter(); });
     if (nw) nw.addEventListener("click", function (e) { e.stopPropagation(); newCharacter(); });
+    var cancel = $("spcpCancel");
+    if (cancel) cancel.addEventListener("click", function (e) { e.stopPropagation(); closeCharPicker(); });
+    var pick = $("spCharPick");
+    if (pick) pick.addEventListener("click", function (e) {
+      if (e.target === pick) closeCharPicker();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && pick && pick.classList.contains("show")) {
+        e.preventDefault();
+        closeCharPicker();
+      }
+    });
   }
 
   function bindSave() {
@@ -385,7 +455,7 @@
   }
 
   /* ---------- 角色名：char/name.txt（对话框左上角显示的就是这个） ---------- */
-  var nameValue = "和纱";
+  var nameValue = "角色";
   var keepInput = false;
 
   /* 平时：字模显示，输入框藏起来 */

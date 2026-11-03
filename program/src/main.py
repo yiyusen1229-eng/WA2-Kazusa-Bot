@@ -28,6 +28,7 @@ AI 聊天界面架构 —— 可插拔的桌面聊天 UI 框架
 # ============================================================================
 import os
 import sys
+import shutil
 import applog
 import tts_client
 import json
@@ -53,8 +54,8 @@ import urllib.error
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 BUILD_TAG = time.strftime("%H%M%S")
-APP_NAME = "AI 聊天界面架构"
-WINDOW_TITLE = "%s  [%s]" % (APP_NAME, BUILD_TAG)
+APP_NAME = "WHITE ALBUM 2"
+WINDOW_TITLE = APP_NAME
 OLLAMA = "http://127.0.0.1:11434"
 # 安全模式: 存在 模型开关.txt(或环境变量 WA2_NO_MODELS=1) 时不加载任何模型
 def _no_models_flag():
@@ -407,6 +408,34 @@ special_files.set_default_paths(
 )
 
 
+def _set_character_sessions():
+    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。"""
+    try:
+        d = os.path.join(characters.active_dir(), "sessions")
+        os.makedirs(d, exist_ok=True)
+        old = _sessions.SESS_DIR
+        if old and os.path.isdir(old) and os.path.abspath(old) != os.path.abspath(d):
+            # 第一次升级：把老的公共存档迁给当前角色
+            try:
+                if not os.listdir(d):
+                    for fn in os.listdir(old):
+                        sp = os.path.join(old, fn)
+                        if os.path.isfile(sp):
+                            shutil.copy2(sp, os.path.join(d, fn))
+            except Exception:
+                pass
+        _sessions.SESS_DIR = d
+        try:
+            special_files.DEFAULT_PATHS["memory"] = d
+        except Exception:
+            pass
+    except Exception as e:
+        log("角色存档目录设置失败: %s" % e)
+
+
+_set_character_sessions()
+
+
 def qs(q, names, default=""):
     """从 parse_qs 结果里取第一个存在的参数名（正式名 + 兼容旧名）"""
     for n in names:
@@ -628,8 +657,9 @@ def _stage_llm(system, user, max_tokens=6, timeout=20):
         "max_tokens": max_tokens,
         "temperature": 0,
     }
-    if "pro" in model:
+    if "pro" in model or "deepseek" in model.lower():
         payload["thinking"] = {"type": "disabled"}
+        payload["reasoning_effort"] = "none"
     rq = urllib.request.Request(
         base_url + "/v1/chat/completions",
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
@@ -672,8 +702,9 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
     }
     if not cc:
         payload["reasoning_effort"] = "none"
-    if cc and "pro" in model:
+    if cc and ("pro" in model or "deepseek" in (base_url or "").lower() or "deepseek" in (model or "").lower()):
         payload["thinking"] = {"type": "disabled"}
+        payload["reasoning_effort"] = "none"
     rq = urllib.request.Request(
         base_url + "/v1/chat/completions",
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
@@ -1267,6 +1298,19 @@ class Handler(SimpleHTTPRequestHandler):
         """
         if self.path.startswith("/api/character/sprite/index.json"):
             return self._json(characters.sprite_index(os.path.join(ASSETS_DIR, "sprites")))
+        if self.path == "/api/character/opening":
+            try:
+                p = os.path.join(characters.active_dir(), "opening.json")
+                if os.path.isfile(p):
+                    with open(p, encoding="utf-8") as f:
+                        d = json.load(f)
+                    if isinstance(d, dict):
+                        return self._json({"ok": True, "zh": d.get("zh", ""),
+                                           "ja": d.get("ja", ""),
+                                           "emotion": d.get("emotion", "calm")})
+            except Exception:
+                pass
+            return self._json({"ok": False})
         if self.path.startswith("/api/character/list"):
             return self._json({"ok": True,
                                "active": characters.active_id(),
@@ -1279,6 +1323,10 @@ class Handler(SimpleHTTPRequestHandler):
         if isinstance(res, dict) and res.get("ok"):
             try:
                 persona_stage.reset()
+            except Exception:
+                pass
+            try:
+                _set_character_sessions()
             except Exception:
                 pass
             try:
@@ -1324,6 +1372,8 @@ class Handler(SimpleHTTPRequestHandler):
                     log("日文配音: %s" % ja)
                 else:
                     lang = "zh"          # 翻译失败就退回中文
+            if lang == "ja":
+                speak_text = tts_client.normalize_ja_names(speak_text)
             applog.log("TTS 准备: lang=%s emo=%s 文本=%s (翻译耗时 %.1fs)"
                        % (lang, emotion, speak_text[:24], time.time() - t_t0), "TTS")
             t_s0 = time.time()
@@ -1521,12 +1571,18 @@ class Handler(SimpleHTTPRequestHandler):
         raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
         # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
         prev_bg = (req.get("bg") or "").strip()
+        # 当前衣服 / 手动时期：决定这一轮用哪套人设和世界书
+        outfit_now = (req.get("outfit") or "").strip()
+        period_req = (req.get("period") or "").strip().lower()
+        period = period_req if period_req in ("ic", "cc", "coda") else persona_ctx.period_of(outfit_now)
+        log("时期: %s (outfit=%s, 手动=%s)" % (persona_ctx.PERIOD_LABELS.get(period, period),
+                                              outfit_now[:20], period_req or "auto"))
 
         # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
         msgs, mem_note = _memory_context(msgs, bool(cc))
 
-        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs)
-        system = persona_ctx.persona_text(raw_msgs)
+        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs, period=period)
+        system = persona_ctx.persona_text(raw_msgs, period=period)
 
         # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
         #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
@@ -1570,6 +1626,12 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             log("story_rag 失败: %s" % e)
 
+        try:
+            _sp = characters.sprite_index(os.path.join(ASSETS_DIR, "sprites"))
+            _outfit_names = list((_sp.get("outfits") or {}).keys())
+            outfit_hint = "、".join(_outfit_names) if _outfit_names else "（按当前角色立绘）"
+        except Exception:
+            outfit_hint = "（按当前角色立绘）"
         if cc:
             # 云端：人设末尾补语言/格式约束，前面插 few-shot
             # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
@@ -1577,8 +1639,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
                 + scene_cg.prompt_hint() +
                 "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
-                "高中·春秋JK制服（校服）、舞台演出服、coda·常服（眼镜）、coda·第二套常服、"
-                "婚后·居家服、礼服、和服（浴衣）、睡衣、高中·冬装、高中·夏季JK制服。"
+                + outfit_hint +
                 "平时绝对不要输出。"
                 "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
                 "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
@@ -1594,8 +1655,9 @@ class Handler(SimpleHTTPRequestHandler):
         }
         if not cc:
             payload["reasoning_effort"] = "none"
-        if cc and "pro" in model:
+        if cc and ("pro" in model or "deepseek" in (base_url or "").lower() or "deepseek" in (model or "").lower()):
             payload["thinking"] = {"type": "disabled"}
+            payload["reasoning_effort"] = "none"
         t0 = time.time()
         try:
             rq = urllib.request.Request(
@@ -1643,8 +1705,10 @@ class Handler(SimpleHTTPRequestHandler):
 
             self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                         "action": action, "action_zh": action_zh,
+                        "emotion": emo,
                         "scene": scene_now, "outfit": outfit_now,
                         "bg": bg_hit.get("id", ""),
+                        "period": period,
                         "usage": _uinfo,
                         "model": model,
                         "ms": int((time.time() - t0) * 1000),

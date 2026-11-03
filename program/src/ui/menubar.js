@@ -154,6 +154,163 @@
     } catch (e) {}
   }
 
+
+  /* ================= 顶部菜单：场景 / 服装 ================= */
+  var _sceneMeta = null;
+  function sceneMeta() {
+    if (_sceneMeta) return _sceneMeta;
+    var keys = [];
+    try { keys = Object.keys(CG_URL); } catch (e) {}
+    if (!keys.length) return null;
+    var map = {}, ids = {}, places = [], times = {};
+    keys.forEach(function (id) {
+      var p = id.split("（")[0];
+      var m = id.match(/（(白天|黄昏|晚上|黑夜|深夜)）/);
+      var t = m ? m[1] : "默认";
+      if (!ids[p]) { ids[p] = []; places.push(p); }
+      ids[p].push({ id: id, time: t });
+      map[id] = { place: p, time: t };
+    });
+    places.sort(function (a, b) { return a.localeCompare(b, "zh"); });
+    places.forEach(function (p) {
+      var ts = [];
+      ids[p].forEach(function (x) { if (ts.indexOf(x.time) < 0) ts.push(x.time); });
+      times[p] = ts;
+    });
+    _sceneMeta = { map: map, ids: ids, places: places, times: times };
+    return _sceneMeta;
+  }
+
+  function sceneState(meta) {
+    var cur = (typeof currentBg === "string") ? currentBg : "";
+    var p = "", t = "";
+    if (cur && meta.map[cur]) { p = meta.map[cur].place; t = meta.map[cur].time; }
+    if (!p || !meta.ids[p]) {
+      p = meta.ids["教室"] ? "教室" : meta.places[0];
+      t = (meta.times[p] || [""])[0];
+    }
+    if (!t || (meta.times[p] || []).indexOf(t) < 0) t = (meta.times[p] || [""])[0];
+    return { place: p, time: t };
+  }
+
+  function applySceneById(id) {
+    try { currentBg = null; setBg(id); sessionSave(); } catch (e) {}
+    window.__nextScene = "";
+  }
+
+  function applyOutfitByName(name) {
+    try {
+      currentOutfit = name;
+      setSpriteByScene(currentBg || "classroom", window.__lastEmo || "", true, name);
+      sessionSave();
+    } catch (e) {}
+    window.__nextOutfit = "";
+  }
+
+  function menuSub(title, items, current, onPick) {
+    var row = el("div", "mi-row has-sub", title);
+    var sub = el("div", "mbSub");
+    items.forEach(function (v) {
+      var r = el("div", "mi-row", v);
+      if (v === current) r.classList.add("checked");
+      r.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        onPick(v);
+        closeAll();
+      });
+      sub.appendChild(r);
+    });
+    row.appendChild(sub);
+    row.addEventListener("mouseenter", function () { row.classList.add("open"); });
+    row.addEventListener("mouseleave", function () { row.classList.remove("open"); });
+    return row;
+  }
+
+  function menuToggle(title, on, menu, fn) {
+    var row = el("div", "mi-row", title + "：" + (on ? "开" : "关"));
+    if (on) row.classList.add("checked");
+    row.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      fn(!on);
+      refreshSceneMenu(menu);
+    });
+    return row;
+  }
+
+  function refreshSceneMenu(menu) {
+    menu.innerHTML = "";
+    var meta = sceneMeta();
+    if (!meta) {
+      menu.appendChild(el("div", "mi-row", "场景数据加载中…"));
+      return;
+    }
+    var st = sceneState(meta);
+    menu.appendChild(menuSub("场景地点", meta.places, st.place, function (p) {
+      var ts = meta.times[p] || [];
+      var t = ts.indexOf(st.time) >= 0 ? st.time : (ts[0] || "");
+      var ids = meta.ids[p] || [];
+      var hit = null;
+      for (var i = 0; i < ids.length; i++) if (ids[i].time === t) { hit = ids[i]; break; }
+      if (!hit) hit = ids[0];
+      if (hit) applySceneById(hit.id);
+    }));
+    menu.appendChild(menuSub("场景时段", meta.times[st.place] || [], st.time, function (t) {
+      var ids = meta.ids[st.place] || [];
+      var hit = null;
+      for (var i = 0; i < ids.length; i++) if (ids[i].time === t) { hit = ids[i]; break; }
+      if (!hit) hit = ids[0];
+      if (hit) applySceneById(hit.id);
+    }));
+    menu.appendChild(el("div", "mi-sep"));
+
+    var outfits = [];
+    try { outfits = Object.keys(SPRITE_INDEX).sort(function (a, b) { return a.localeCompare(b, "zh"); }); } catch (e) {}
+    var curOut = (typeof currentOutfit === "string") ? currentOutfit : "";
+    menu.appendChild(menuSub("服装", outfits, curOut, function (n) { applyOutfitByName(n); }));
+    var _pm = "auto";
+    try { _pm = localStorage.getItem("app_period") || "auto"; } catch (e) {}
+    var _plabels = [["自动", "auto"], ["IC（高中）", "ic"], ["CC（大学/出道）", "cc"], ["CODA（成年）", "coda"]];
+    var _plabel = "自动";
+    for (var _pi = 0; _pi < _plabels.length; _pi++) {
+      if (_plabels[_pi][1] === _pm) _plabel = _plabels[_pi][0];
+    }
+    menu.appendChild(menuSub("时期", _plabels.map(function (x) { return x[0]; }), _plabel, function (lab) {
+      var val = "auto";
+      for (var _pj = 0; _pj < _plabels.length; _pj++) if (_plabels[_pj][0] === lab) val = _plabels[_pj][1];
+      try { localStorage.setItem("app_period", val); } catch (e) {}
+      closeAll();
+    }));
+    menu.appendChild(el("div", "mi-sep"));
+
+    menu.appendChild(menuToggle("锁定场景", !!window.__lockScene, menu, function (v) {
+      window.__lockScene = v;
+      try { if (window.App && window.App.setPref) window.App.setPref("lockScene", v); } catch (e) {}
+      try { localStorage.setItem("lockScene", v ? "1" : "0"); } catch (e) {}
+    }));
+    menu.appendChild(menuToggle("锁定服装", !!window.__lockOutfit, menu, function (v) {
+      window.__lockOutfit = v;
+      try { if (window.App && window.App.setPref) window.App.setPref("lockOutfit", v); } catch (e) {}
+      try { localStorage.setItem("lockOutfit", v ? "1" : "0"); } catch (e) {}
+    }));
+  }
+
+  function makeSceneMenu() {
+    var item = el("div", "mbItem", "场景 / 服装");
+    var menu = el("div", "mbMenu");
+    item.appendChild(menu);
+    item.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      var wasOpen = item.classList.contains("open");
+      closeAll();
+      if (!wasOpen) {
+        refreshSceneMenu(menu);
+        item.classList.add("open");
+        document.body.classList.add("mbOpen");
+      }
+    });
+    return item;
+  }
+
   function build() {
     if (document.getElementById("menuBar")) return;
     var bar = el("div", "");
@@ -169,6 +326,7 @@
           { label: "中文", w: 0, h: 0, act: "zh" },
         ] }
     ]));
+    bar.appendChild(makeSceneMenu());
     bar.appendChild(makeMenu("系统", [
       { label: "系统设置", action: function () {
           if (window.__openOptions) window.__openOptions();

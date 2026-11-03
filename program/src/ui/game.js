@@ -9,7 +9,7 @@ let backlogOpen = false;
 let currentBgm = null;
 let bgmEnabled = true;
 /* 角色名：存在 char/name.txt，特别模式里改的就是它 */
-let CHAR_NAME = "和纱";
+let CHAR_NAME = "角色";
 
 /* ---------- 素材表 ---------- */
 /* 旧的四张通用背景：新场景图还没导入、或读档时遇到旧存档的场景名，就退回这里 */
@@ -250,8 +250,8 @@ function detectMood(text) {
   if (/抱歉|对不起|哭|寂寞|后悔|离开|再见|讨厌我/.test(t)) return "sad";
   if (/早点睡|注意|吃药|别勉强|你也|小心|累了吧|照顾好/.test(t)) return "warm";
   if (/呵|笑|有趣|真拿你没办法|好吧/.test(t)) return "smile";
-  if (/……|没事|没什么|有事|随便|不知道/.test(t)) return "cold";
-  return "cold";
+  if (/……|没事|没什么|有事|随便|不知道/.test(t)) return "calm";
+  return "calm";
 }
 
 const MOOD_BGM = { angry: "tense", sad: "sad", warm: "warm", smile: "warm", cold: "calm" };
@@ -299,6 +299,24 @@ function currentBgmMood() {
 }
 
 
+/* 合并版：按当前角色给开场白 */
+var OPENING_LINE = { zh: "「……」", ja: "", emo: "calm" };
+
+function loadOpeningLine() {
+  return fetch("/api/character/opening", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.ok && (d.zh || d.ja)) {
+        OPENING_LINE = { zh: d.zh || "「……」", ja: d.ja || "", emo: d.emotion || "calm" };
+      }
+    })
+    .catch(function () {});
+}
+window.__loadOpeningLine = loadOpeningLine;
+loadOpeningLine();
+
+function openingLine() { return OPENING_LINE; }
+
 /* ---------- 会话存档 ---------- */
 function sessionSave() {
   try {
@@ -331,9 +349,14 @@ function sessionRestore() {
       }
       if (last) {
         try { showReply(last); } catch (e) { $("msgText").textContent = last; }
+        var _lastJa = "";
+        for (var _i = history.length - 1; _i >= 0; _i--) {
+          if (history[_i].role === "assistant") { _lastJa = history[_i].content || ""; break; }
+        }
+        if (_lastJa) speakLineJa(_lastJa, "calm");
       }
       if (meta.outfit) {
-        try { setSpriteByScene(meta.bg || "classroom", "cold", true, meta.outfit); } catch (e) {}
+        try { setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit); } catch (e) {}
       }
       console.log("[session] 已恢复", history.length, "条");
       try { rebuildBacklog(); } catch (e) {}
@@ -352,7 +375,7 @@ window.__loadSession = function (data) {
     titleBgmStarted = true;
     if (meta.bg) { currentBg = null; setBg(meta.bg); } else { setBg("classroom"); }
     if (meta.outfit) { currentOutfit = meta.outfit; }
-    setSpriteByScene(meta.bg || "classroom", "cold", true, meta.outfit || "");
+    setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit || "");
     gdiRenderName(CHAR_NAME, $("namePlate"));
     setBgm("calm", 600);
     let last = "";
@@ -361,6 +384,11 @@ window.__loadSession = function (data) {
     }
     if (last) {
       try { showReply(last); } catch (e) { $("msgText").textContent = last; }
+      var _lastJa = "";
+      for (var _i = history.length - 1; _i >= 0; _i--) {
+        if (history[_i].role === "assistant") { _lastJa = history[_i].content || ""; break; }
+      }
+      if (_lastJa) speakLineJa(_lastJa, "calm");
     }
     try { rebuildBacklog(); } catch (e) {}
     setTimeout(function () { $("input").focus(); }, 300);
@@ -509,8 +537,11 @@ function outfitOf(scene) {
   const name = OUTFIT_BY_SCENE[scene];
   if (name && SPRITE_INDEX[name]) return name;
   /* 场景表没命中（或这套衣服没有立绘）：优先校服，再退到索引里的第一套 */
-  if (SPRITE_INDEX["高中·春秋JK制服"]) return "高中·春秋JK制服";
   const keys = Object.keys(SPRITE_INDEX);
+  for (let i = 0; i < keys.length; i++) {
+    const o = SPRITE_INDEX[keys[i]] || {};
+    if (String(o.code || "") === "001") return keys[i];
+  }
   return keys.length ? keys[0] : "";
 }
 
@@ -537,7 +568,7 @@ function spritePath(outfit, emotion) {
 /** 按场景切换服装 */
 function setSpriteByScene(scene, mood, force, wantOutfit) {
   // 服装以 currentOutfit 为准；只有对话明确换衣服（wantOutfit）才改
-  const outfit = resolveOutfit(wantOutfit) || currentOutfit || outfitOf(scene) || "";
+  const outfit = resolveOutfit(wantOutfit) || resolveOutfit(currentOutfit) || outfitOf(scene) || "";
   const key = outfit + "|" + (mood || "");
   if (currentSprite === key && !force) return;
   currentOutfit = outfit;
@@ -673,6 +704,30 @@ function fetchVoice(text, timeoutMs) {
         resolve(null);
       });
   });
+}
+
+
+/* ---------- 开场白语音 ---------- */
+function waitTtsReady(cb, tries) {
+  if (!ttsOn) return;
+  fetch("/api/voice/ok", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.ready) cb();
+      else if (tries > 0) setTimeout(function () { waitTtsReady(cb, tries - 1); }, 1000);
+    })
+    .catch(function () {
+      if (tries > 0) setTimeout(function () { waitTtsReady(cb, tries - 1); }, 1000);
+    });
+}
+
+function speakLineJa(ja, emo) {
+  if (!ttsOn) return;
+  var clean = (ja || "").replace(/^[「『]|[」』]$/g, "").trim();
+  if (!clean) return;
+  window.__speakJa = clean;
+  window.__lastEmo = emo || window.__lastEmo || "soft";
+  waitTtsReady(function () { speakReply(clean); }, 60);
 }
 
 function speakReply(text) {
@@ -929,7 +984,7 @@ function addHistory(role, text, raw) {
   body.className = "body";
   const who = document.createElement("span");
   who.className = "who";
-  who.textContent = role === "user" ? "你" : "和纱";
+  who.textContent = role === "user" ? "你" : CHAR_NAME;
   /* 和纱的话统一加「」：存档里的 zh 是翻译原文（不带括号），实时消息带括号，这里统一 */
   if (role === "assistant") {
     text = "「" + String(text).replace(/^[「『]/, "").replace(/[」』]$/, "") + "」";
@@ -1118,6 +1173,8 @@ async function send() {
     body.memory = true;
     // 当前背景一并带上：模型只说地点没说时间时，新场景沿用现在的时段（白天/晚上）
     if (currentBg) body.bg = currentBg;
+    if (currentOutfit) body.outfit = currentOutfit;
+    try { var _pm = localStorage.getItem("app_period") || "auto"; if (_pm !== "auto") body.period = _pm; } catch (e) {}
     return body;
   })()),
     });
@@ -1146,14 +1203,15 @@ async function send() {
     // 先合成语音；语音没准备好就先不出文字，等语音出来一起出
     speakReply(reply).then(() => {
       // 场景/服装只在模型明确标记时才切，且与文字同一时刻出现
-      const _want = window.__nextOutfit || "";
-      if (window.__nextScene) { setBg(window.__nextScene); window.__nextScene = ""; }
+      const _want = window.__lockOutfit ? "" : (window.__nextOutfit || "");
+      if (window.__nextScene && !window.__lockScene) { setBg(window.__nextScene); }
+      window.__nextScene = "";
       window.__nextOutfit = "";
       setSpriteByScene(currentBg || "classroom", mood, true, _want);
       showReply(shown);
     });
 
-    const mood = detectMood(shown);
+    const mood = (window.__lastEmo || detectMood(shown));
     // 立绘表情随情绪变，服装与场景只在模型明确标记时切换
     accumulateMood(reply);            // BGM 按累积氛围切换，不随单句变
 
@@ -1194,13 +1252,13 @@ $("mainMenu").addEventListener("click", (e) => {
   showScreen("gameScreen");
   titleBgmStarted = true;
   setBg("classroom");
-  setSpriteByScene("classroom", "cold", true);
+  setSpriteByScene("classroom", "calm", true);
   gdiRenderName(CHAR_NAME, $("namePlate"));
   setBgm("calm", 600);
   if (window.__wantRestore) {
     window.__wantRestore = false;
     sessionRestore().then(function (ok) {
-      if (!ok) setTimeout(() => { typewriter("「……有事？」"); }, 200);
+      if (!ok) setTimeout(() => { var _o = openingLine(); typewriter(_o.zh); speakLineJa(_o.ja, _o.emo); }, 200);
     });
   } else {
     // 开始游戏 = 新对话：清空历史与自动存档
@@ -1214,7 +1272,7 @@ $("mainMenu").addEventListener("click", (e) => {
         body: JSON.stringify({ slot: "auto", messages: [], meta: {} })
       }).catch(function () {});
     } catch (e) {}
-    setTimeout(() => { typewriter("「……有事？」"); }, 460);
+    setTimeout(() => { var _o = openingLine(); typewriter(_o.zh); speakLineJa(_o.ja, _o.emo); }, 460);
   }
   setTimeout(() => $("input").focus(), 700);
 });
@@ -1312,7 +1370,9 @@ document.addEventListener("keydown", (e) => {
 
 /* ---------- 思考显示开关 ---------- */
 function thinkOn() {
-  return localStorage.getItem("app_show_think") === "1";
+  var v = localStorage.getItem("app_show_think");
+  if (v === null) { try { localStorage.setItem("app_show_think", "1"); } catch (e) {} return true; }
+  return v === "1";
 }
 
 function renderThinking() {
@@ -1727,3 +1787,19 @@ fetch("/api/special/name", { cache: "no-store" })
   .then(function (r) { return r.json(); })
   .then(function (d) { if (d && d.ok && d.name) window.__setCharName(d.name); })
   .catch(function () {});
+
+
+/* ---------- 启动默认全屏 ---------- */
+function applyStartupWinMode() {
+  try {
+    var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+    if ((P.winMode || "full") !== "full") return;
+    if (window.__setWinMode) window.__setWinMode("full");
+  } catch (e) {}
+}
+document.addEventListener("DOMContentLoaded", function () {
+  setTimeout(applyStartupWinMode, 900);
+});
+window.addEventListener("app:ready", function () {
+  setTimeout(applyStartupWinMode, 300);
+});

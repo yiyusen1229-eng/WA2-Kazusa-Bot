@@ -63,6 +63,19 @@ def _read_text(path):
 
 # ------------------------------------------------------------------ 提示词
 def prompt_path():
+    """优先认正式人设文件；persona_ic/cc/coda.txt 是时期补丁，不能当整份人设读。
+
+    时期补丁由 persona_ctx 在 base 之后追加。这里如果按目录字母序取，
+    persona_cc.txt 会排在 persona_core.txt 前面，正好会把整份人设顶掉。
+    """
+    try:
+        d = _sf.kind_dir("prompt")
+    except Exception:
+        d = ""
+    for name in ("persona_core.txt", "persona.txt", "base.txt"):
+        p = os.path.join(d, name) if d else ""
+        if p and os.path.isfile(p):
+            return p
     return char_file("prompt", TEXT_EXTS)
 
 

@@ -123,13 +123,56 @@ def _read(path):
         return ""
 
 
-def persona_text(messages=None):
+PERIOD_LABELS = {
+    "ic": "IC（高中篇）",
+    "cc": "CC（大学/出道篇）",
+    "coda": "CODA（成年篇）",
+}
+
+
+def period_of(outfit=""):
+    """按当前衣服名判断时期；认不出来按 IC（新游戏默认校服）"""
+    s = (outfit or "").strip()
+    low = s.lower()
+    if low in PERIOD_LABELS:
+        return low
+    if s.startswith("CC") or low.startswith("cc"):
+        return "cc"
+    if (s.startswith("coda") or low.startswith("coda") or s.startswith("CODA")
+            or s.startswith("婚后") or s.startswith("睡衣") or s.startswith("礼服")):
+        return "coda"
+    if s.startswith(("高中", "舞台", "学园祭", "浴衣", "和服", "打工")):
+        return "ic"
+    # 兜底：只拿到编号时（前端通常发衣服名，不会走到这里）
+    if s in ("013", "014", "016", "017"):
+        return "cc"
+    return "ic"
+
+
+def _period_overlay(period):
+    """时期补丁：persona_ic.txt / persona_cc.txt / persona_coda.txt"""
+    p = (period or "").strip().lower()
+    if p not in PERIOD_LABELS:
+        return ""
+    pd = prompt_dir()
+    for name in ("persona_%s.txt" % p, "persona_core_%s.txt" % p):
+        t = _read(os.path.join(pd, name))
+        if t:
+            return t
+    return ""
+
+
+def persona_text(messages=None, period=None):
     """人设：特别模式导入的提示词最优先（当前角色文件夹的 prompt/）。
 
     否则用角色文件夹里的 `base.txt` + 当前阶段那一份（`stage1~4.txt`）——
     角色文件夹是空的才回落到程序自带的 persona/。阶段由 persona_stage 从最近对话判断，
     只注入命中的那一份，省 token。没有拆分文件时，用整份的 persona_core / persona.txt。
+
+    period 给 ic / cc / coda 时，会在人设最后追加 `persona_<period>.txt` 的时期补丁；
+    补丁里写明「最高优先级」，用来覆盖基础人设里不属于当前时期的身份/时间。
     """
+    base = ""
     try:
         imported = char_res.prompt_text()
     except Exception as e:
@@ -137,35 +180,47 @@ def persona_text(messages=None):
         imported = ""
     if imported:
         _note_persona_src("角色文件夹的提示词")
-        return imported
+        base = imported
+    else:
+        for d in (prompt_dir(), PERSONA_DIR):
+            b = _read(os.path.join(d, "base.txt"))
+            if not b:
+                continue
+            try:
+                stage = persona_stage.current(messages or [])
+            except Exception as e:
+                _log("关系阶段判断失败（按 1 处理）: %s" % e)
+                stage = 1
+            stage_txt = _read(os.path.join(d, "stage%d.txt" % stage))
+            if stage_txt:
+                _note_persona_src("%s/base+stage%d" % (os.path.basename(os.path.dirname(d)), stage))
+                base = b + "\n\n" + stage_txt
+            else:
+                _note_persona_src("%s/base" % os.path.basename(os.path.dirname(d)))
+                base = b
+            break
 
-    for d in (prompt_dir(), PERSONA_DIR):
-        base = _read(os.path.join(d, "base.txt"))
         if not base:
-            continue
-        try:
-            stage = persona_stage.current(messages or [])
-        except Exception as e:
-            _log("关系阶段判断失败（按 1 处理）: %s" % e)
-            stage = 1
-        stage_txt = _read(os.path.join(d, "stage%d.txt" % stage))
-        if stage_txt:
-            _note_persona_src("%s/base+stage%d" % (os.path.basename(os.path.dirname(d)), stage))
-            return base + "\n\n" + stage_txt
-        _note_persona_src("%s/base" % os.path.basename(os.path.dirname(d)))
-        return base
+            # 整份的（兼容没拆分的安装 / 只放了一份提示词的角色）
+            pd = prompt_dir()
+            for f in (os.path.join(pd, "persona_core.txt"), os.path.join(pd, "persona.txt"),
+                      PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
+                      PERSONA_FILE, LEGACY_PERSONA_FILE):
+                t = _read(f)
+                if t:
+                    _note_persona_src(os.path.basename(f))
+                    base = t
+                    break
+        if not base:
+            _note_persona_src("内置默认")
+            base = "你是示例角色，说话简短，只用简体中文。"
 
-    # 整份的（兼容没拆分的安装 / 只放了一份提示词的角色）
-    pd = prompt_dir()
-    for f in (os.path.join(pd, "persona_core.txt"), os.path.join(pd, "persona.txt"),
-              PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
-              PERSONA_FILE, LEGACY_PERSONA_FILE):
-        t = _read(f)
-        if t:
-            _note_persona_src(os.path.basename(f))
-            return t
-    _note_persona_src("内置默认")
-    return "你是示例角色，说话简短，只用简体中文。"
+    p = (period or "").strip().lower()
+    ov = _period_overlay(p)
+    if ov:
+        _note_persona_src("%s + 时期:%s" % (_PERSONA_SRC["v"], p))
+        base = base + "\n\n" + ov
+    return base
 
 
 def load_worldbook():
@@ -185,15 +240,23 @@ def load_worldbook():
     return {"entries": []}
 
 
-def worldbook_context(messages, depth=None, max_entries=None, max_chars=None):
-    """按关键词匹配注入世界书（每轮重读，导入的新世界书立刻生效）"""
+def worldbook_context(messages, depth=None, max_entries=None, max_chars=None, period=None):
+    """按关键词匹配注入世界书（每轮重读，导入的新世界书立刻生效）
+
+    period=ic/cc/coda 时，只注入通用条目和当前时期的条目；
+    条目的 period 字段可以是 ic / cc / coda / all。
+    """
     wb = load_worldbook()
     depth = depth or wb.get("scan_depth", 3)
     max_entries = max_entries or wb.get("max_entries", 3)
     max_chars = max_chars or wb.get("max_chars", 1200)
     recent = " ".join((m.get("content") or "") for m in messages[-depth:])
+    p = (period or "").strip().lower() or None
     hits = []
     for e in wb.get("entries", []):
+        ep = (e.get("period") or "").strip().lower()
+        if ep and ep != "all" and p and ep != p:
+            continue
         cs = e.get("case_sensitive", False)
         hay = recent if cs else recent.lower()
         for kw in e.get("keywords", []):

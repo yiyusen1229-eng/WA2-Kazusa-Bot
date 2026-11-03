@@ -407,3 +407,62 @@
 #specialScreen .spVal img.sym {
   height: 12px;
 }
+
+/* ---------- 角色切换面板 ---------- */
+#specialScreen .spCharPick {
+  position: absolute; inset: 0; z-index: 400;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(0, 6, 14, .58);
+}
+#specialScreen .spCharPick.show { display: flex; }
+#specialScreen .spcpBox {
+  position: relative;
+  width: 380px; height: 156px; box-sizing: border-box;
+  padding: 12px 30px 0;
+  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
+  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
+}
+#specialScreen .spcpTitle {
+  display: block; height: 13px; width: auto;
+  margin: 0 auto 4px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
+}
+#specialScreen .spcpList {
+  display: flex; flex-direction: column; gap: 3px; align-items: center;
+}
+#specialScreen .spcpItem {
+  position: relative;
+  width: 300px; height: 30px; padding: 0 16px; box-sizing: border-box;
+  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
+  border: 0; color: #eaf7ff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  appearance: none; -webkit-appearance: none;
+}
+#specialScreen .spcpItem:hover {
+  filter: brightness(1.15) drop-shadow(0 0 7px rgba(120,225,255,.55));
+}
+#specialScreen .spcpItem:not(.active) { opacity: .60; }
+#specialScreen .spcpItem:not(.active):hover { opacity: 1; }
+#specialScreen .spcpItem.active {
+  filter: brightness(1.12) drop-shadow(0 0 9px rgba(135,235,255,.85));
+}
+#specialScreen .spcpName {
+  font-size: 13px; line-height: 1; letter-spacing: 2px;
+  color: #f2fcff; text-shadow: 0 1px 3px rgba(0,12,24,.95);
+}
+#specialScreen .spcpName img { height: 13px; width: auto; display: block; pointer-events: none; }
+#specialScreen .spcpMsg {
+  height: 32px; display: flex; align-items: center; justify-content: center;
+  color: #bfe6f7; font-size: 11px;
+}
+#specialScreen .spcpCancel {
+  position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%);
+  width: 76px; height: 18px; padding: 0; box-sizing: border-box;
+  background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat;
+  border: 0; cursor: pointer; isolation: isolate;
+}
+#specialScreen .spcpCancel:active { background-position: 0 50%; }
+#specialScreen .spcpCancel:hover { filter: brightness(1.12); }
+#specialScreen .spcpCancel img {
+  height: 8px; width: auto; display: block; margin: 0 auto; pointer-events: none;
+}
