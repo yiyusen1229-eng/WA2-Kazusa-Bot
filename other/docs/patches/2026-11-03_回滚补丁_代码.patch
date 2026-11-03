@@ -1127,10 +1127,10 @@ index fd7fd1e..138e9dd 100644
 +window.addEventListener("app:ready", restoreCt1);
 \ No newline at end of file
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index fa06202..37660ed 100644
+index 637b4f5..37660ed 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,83 +406,4 @@
+@@ -406,80 +406,4 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1146,17 +1146,15 @@ index fa06202..37660ed 100644
 -/* 标题在框外；列表在框内滚动；取消也在框外，避免压住边框花纹 */
 -#specialScreen .spcpWrap {
 -  display: flex; flex-direction: column; align-items: center;
--  width: 380px; max-height: 82vh;
+-  width: 520px; max-height: 84vh;
 -}
 -#specialScreen .spcpBox {
 -  position: relative;
--  width: 100%; min-height: 150px; max-height: 64vh; box-sizing: border-box;
--  display: flex; flex-direction: column;
--  /* 原版底框 sys_00100（544x216）：九宫格切片，只拉伸中间段，四角等比缩放，不会被压扁 */
--  border: 26px solid transparent;
--  border-image: url("assets/ui/sys_00100.png") 26 30 26 30 / 26px 30px stretch;
--  background: linear-gradient(180deg, rgba(6,40,66,.94), rgba(3,18,34,.96)) padding-box;
--  padding: 2px 4px;
+-  width: 100%; aspect-ratio: 544 / 216; box-sizing: border-box;
+-  display: flex; flex-direction: column; overflow: hidden;
+-  /* 原版底框 sys_00100（544x216）：元素强制同比例，再 100% 100% 铺图 = 等比缩放，不失真 */
+-  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
+-  padding: 44px 56px 40px;
 -  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 -}
 -#specialScreen .spcpTitle {
@@ -1177,11 +1175,10 @@ index fa06202..37660ed 100644
 -#specialScreen .spcpItem {
 -  position: relative;
 -  flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
--  width: 300px; height: 44px; box-sizing: border-box;
--  /* 原版条目底板 sys_00110（480x112）：同样的九宫格，四角等比、中间拉伸 */
--  border: 12px solid transparent;
--  border-image: url("assets/ui/sys_00110.png") 28 34 28 34 fill / 12px 16px stretch;
--  background: linear-gradient(180deg, rgba(18,80,116,.92), rgba(6,32,52,.96)) padding-box;
+-  /* 原版条目底板 sys_00110（480x112）：元素强制同比例，图片 100% 100% 铺 = 等比缩放，不失真 */
+-  width: 240px; aspect-ratio: 480 / 112; box-sizing: border-box;
+-  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
+-  border: 0;
 -  color: #eaf7ff; cursor: pointer;
 -  display: flex; align-items: center; justify-content: center;
 -  appearance: none; -webkit-appearance: none;
