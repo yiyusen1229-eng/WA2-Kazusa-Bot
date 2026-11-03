@@ -1,0 +1,317 @@
+diff --git a/README.md b/README.md
+index 8a416dc..8057978 100644
+--- a/README.md
++++ b/README.md
+@@ -42,9 +42,18 @@
+ > 按角色隔离存档与语音配置；只含代码，不含素材与角色设定。
+ > **本版代码已经合进 `master`**，clone 下来直接就是最新版；补丁只给老安装用。
+ 
+-- [更新日志 2026-11-03](other/docs/更新日志_2026-11-03.md)
++同日后续修复（都记在同一份更新日志的第六～九节）：
++
++| 修复 | 说明 |
++|---|---|
++| 角色切换面板 UI | 标题/取消移到框外、列表可滚动、条目与底框改成原素材等比 + 三段烘焙（不再压扁、不再露白） |
++| 「结束游戏」退不掉 | 改走 pywebview 桥接 + HTTP 关窗口（`window.close()` 在 WebView2 里不保证生效） |
++| 白底/方块底 | 按钮默认底色从九宫格透明处透出来，改用烘焙三段图 + 透明底 |
++
++- [更新日志 2026-11-03](other/docs/更新日志_2026-11-03.md)（第一～五节是框架更新，第六～九节是同日下午的修复）
+ - 老安装升级：[一键更新补丁](other/docs/patches/2026-11-03_更新补丁.patch)
+ - 想退回旧版：[回滚补丁](other/docs/patches/2026-11-03_回滚补丁_代码.patch)（只回代码，不动文档）
++- 升级后跑一次 `program\tools\bake_char_bar.py` 生成条目的三段图（素材不入库）
+ 
+ ## 版本与回滚
+ 
+@@ -291,8 +300,10 @@ WA2-Kazusa-Bot/
+ 
+ | 文档 | 内容 |
+ |---|---|
+-| [other/docs/更新日志_2026-11-02.md](other/docs/更新日志_2026-11-02.md) | **最近一轮的全部改动**（多角色 / 立绘中文 / 世界书 / 记忆书 / 收敛清理）+ 变更文件表 |
+-| [other/docs/patches/2026-11-02_更新补丁.patch](other/docs/patches/2026-11-02_更新补丁.patch) | **一键更新补丁**（`git apply`，基于上一版 GitHub 提交） |
++| [other/docs/更新日志_2026-11-03.md](other/docs/更新日志_2026-11-03.md) | **最新一轮全部改动**：框架更新（时期/顶部菜单/角色列表）+ 同日下午的面板与退出修复 |
++| [other/docs/patches/2026-11-03_更新补丁.patch](other/docs/patches/2026-11-03_更新补丁.patch) | **最新一键更新补丁**（`git apply`，基线 `v2026-11-02-old`） |
++| [other/docs/更新日志_2026-11-02.md](other/docs/更新日志_2026-11-02.md) | 上一轮改动（多角色 / 立绘中文 / 世界书 / 记忆书 / 收敛清理） |
++| [other/docs/patches/2026-11-02_更新补丁.patch](other/docs/patches/2026-11-02_更新补丁.patch) | 上一轮的一键更新补丁 |
+ | [other/docs/重要参考_踩坑记录.md](other/docs/重要参考_踩坑记录.md) | **改代码前先看**：拆模块/路由/前端/全屏 的九个坑与排查手法 |
+ | [other/docs/界面像素测量方法.md](other/docs/界面像素测量方法.md) | 怎么把原版界面搬到 800×450：系数、测量步骤、交叉验证 |
+ | [other/docs/创作手记.md](other/docs/创作手记.md) | 完整创作过程、失败的尝试、踩过的坑 |
+diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
+index 14b4a03..987feae 100644
+--- a/other/docs/更新日志_2026-11-03.md
++++ b/other/docs/更新日志_2026-11-03.md
+@@ -154,3 +154,49 @@ cd program
+ 
+ 
+ 
++
++## 八、角色切换面板 UI 修正（2026-11-03 下午）
++
++用户反馈：角色多了列表被压扁、标题压在框线上。改为：
++
++- **标题移到框外**（框上方，居中）
++- **列表可滚动**：条目固定 30px 高（`flex: 0 0 auto`），装不下就滚，不再压缩
++- 滚动条用回想同款（5px、青色半透明滑杆）
++- **取消按钮移到框外**（框下方），不再压住面板花纹
++- 面板高度自适应：少角色时 176px，多角色最高 64vh，列表内部滚动
++
++实测（真实 WebView2）：2 个角色时紧凑无滚动；注入 13 个条目时 `itemHeight=30.4`、
++`scrollHeight 442 > clientHeight 232`（可滚）、标题在框外、无 JS 报错。
++### 八、补记：结束游戏不退出 + 底框变形（同一轮修）
++
++| 问题 | 原因 | 处理 |
++|---|---|---|
++| 点「结束游戏」不退出 | 只调了裸 `window.close()`，WebView2/pywebview 里不保证生效 | 改成 `quitGame()`：先 confirm，再依次走 **pywebview 桥接 `api.win("close")` → HTTP `/api/window?action=close` → `window.close()`**；confirm 不可用（返回 undefined）时也照关，只有明确点“取消”才不关 |
++| 角色面板底框被压扁 | `sys_00100.png`（544x216）被 `background-size:100% 100%` 纵向拉伸，边框和雪花花纹变形 | 不再用位图做底框，改成 **CSS 画**（渐变 + 青色描边 + 外发光 + 圆角），高度多少都不变形；条目底板仍用原素材 |
++
++验证：
++- `__quitGame` 三条分支：confirm=undefined → `true`（照关）、confirm=false → `false`（不关）、confirm=true → `true`
++- 服务端日志出现 `窗口控制: action=close`，说明 HTTP 关闭链路真的走到了（真实窗口下日志里是 `window=有`）
++- 面板 2 个角色时 120px 紧凑；注入 13 个条目时列表滚动（scrollHeight 442 > clientHeight 232）、条目 30px 不被压扁、底框无变形
++> 更正：压扁的是**条目底板** `sys_00110.png`（480x112 → 拉到 300x30），不是面板底框。
++> 现在条目也改成 CSS 画的条子（渐变 + 高光 + 描边 + 发光），不再用位图拉伸；
++> 面板底框（`sys_00100`）同样是 CSS 画的。两个位图都被 `sys_00110` 撑变形的问题一起解决了。
++> 再更正：面板和条目**都改回用原素材**（`sys_00100` / `sys_00110`），
++> 但改成 **CSS 九宫格（`border-image` 切片）**：四角保持等比、只拉伸中间段，
++> 所以既保留了原版边框花纹，又不会被压扁。条目高度 44px（原来 30px 太矮，硬拉才会变形），
++> 面板最少 150px、最多 64vh，角色多了列表内部滚动。
++> 最终版：底框和条目都**回到原素材、按原比例等比缩放**（`aspect-ratio` 锁定 544:216 / 480:112，
++> 图片 `100% 100%` 铺在同比例容器里 = 等比缩放），自画的渐变/色块全部删掉。
++> 代价：底框比例固定，装不下就列表内部滚动（面板 520x206，一屏约 2 个角色）。
++> 最终尺寸（按用户要求）：底框缩到 **400x159**（保持 544:216 原比例，等比缩放）；
++> 条目缩到 **300x30**，再用**九宫格**把中间横向拉长（四角等比，不压扁）。
++> 一屏能显示 3 行；少角色时列表垂直居中（`justify-content: safe center`），多角色时滚动。
++> 白底原因：条目是 `<button>`，浏览器默认自带浅色底（`buttonface`）。九宫格只在中间 fill、
++> 四角/边缘是原图的透明像素，默认白底就从这个透明处露出来，看着像一块白板。
++> 处理：`background: rgba(3,20,32,.55)`（压住白底、顺带给条目一点对比），
++> 这样原图边框照旧、白板消失。
++> 最后这版：条目底板不用 border-image 了，改成 **烘成三段**（`tools/bake_char_bar.py`）：
++> sp_bar_left.png / sp_bar_mid.png / sp_bar_right.png，左右帽原样、中间段横向拉长，
++> 高度统一 30px。这样既没有透明留白（白底来源），也没有方块底（半透明底来源）。
++> **升级后要跑一次**：cd program; .\build_env\venv\Scripts\python.exe tools\bake_char_bar.py
++> （素材不入库，这三张图在本地生成）
+diff --git a/program/src/ui/game.js b/program/src/ui/game.js
+index 7e0af89..1c95631 100644
+--- a/program/src/ui/game.js
++++ b/program/src/ui/game.js
+@@ -1234,12 +1234,36 @@ document.addEventListener("pointerdown", function once(e) {
+ }, { once: false });
+ 
+ /* ---------- 菜单 ---------- */
++/* 结束游戏：先确认，再依次尝试 pywebview 桥接 → HTTP → window.close。
++   （WebView2 里裸 window.close() 不一定关得掉，这是原来点了没反应的原因） */
++function quitGame(skipConfirm) {
++  let yes = true;
++  if (!skipConfirm) {
++    try { yes = window.confirm("要结束游戏吗？"); } catch (e) { yes = true; }
++  }
++  /* 只有明确点了“取消”才不关；confirm 不可用（返回 undefined）时按继续处理 */
++  if (yes === false) return false;
++  try {
++    if (window.pywebview && window.pywebview.api && window.pywebview.api.win) {
++      window.pywebview.api.win("close");
++    }
++  } catch (e) {}
++  try { fetch("/api/window?action=close", { cache: "no-store" }); } catch (e) {}
++  setTimeout(function () { try { window.close(); } catch (e) {} }, 120);
++  return true;
++}
++window.__quitGame = quitGame;
++
+ $("mainMenu").addEventListener("click", (e) => {
+   const btn = e.target.closest("button");
+   if (!btn) return;
+   playSE("click");
+   const act = btn.dataset.act;
+-  if (act === "quit") { if (confirm("要结束游戏吗？")) window.close(); return; }
++  if (act === "quit") {
++    /* 结束游戏：pywebview 里 window.close() 不一定生效，优先走桥接 / HTTP 关窗口 */
++    quitGame();
++    return;
++  }
+         if (act === "continue") {
+           if (window.__openScreen) window.__openScreen("save", "load");
+           return;
+diff --git a/program/src/ui/index.html b/program/src/ui/index.html
+index 0e2c611..1c1a04c 100644
+--- a/program/src/ui/index.html
++++ b/program/src/ui/index.html
+@@ -11,7 +11,7 @@
+ <link rel="stylesheet" href="unifont.css?v=11022135">
+ <link rel="stylesheet" href="opt.css?v=202611031205">
+   <link rel="stylesheet" href="menubar.css?v=202611031205">
+-<link rel="stylesheet" href="special.css?v=202611032110">
++<link rel="stylesheet" href="special.css?v=202611031730">
+ </head>
+ <body>
+ <div id="stage">
+@@ -175,11 +175,13 @@
+       </div>
+     </div>
+ 
+-    <!-- 角色切换：直接列出现有角色，一键切换 -->
++    <!-- 角色切换：直接列出现有角色，一键切换（标题在框外，列表可滚动） -->
+     <div id="spCharPick" class="spCharPick" data-no-uitext="1" role="dialog" aria-hidden="true">
+-      <div class="spcpBox">
++      <div class="spcpWrap">
+         <img class="spcpTitle" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
+-        <div id="spcpList" class="spcpList"></div>
++        <div class="spcpBox">
++          <div id="spcpList" class="spcpList"></div>
++        </div>
+         <button id="spcpCancel" class="spcpCancel" type="button"><img src="assets/ui/text/sp_cancel.png" alt="取消"></button>
+       </div>
+     </div>
+@@ -276,7 +278,7 @@
+   <script src="savepages.js?v=11022135"></script>
+   <script src="screens.js?v=11022135"></script>
+   <script src="special.js?v=202611032030"></script>
+-<script src="game.js?v=202611031220"></script>
++<script src="game.js?v=202611031500"></script>
+ <script src="sound.js?v=11022135"></script>
+ <script src="zoom.js?v=11022135"></script>
+ <script src="debug.js?v=11022135"></script>
+diff --git a/program/src/ui/special.css b/program/src/ui/special.css
+index 9168490..27c20c6 100644
+--- a/program/src/ui/special.css
++++ b/program/src/ui/special.css
+@@ -415,36 +415,62 @@
+   background: rgba(0, 6, 14, .58);
+ }
+ #specialScreen .spCharPick.show { display: flex; }
++/* 标题在框外；列表在框内滚动；取消也在框外，避免压住边框花纹 */
++#specialScreen .spcpWrap {
++  display: flex; flex-direction: column; align-items: center;
++  width: 400px; max-height: 84vh;
++}
+ #specialScreen .spcpBox {
+   position: relative;
+-  width: 380px; height: 156px; box-sizing: border-box;
+-  padding: 12px 30px 0;
++  width: 100%; aspect-ratio: 544 / 216; box-sizing: border-box;
++  display: flex; flex-direction: column; overflow: hidden;
++  /* 原版底框 sys_00100（544x216）：元素强制同比例 + 图片 100% 100% = 等比缩放，不失真 */
+   background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
++  padding: 32px 41px 29px;
+   color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
+ }
+ #specialScreen .spcpTitle {
+-  display: block; height: 13px; width: auto;
+-  margin: 0 auto 4px;
++  display: block; height: 14px; width: auto;
++  margin: 0 auto 6px;
+   filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
+ }
+ #specialScreen .spcpList {
+-  display: flex; flex-direction: column; gap: 3px; align-items: center;
+-}
++  display: flex; flex-direction: column; gap: 4px; align-items: center;
++  justify-content: safe center;   /* 少角色时居中，多角色时从顶部开始滚 */
++  flex: 1 1 auto; min-height: 0; padding: 2px 4px;
++  overflow-y: auto; overflow-x: hidden;
++  scrollbar-width: thin; scrollbar-color: rgba(120,210,255,.55) rgba(8,40,64,.35);
++}
++#specialScreen .spcpList::-webkit-scrollbar { width: 5px; }
++#specialScreen .spcpList::-webkit-scrollbar-track { background: rgba(8,40,64,.35); border-radius: 3px; }
++#specialScreen .spcpList::-webkit-scrollbar-thumb { background: rgba(120,210,255,.55); border-radius: 3px; }
++#specialScreen .spcpList::-webkit-scrollbar-thumb:hover { background: rgba(150,230,255,.75); }
+ #specialScreen .spcpItem {
+   position: relative;
+-  width: 300px; height: 30px; padding: 0 16px; box-sizing: border-box;
+-  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
+-  border: 0; color: #eaf7ff; cursor: pointer;
++  flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
++  /* 原版条目底板 sys_00110：烘成三段（左右帽 + 中间段），
++     左右帽原样、中间段横向拉长，高度都是 30，所以不变形也不露白 */
++  width: 300px; height: 30px; box-sizing: border-box;
++  border: 0;
++  background-color: transparent;   /* 不要 button 默认白底 */
++  background-image:
++    url("assets/ui/text/sp_bar_left.png"),
++    url("assets/ui/text/sp_bar_right.png"),
++    url("assets/ui/text/sp_bar_mid.png");
++  background-repeat: no-repeat;
++  background-position: left center, right center, left 14px center;
++  background-size: 14px 30px, 14px 30px, calc(100% - 28px) 30px;
++  color: #eaf7ff; cursor: pointer;
+   display: flex; align-items: center; justify-content: center;
+   appearance: none; -webkit-appearance: none;
+ }
+ #specialScreen .spcpItem:hover {
+-  filter: brightness(1.15) drop-shadow(0 0 7px rgba(120,225,255,.55));
++  filter: brightness(1.15) drop-shadow(0 0 6px rgba(120,225,255,.5));
+ }
+-#specialScreen .spcpItem:not(.active) { opacity: .60; }
++#specialScreen .spcpItem:not(.active) { opacity: .62; }
+ #specialScreen .spcpItem:not(.active):hover { opacity: 1; }
+ #specialScreen .spcpItem.active {
+-  filter: brightness(1.12) drop-shadow(0 0 9px rgba(135,235,255,.85));
++  filter: brightness(1.22) drop-shadow(0 0 9px rgba(135,235,255,.8));
+ }
+ #specialScreen .spcpName {
+   font-size: 13px; line-height: 1; letter-spacing: 2px;
+@@ -456,10 +482,10 @@
+   color: #bfe6f7; font-size: 11px;
+ }
+ #specialScreen .spcpCancel {
+-  position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%);
++  margin: 10px auto 0;
+   width: 76px; height: 18px; padding: 0; box-sizing: border-box;
+   background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat;
+-  border: 0; cursor: pointer; isolation: isolate;
++  border: 0; cursor: pointer; isolation: isolate; display: block;
+ }
+ #specialScreen .spcpCancel:active { background-position: 0 50%; }
+ #specialScreen .spcpCancel:hover { filter: brightness(1.12); }
+diff --git a/program/tools/bake_char_bar.py b/program/tools/bake_char_bar.py
+new file mode 100644
+index 0000000..6d31780
+--- /dev/null
++++ b/program/tools/bake_char_bar.py
+@@ -0,0 +1,47 @@
++# -*- coding: utf-8 -*-
++"""把 sys_00110 的按钮底板切成三段（左帽 / 中间 / 右帽），给九宫格用。
++
++为什么要烘：原图 480x112，上下有透明留白；直接拿去做 border-image，
++四角会带上透明边、中间 fill 又被压得很薄。先裁掉留白、等比缩到目标高度，
++左右帽保持原样、只横向拉伸中间段，就不会变形也不会露白。
++
++用法：
++    python tools/bake_char_bar.py            # 默认高 30，左右帽各 14
++    python tools/bake_char_bar.py --height 34 --cap 16
++"""
++import argparse
++import os
++
++from PIL import Image
++
++ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
++SRC = os.path.join(ROOT, "res", "assets", "ui", "sys_00110.png")
++OUT_DIR = os.path.join(ROOT, "res", "assets", "ui", "text")
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--height", type=int, default=30, help="成品高度（px）")
++    ap.add_argument("--cap", type=int, default=14, help="左右帽宽度（px）")
++    args = ap.parse_args()
++
++    im = Image.open(SRC).convert("RGBA")
++    bbox = im.getbbox()          # 去掉四周透明留白
++    im = im.crop(bbox)
++    w, h = im.size
++    nw = max(1, round(w * args.height / h))
++    im = im.resize((nw, args.height), Image.LANCZOS)
++    cap = min(args.cap, nw // 3)
++    left = im.crop((0, 0, cap, args.height))
++    right = im.crop((nw - cap, 0, nw, args.height))
++    mid = im.crop((cap, 0, nw - cap, args.height))
++    os.makedirs(OUT_DIR, exist_ok=True)
++    for name, part in (("sp_bar_left.png", left), ("sp_bar_mid.png", mid), ("sp_bar_right.png", right)):
++        p = os.path.join(OUT_DIR, name)
++        part.save(p)
++        print("%-18s %s  %s" % (name, part.size, p))
++    print("裁切后原图：%dx%d → 缩放 %dx%d，左右帽 %d px" % (w, h, nw, args.height, cap))
++
++
++if __name__ == "__main__":
++    main()
