@@ -357,10 +357,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..dad910c
+index 0000000..3fe329d
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,91 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -419,6 +419,19 @@ index 0000000..dad910c
 +| 改一个后端接口 | 读 `main.py` 80 KB | 读 `01_后端与接口.md` 3 KB |
 +| 看一个补丁 | 贴 19 KB 全文 | `digest.py --patch` 7 行 |
 +| 验证界面 | 截图（上千 token/张） | 探针 JSON（几百 token） |
++
++
++### 5. 代码拆分（第一步）
++
++- 新增 program/src/text_parse.py：split_scene / split_emotion / split_action / split_thinking /
++  ja_clean / ja_ok（7 个纯函数，不碰全局和文件）
++- main.py 从 **1955 行减到 1875 行**，这些函数改成从新模块导入（_ja_clean/_ja_ok 保留别名，
++  调用方不用改）
++- 6 个自测全过
++- 详细拆分路线（后端分 7 步、前端分 3 步、每步怎么验证）写进 other/docs/架构/08_代码拆分计划.md
++
++> 为什么不一口气拆完：_chat（169 行）和 game.js（68 KB）都依赖大量闭包/全局，
++> 一次大改很容易出隐藏 bug；计划里每步都要求 6 自测 + 探针，拆坏就 revert。
 +
 +## 四、变更文件
 +
@@ -1925,6 +1938,300 @@ index 0000000..a02c5cc
 +- 改存档字段要**向后兼容**：读不到就当没有，不要 KeyError。
 +- `worldbook.json` 结构已冻结（用户要求），只加条目、不加/改顶层字段。
 +- 所有“本地数据”都在 `.gitignore`，别手滑 `git add -f`。
+diff --git a/other/docs/架构/08_代码拆分计划.md b/other/docs/架构/08_代码拆分计划.md
+new file mode 100644
+index 0000000..d440c67
+--- /dev/null
++++ b/other/docs/架构/08_代码拆分计划.md
+@@ -0,0 +1,71 @@
++# 08 · 代码拆分计划（进行中）
++
++> 目标：把「一个大文件」拆成「一个功能一个文件」，让代理只读需要的那一只。
++> 原则：**每拆一步都要跑 6 个自测 + 探针**，拆坏了立刻回滚，不一次性大改。
++
++## 现状（2026-11-04）
++
++| 文件 | 体积 | 问题 |
++|---|---|---|
++| `program/src/main.py` | 1875 行（原 1955） | HTTP + 配置 + 对话管线 + 记忆胶水 + 窗口控制全在一起 |
++| `program/src/ui/game.js` | 68 KB | 演出 + 请求 + 立绘 + 回想 + 音频 + 滚轮/右键 |
++| `program/src/ui/opt.js` | 37 KB | 设置页全部逻辑 |
++| `program/src/ui/special.js` | 28 KB | 参数滑条 + 角色 + 语音 + 世界书 |
++| `program/src/tts_client.py` | 21 KB | 合成 + 参考音频 + 权重切换 |
++
++## 目标结构（后端）
++
++```
++program/src/
++  main.py            只留：启动、建窗口、起服务（< 300 行）
++  text_parse.py      ✅ 已拆：标签拆分 / 日文清理（纯函数）
++  rt_cfg.py          路径、prefs、云端配置、模型配置
++  chat_llm.py        调云端 / 翻译 / usage / 阶段判断 / 记忆胶水
++  api/
++    __init__.py
++    base.py          static 服务、_json、send_head（Range）
++    window.py        /api/window
++    text.py          /api/text（字模渲染）
++    tts.py           /api/tts、/api/voice/ok
++    chat.py          /api/chat
++    session.py       /api/session/*
++    special.py       /api/special/*、/api/character/*
++    scene.py         /api/scene/*
++```
++
++Handler 由 mixin 组成：`class Handler(WindowApi, TextApi, TtsApi, ChatApi, SessionApi, SpecialApi, SceneApi, BaseApi)`。
++
++## 目标结构（前端）
++
++```
++program/src/ui/
++  game.js            [→] 拆成 5 个，共用 window.WA2
++    wt-core.js         状态、屏幕切换、常量
++    wt-chat.js         发请求、解析标签、打字机
++    wt-sprite.js       立绘/服装/场景
++    wt-backlog.js      回想、历史、滚轮/右键
++    wt-audio.js        bgm / se / 语音音量
++  special.js         [→] sp-params.js / sp-char.js / sp-voice.js
++  opt.js             [→] opt-model.js / opt-conn.js
++```
++
++拆前端的关键：现在各文件都是 IIFE 私有闭包，要先把共享状态挂到 `window.WA2`（一次性成本），
++之后按功能搬。**不要先动闭包结构再拆**，容易出隐藏 bug。
++
++## 执行顺序（每步独立可验证）
++
++| 步 | 内容 | 风险 | 验证 |
++|---|---|---|---|
++| 1 ✅ | `text_parse.py`（纯函数 7 个） | 极低 | 6 个自测 |
++| 2 | `rt_cfg.py`（路径/prefs/云配置/模型配置） | 低 | 自测 + `/api/ping` + 设置页 |
++| 3 | `api/base.py`（静态服务 + send_head） | 中 | 素材 200、音频 Range |
++| 4 | `api/window.py`、`api/text.py`、`api/tts.py` | 中 | 探针：窗口/字模/语音 |
++| 5 | `chat_llm.py` + `api/chat.py` | **高** | 假模型注入 system 对比、6 自测 |
++| 6 | `api/session.py`、`api/special.py`、`api/scene.py` | 中 | 存读档/角色切换/场景 |
++| 7 | 前端 `window.WA2` + 按功能拆 game.js | **高** | 探针（不截图）+ 手动玩一轮 |
++
++## 硬规矩
++
++- 每一拆完就提交，commit 信息写清「拆了什么、测试结果」；拆坏了直接 `git revert`。
++- **不改变行为**：只搬代码，不改逻辑；必须改的地方单独一次提交。
++- 每次拆完更新本文件「现状」表，标 ✅。
+diff --git a/program/src/main.py b/program/src/main.py
+index ab7f706..bcac1cc 100644
+--- a/program/src/main.py
++++ b/program/src/main.py
+@@ -343,52 +343,7 @@ def fewshot_msgs():
+             out.append({"role": "assistant", "content": a})
+     return out
+ 
+-import re as _re
+-ACTION_RE = _re.compile(r"<action>\s*(.*?)\s*</action>", _re.S)
+ 
+-def split_scene(text):
+-    """取出 <scene>地点</scene> 与 <outfit>编号</outfit>，返回 (正文, 场景, 服装)
+-
+-    场景名放宽到 40 字：素材里的地名带括号标签（如「和纱家别墅（客厅）」），
+-    模型偶尔会整串抄过来，别被卡掉。
+-    """
+-    import re
+-    scene = ""
+-    outfit = ""
+-    if not text:
+-        return text, scene, outfit
+-    m = re.search(r"<scene>\s*([^<]{1,40})\s*</scene>", text)
+-    if m:
+-        scene = m.group(1).strip()
+-        text = text[:m.start()] + text[m.end():]
+-    m = re.search(r"<outfit>\s*([^<]{1,12})\s*</outfit>", text)
+-    if m:
+-        outfit = m.group(1).strip()
+-        text = text[:m.start()] + text[m.end():]
+-    text = re.sub(r"</?(scene|outfit)[^>]*>", "", text).strip()
+-    return text, scene, outfit
+-
+-
+-def split_emotion(text):
+-    """取出 <emotion>xxx</emotion>，返回 (正文, 情绪)。没有标记时情绪为 calm。"""
+-    import re
+-    if not text:
+-        return text, "calm"
+-    m = re.search(r"<emotion>\s*([^<]{1,20})\s*</emotion>", text)
+-    emo = "calm"
+-    if m:
+-        emo = m.group(1).strip()
+-        text = (text[:m.start()] + text[m.end():]).strip()
+-    # 兼容模型把标记写在其它位置/多次出现
+-    text = re.sub(r"</?emotion[^>]*>", "", text).strip()
+-    return text, emo
+-
+-
+-def split_action(text):
+-    """把 <action> 从回复里拆出来，返回 (action, 纯台词)"""
+-    acts = ACTION_RE.findall(text or "")
+-    rest = ACTION_RE.sub("", text or "").strip()
+-    return acts, rest
+ 
+ # ---------------- 人设 / 世界书（见 persona_ctx.py） ----------------
+ import threading as _th
+@@ -397,6 +352,10 @@ from sessions import session_save, session_load, session_list, session_thumb
+ import sessions as _sessions
+ import memory as _memory
+ import pricing as _pricing
++from text_parse import (
++    ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
++    ja_clean as _ja_clean, ja_ok as _ja_ok,
++)
+ 
+ # 特别模式「查看文件」：没导入时要指到程序真正读的默认位置，而不是空的 char/ 目录
+ _defaults = persona_ctx.default_paths()
+@@ -490,16 +449,6 @@ persona_ctx.set_logger(log)      # 人设/世界书的日志也走这里
+ persona_stage.set_logger(log)    # 关系阶段的日志
+ 
+ 
+-def split_thinking(text):
+-    """把 <thinking>…</thinking> 从回复里拆出来"""
+-    import re as _re
+-    m = _re.search(r"<thinking>(.*?)</thinking>", text or "", _re.S)
+-    if not m:
+-        return (text or "").strip(), ""
+-    inner = m.group(1).strip()
+-    rest = _re.sub(r"<thinking>.*?</thinking>", "", text, flags=_re.S).strip()
+-    return rest, inner
+-
+ 
+ _JA_CACHE = {}
+ TRANSLATE_MODEL = 'qwen2.5:14b-instruct-q4_K_M'
+@@ -511,32 +460,6 @@ _JA_SHOTS = [
+ ]
+ 
+ 
+-def _ja_clean(x):
+-    """只留第一行, 去掉假名/汉字/日文标点以外的字符, 并截掉解释性尾巴"""
+-    x = (x or '').split('\\n')[0].strip()
+-    for stop in ('翻訳', '場合は', '注意', 'つまり', '：', ':', '，', ','):
+-        i = x.find(stop)
+-        if i > 0:
+-            x = x[:i]
+-    # 句号后还有解释的, 只取第一句
+-    if '。' in x[:-1]:
+-        x = x.split('。')[0] + '。'
+-
+-    out = []
+-    for c in x:
+-        o = ord(c)
+-        if (0x3040 <= o <= 0x30FF) or (0x4E00 <= o <= 0x9FFF) or \
+-           (0x3000 <= o <= 0x303F) or (0xFF00 <= o <= 0xFF60) or c in '　 ー…':
+-            out.append(c)
+-    j = ''.join(out).strip()
+-    # 人称修正: 和纱用「あたし」, 不用「俺/僕/わたし」
+-    for bad in ('俺', '僕', 'わたし', '私'):
+-        j = j.replace(bad, 'あたし')
+-    return j
+-
+-
+-def _ja_ok(x):
+-    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
+ 
+ 
+ def translate_ja(text):
+diff --git a/program/src/text_parse.py b/program/src/text_parse.py
+new file mode 100644
+index 0000000..b18514b
+--- /dev/null
++++ b/program/src/text_parse.py
+@@ -0,0 +1,93 @@
++# -*- coding: utf-8 -*-
++"""回复文本的纯函数工具：拆标签、清日文。
++
++这些函数不依赖运行时状态（没有全局、不碰文件），所以单独一层，
++改标签规则、加新标签只动这里，不用读 main.py。
++"""
++
++import re
++
++# <action>…</action>
++ACTION_RE = re.compile(r"<action>\s*(.*?)\s*</action>", re.S)
++
++
++def split_scene(text):
++    """取出 <scene>地点</scene> 与 <outfit>衣服</outfit>，返回 (正文, 场景, 服装)。
++
++    场景名放宽到 40 字：素材里的地名带括号标签（如「和纱家别墅（客厅）」），
++    模型偶尔会整串抄过来，别被卡掉。
++    """
++    scene = ""
++    outfit = ""
++    if not text:
++        return text, scene, outfit
++    m = re.search(r"<scene>\s*([^<]{1,40})\s*</scene>", text)
++    if m:
++        scene = m.group(1).strip()
++        text = text[:m.start()] + text[m.end():]
++    m = re.search(r"<outfit>\s*([^<]{1,12})\s*</outfit>", text)
++    if m:
++        outfit = m.group(1).strip()
++        text = text[:m.start()] + text[m.end():]
++    text = re.sub(r"</?(scene|outfit)[^>]*>", "", text).strip()
++    return text, scene, outfit
++
++
++def split_emotion(text):
++    """取出 <emotion>xxx</emotion>，返回 (正文, 情绪)。没有标记时情绪为 calm。"""
++    if not text:
++        return text, "calm"
++    m = re.search(r"<emotion>\s*([^<]{1,20})\s*</emotion>", text)
++    emo = "calm"
++    if m:
++        emo = m.group(1).strip()
++        text = (text[:m.start()] + text[m.end():]).strip()
++    # 兼容模型把标记写在其它位置/多次出现
++    text = re.sub(r"</?emotion[^>]*>", "", text).strip()
++    return text, emo
++
++
++def split_action(text):
++    """把 <action> 从回复里拆出来，返回 (action 列表, 纯台词)"""
++    acts = ACTION_RE.findall(text or "")
++    rest = ACTION_RE.sub("", text or "").strip()
++    return acts, rest
++
++
++def split_thinking(text):
++    """把 <thinking>…</thinking> 从回复里拆出来，返回 (正文, 思考)"""
++    m = re.search(r"<thinking>(.*?)</thinking>", text or "", re.S)
++    if not m:
++        return (text or "").strip(), ""
++    inner = m.group(1).strip()
++    rest = re.sub(r"<thinking>.*?</thinking>", "", text, flags=re.S).strip()
++    return rest, inner
++
++
++def ja_clean(x):
++    """只留第一行，去掉假名/汉字/日文标点以外的字符，并截掉解释性尾巴。"""
++    x = (x or "").split("\\n")[0].strip()
++    for stop in ("翻訳", "場合は", "注意", "つまり", "：", ":", "，", ","):
++        i = x.find(stop)
++        if i > 0:
++            x = x[:i]
++    # 句号后还有解释的, 只取第一句
++    if "。" in x[:-1]:
++        x = x.split("。")[0] + "。"
++
++    out = []
++    for c in x:
++        o = ord(c)
++        if (0x3040 <= o <= 0x30FF) or (0x4E00 <= o <= 0x9FFF) or \
++           (0x3000 <= o <= 0x303F) or (0xFF00 <= o <= 0xFF60) or c in "　 ー…":
++            out.append(c)
++    j = "".join(out).strip()
++    # 人称修正: 和纱用「あたし」, 不用「俺/僕/わたし」
++    for bad in ("俺", "僕", "わたし", "私"):
++        j = j.replace(bad, "あたし")
++    return j
++
++
++def ja_ok(x):
++    """至少两个假名才算“像日语”，防止把中文塞给 TTS。"""
++    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
 diff --git a/program/tools/digest.py b/program/tools/digest.py
 new file mode 100644
 index 0000000..40cdf10
