@@ -1,9 +1,9 @@
 diff --git a/AGENTS.md b/AGENTS.md
 new file mode 100644
-index 0000000..aac2f0c
+index 0000000..339df20
 --- /dev/null
 +++ b/AGENTS.md
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,63 @@
 +# AGENTS.md · 给 AI 代理的接手须知
 +
 +**先读 `other/docs/交接速览.md`（1 页）。** 需要细节再看 `other/docs/新对话交接说明.md`（32 KB，别整份读：
@@ -53,6 +53,15 @@ index 0000000..aac2f0c
 +5. **一任务一会话**：新会话只喂 `交接速览.md` + 本次任务，不要把历史对话贴回来。
 +6. **机械活交给便宜模型**：改名、批量替换、跑测试、跑探针。
 +
++## 代码落位规矩（硬性）
++
++1. **目录即层级**：新代码放进 `core/`（稳定原语）、`chat/`（对话管线）、`api/`（HTTP 分组）、
++   `character/`（角色与资源）、`ui/`（前端按功能）——不要往 `main.py` 里继续加。
++2. **单文件上限 400 行**：超过就要拆；超过 800 行的（`main.py`、`game.js`、`opt.js`）已在待拆清单。
++3. **新文件必须登记**到 `program/tools/arch_map.py` 的 `LEVELS` / `UI_LEVELS`，否则映射表显示「未登记」。
++4. **改完代码跑** `python program/tools/arch_map.py --write`；提交前 `--check` 必须通过。
++5. **只读一层**：先看 `other/docs/架构/映射表.md` 的「层级 / 被谁调用」两列，再决定读哪个文件。
++
 +## 不许动的东西
 +
 +- `characters/`、`res/assets/`、`persona/`、`worldbook/`、`sessions/`、`release/` 是本地数据，**不入库、不上传**。
@@ -98,10 +107,10 @@ index 591efb7..86318a7 100644
  | [other/docs/设计_分层人格提示词.md](other/docs/设计_分层人格提示词.md) | 通用思路：base + 情境切片，按关系/场景/对象按需注入，省 token |
 diff --git a/other/docs/交接速览.md b/other/docs/交接速览.md
 new file mode 100644
-index 0000000..8655e8b
+index 0000000..c09b8d7
 --- /dev/null
 +++ b/other/docs/交接速览.md
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,74 @@
 +# 交接速览（1 页）
 +
 +> 这份是**省 token 的入口**：新会话先读这一页就够开工。
@@ -143,7 +152,8 @@ index 0000000..8655e8b
 +python program\tools\test_char_res.py                  # 自测（共 6 个）
 +python program\tools\ui_probe.py --url <url> --js a.js --check b.js --wait 1500
 +python program\tools\bake_char_bar.py                  # 面板条目三段图（素材不入库，换机要跑）
-+python program\tools\check_assets.py                   # 素材自检
++python program\tools\check_assets.py                   # 素材自检python program\tools\arch_map.py --write                # 改完代码更新架构映射表
++
 +```
 +
 +## 几个必知的坑
@@ -357,10 +367,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..3fe329d
+index 0000000..ce114e1
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,107 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -432,6 +442,22 @@ index 0000000..3fe329d
 +
 +> 为什么不一口气拆完：_chat（169 行）和 game.js（68 KB）都依赖大量闭包/全局，
 +> 一次大改很容易出隐藏 bug；计划里每步都要求 6 自测 + 探针，拆坏就 revert。
++
++
++### 6. 架构映射表 + 落位硬规矩
++
++- 新增 program/tools/arch_map.py：扫 program/src，自动生成
++  other/docs/架构/映射表.md（31 个文件，7.5 KB）
++- 表里列：**层级 / 文件 / 行数 / 职责 / 导出 / 依赖 / 被谁调用**；末尾有「待拆（行数最多的 8 个）」
++- --check 用来防止表过期（提交前跑，不过就 --write）
++- 写进 AGENTS.md 的硬规矩：
++  1. 目录即层级（core / chat / api / character / ui），不许往 main.py 继续加
++  2. 单文件上限 **400 行**，超过必须拆
++  3. 新文件必须登记进 rch_map.py 的 LEVELS / UI_LEVELS
++  4. 改完代码跑 rch_map.py --write，提交前 --check
++  5. 只读一层：先看映射表的「层级 / 被谁调用」再决定读哪个文件
++
++> 当前待拆前三：main.py 1879 行、game.js 1830 行、opt.js 1022 行。
 +
 +## 四、变更文件
 +
@@ -1467,10 +1493,10 @@ index 4d5b8bc..0000000
 -3. **存档 / 读档** —— 长对话留不住，用久了会烦
 diff --git a/other/docs/架构/00_总览.md b/other/docs/架构/00_总览.md
 new file mode 100644
-index 0000000..ac1c260
+index 0000000..050ffbb
 --- /dev/null
 +++ b/other/docs/架构/00_总览.md
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,67 @@
 +# 00 · 总览（架构地图入口）
 +
 +> **代理规则**：先看这份 → 找到要改的那一层 → **只读那一份叶子文档**，别一次读全部。
@@ -1503,6 +1529,8 @@ index 0000000..ac1c260
 + (对话/翻译)      (语音合成)      characters/ res/assets/
 +```
 +
++> 每个代码文件归哪一层、导出什么、被谁调用 → 看 [`映射表.md`](映射表.md)（工具自动生成）。
++
 +## 一级子架构（7 个模块 → 对应叶子文档）
 +
 +| # | 模块 | 叶子文档 | 主要文件 |
@@ -1533,6 +1561,9 @@ index 0000000..ac1c260
 +1. **一次只读一层**：动后端别去读 `game.js`（68 KB）全文，动前端别读 `main.py` 全文。
 +2. **先 `--stat` 再 `--outline` 再 `--slice`**，不要整份贴文件。
 +3. **验证优先用 JSON 探针**，不要截图（截图很贵）。
++4. **代码落位对照 `映射表.md`**（自动生成）：新文件要登记层级、单文件不超过 400 行、
++   改完跑 `python program/tools/arch_map.py --write`。
++
 diff --git a/other/docs/架构/01_后端与接口.md b/other/docs/架构/01_后端与接口.md
 new file mode 100644
 index 0000000..52e596d
@@ -1813,10 +1844,10 @@ index 0000000..66eb55c
 +用这些数字判断，**不要 --shot 截图**（一张上千 token）。
 diff --git a/other/docs/架构/06_工具自测与发布.md b/other/docs/架构/06_工具自测与发布.md
 new file mode 100644
-index 0000000..25ea073
+index 0000000..03a51d1
 --- /dev/null
 +++ b/other/docs/架构/06_工具自测与发布.md
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,51 @@
 +# 06 · 工具 / 自测 / 发布
 +
 +> 工具都在 `program/tools/`，用 `build_env/venv` 的 python 跑。
@@ -1828,7 +1859,8 @@ index 0000000..25ea073
 +| `run_dev.py` | 同步 `src → build_env` 并启动；`--sync-only` 只同步 |
 +| `digest.py` | **省 token**：`--outline` 看目录、`--slice a-b` 读片段、`--patch` 看补丁改了哪些文件 |
 +| `ui_probe.py` | 真实 WebView2 探针：`--js` 点按钮、`--check` 读结果（都收文件路径） |
-+| `check_assets.py` | 素材自检：缺什么、放哪 |
++| `check_assets.py` | 素材自检：缺什么、放哪 || `arch_map.py` | **架构映射表**：`--write` 生成 `other/docs/架构/映射表.md`，`--check` 检查是否过期 |
++
 +
 +## 烘焙（素材本地生成，不入库）
 +
@@ -1850,6 +1882,8 @@ index 0000000..25ea073
 +test_persona_stage.py 关系阶段分类
 +test_scene_cg.py     场景 CG 匹配
 +```
++
++提交前额外检查：`python tools/arch_map.py --check`（映射表过期就 `--write` 后一起提交）。
 +
 +## 发布流程（约定第 12、13 条）
 +
@@ -2015,6 +2049,150 @@ index 0000000..d440c67
 +- 每一拆完就提交，commit 信息写清「拆了什么、测试结果」；拆坏了直接 `git revert`。
 +- **不改变行为**：只搬代码，不改逻辑；必须改的地方单独一次提交。
 +- 每次拆完更新本文件「现状」表，标 ✅。
+diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
+new file mode 100644
+index 0000000..ca74d43
+--- /dev/null
++++ b/other/docs/架构/映射表.md
+@@ -0,0 +1,138 @@
++# 架构映射表（自动生成，不要手改）
++
++> 由 `program/tools/arch_map.py --write` 生成。改了代码就重跑，表会跟着变。
++> 代理用法：按「层级」找到要改的那一行 → 只读该文件；关注「被谁调用」列判断影响面。
++
++## 一级 · 前端/对话
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/game.js` | 1830 | 对话演出：请求/解析/打字机/立绘/回想/音量 | __endIntro, __history, __loadOpeningLine, bgSrc, bgmSrc, bgmVolume | <script 全局> | — |
++
++## 一级 · 前端/特别模式
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/special.js` | 774 | 参数滑条/角色/语音/世界书 | __openSpecial, __spPrice, activeModel, refreshPrice, setGlyph, tokens | <script 全局> | — |
++
++## 一级 · 前端/菜单
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/menubar.js` | 523 | 顶部菜单：场景/服装/时期/窗口 | __applyTextScale, __lockScene, __nextOutfit, __nextScene, applyRes, closeAll | <script 全局> | — |
++
++## 一级 · 前端/设置
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/opt.js` | 1022 | 模型/连接/选项 | __ctBound, __optOpen, __optTab, byId, close, open | <script 全局> | — |
++
++## 一级 · 后端服务
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/main.py` | 1879 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | applog, char_res, characters, memory, persona_ctx, persona_stage | — |
++
++## 二级 · 前端/壳
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/screens.js` | 168 | 界面开关、右键/ESC、通用退出 | __closeScreens, __fadeInScreen, __hideUIScreen, __showUIScreen, allScreens, closeAll | <script 全局> | — |
++
++## 二级 · 前端/字模
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/uitext.js` | 206 | 中文换字模图 | __uiTextRender, __uiTextScan, fontSizePx, makeImg, pump, visible | <script 全局> | — |
++
++## 二级 · 前端/存档
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/savepages.js` | 373 | 存档网格/缩略图/页签 | __renderSaveSlots, __renderSaveSlotsNow, __savePage, dateHTML, fillContent, numHTML | <script 全局> | — |
++| `src/ui/savetabs4.js` | 69 | 存档页签资源 | __savePage, __saveTabsPaint, __setSavePage, activeImg, boxEl, hoverImg | <script 全局> | — |
++
++## 二级 · 前端/窗口
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/scale.js` | 56 | 整数倍缩放 | __applyTextScale, applyAll, bump, toast | <script 全局> | — |
++| `src/ui/zoom.js` | 39 | 缩放 | reflow | <script 全局> | — |
++
++## 二级 · 前端/调试
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/debug.js` | 123 | 调试面板 | __dbg, __dbgBuf, __openScreen, log, stamp, wrapOpen | <script 全局> | — |
++
++## 二级 · 前端/配置
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/config.js` | 210 | 前端配置常量 | getPrefs, loadPrefs, pushPrefs, setPref | <script 全局> | — |
++
++## 二级 · 前端/音频
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/sound.js` | 54 | SE/BGM 播放 | hit, se | <script 全局> | — |
++
++## 二级 · 场景
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/scene_cg.py` | 374 | 场景 CG 标签与匹配 | set_assets_dir, index_path, parse_name, catalog, match, prompt_hint | — | main |
++
++## 二级 · 字模
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/gdi_text.py` | 365 | GDI 兜底渲染 | BITMAPINFOHEADER, BITMAPINFO, font_for_char, split_runs, measure, wrap_text | — | — |
++| `src/sub_render.py` | 207 | 中文→字体图集渲染 | atlas_coverage, tint_rgba, render_line, render_block | — | — |
++
++## 二级 · 存档
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/sessions.py` | 126 | 存读档读写 | session_save, session_load, session_list, session_thumb | — | main |
++
++## 二级 · 核心
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/applog.py` | 150 | 日志文件 | path, log, error, dump_stacks, start_heartbeat, stop | — | main |
++| `src/pricing.py` | 241 | 价格与用量估算 | table, currency, prices_for, is_peak, cost, estimate | — | main |
++| `src/text_parse.py` | 94 | 回复标签解析、日文清理（纯函数） | split_scene, split_emotion, split_action, split_thinking, ja_clean, ja_ok | — | main |
++| `src/winutil.py` | 76 | Windows 窗口 API | — | — | main |
++
++## 二级 · 角色
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/char_res.py` | 234 | 角色资源定位与状态 | char_file, prompt_path, prompt_text, worldbook, worldbook_text, memory_path | special_files | main, persona_ctx, tts_client |
++| `src/characters.py` | 528 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | main, persona_ctx, special_cfg, special_files |
++| `src/special_cfg.py` | 132 | 角色名读写 | name_file, defaults, current, ensure, save, get_name | characters, memory | main |
++| `src/special_files.py` | 404 | 特别模式导入/打开/立绘落盘 | char_dir, set_assets_dir, save_upload, set_default_paths, kind_dir, portrait_dir | characters | char_res, main |
++| `src/tts_client.py` | 624 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | char_res | main |
++
++## 二级 · 记忆
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/memory.py` | 405 | 对话记忆书：阈值/打包/条目 | cfg, ctx_for, budget, est_text, est_msg, est_messages | — | main, persona_stage, special_cfg |
++| `src/persona_ctx.py` | 282 | 人设正文、世界书命中、时期 | set_logger, prompt_dir, worldbook_file, default_paths, period_of, persona_text | char_res, characters, persona_stage | main |
++| `src/persona_stage.py` | 188 | 关系阶段分类 | set_logger, set_llm, detect_local, classify_now, current, reset | memory | main, persona_ctx |
++| `src/story_rag.py` | 223 | 原作检索（BM25） | tokenize, StoryIndex, enabled, active_index, get_index, preload | — | — |
++
++## 待拆（行数最多的 8 个）
++
++| 文件 | 行数 | 建议 |
++|---|---|---|
++| `src/main.py` | 1879 | 超过 800 行，必须拆 |
++| `src/ui/game.js` | 1830 | 超过 800 行，必须拆 |
++| `src/ui/opt.js` | 1022 | 超过 800 行，必须拆 |
++| `src/ui/special.js` | 774 | 超过 400 行，建议拆 |
++| `src/tts_client.py` | 624 | 超过 400 行，建议拆 |
++| `src/characters.py` | 528 | 超过 400 行，建议拆 |
++| `src/ui/menubar.js` | 523 | 超过 400 行，建议拆 |
++| `src/memory.py` | 405 | 超过 400 行，建议拆 |
 diff --git a/program/src/main.py b/program/src/main.py
 index ab7f706..bcac1cc 100644
 --- a/program/src/main.py
@@ -2232,6 +2410,185 @@ index 0000000..b18514b
 +def ja_ok(x):
 +    """至少两个假名才算“像日语”，防止把中文塞给 TTS。"""
 +    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
+diff --git a/program/tools/arch_map.py b/program/tools/arch_map.py
+new file mode 100644
+index 0000000..39cbe6b
+--- /dev/null
++++ b/program/tools/arch_map.py
+@@ -0,0 +1,173 @@
++# -*- coding: utf-8 -*-
++"""扫描源码，生成「架构映射表」——层级 / 文件 / 职责 / 导出 / 依赖 / 被谁调用。
++
++规则：**这张表由工具生成，不要手改**；改完代码跑一次，表就跟着更新。
++
++    python tools/arch_map.py                 # 打印
++    python tools/arch_map.py --write         # 写入 other/docs/架构/映射表.md
++    python tools/arch_map.py --check         # 与已提交的表对比，不一致就退出码 1（给 CI/自测用）
++
++层级定义见 LEVELS：路径/文件名 → 一级 / 二级 / 三级。
++"""
++import argparse
++import ast
++import os
++import re
++import sys
++
++sys.stdout.reconfigure(encoding="utf-8", errors="replace")
++
++ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # program/
++SRC = os.path.join(ROOT, "src")
++OUT = os.path.join(ROOT, "..", "other", "docs", "架构", "映射表.md")
++
++# 一级/二级归属（按文件名）。加新文件一定要在这里登记，否则表里显示「未登记」。
++LEVELS = {
++    "main.py": ("一级 · 后端服务", "主入口（HTTP 服务 + 窗口 + 启动）"),
++    "text_parse.py": ("二级 · 核心", "回复标签解析、日文清理（纯函数）"),
++    "applog.py": ("二级 · 核心", "日志文件"),
++    "winutil.py": ("二级 · 核心", "Windows 窗口 API"),
++    "pricing.py": ("二级 · 核心", "价格与用量估算"),
++    "memory.py": ("二级 · 记忆", "对话记忆书：阈值/打包/条目"),
++    "persona_ctx.py": ("二级 · 记忆", "人设正文、世界书命中、时期"),
++    "persona_stage.py": ("二级 · 记忆", "关系阶段分类"),
++    "story_rag.py": ("二级 · 记忆", "原作检索（BM25）"),
++    "sessions.py": ("二级 · 存档", "存读档读写"),
++    "characters.py": ("二级 · 角色", "角色文件夹/切换/立绘索引"),
++    "char_res.py": ("二级 · 角色", "角色资源定位与状态"),
++    "special_files.py": ("二级 · 角色", "特别模式导入/打开/立绘落盘"),
++    "special_cfg.py": ("二级 · 角色", "角色名读写"),
++    "tts_client.py": ("二级 · 角色", "语音合成与参考音频"),
++    "scene_cg.py": ("二级 · 场景", "场景 CG 标签与匹配"),
++    "sub_render.py": ("二级 · 字模", "中文→字体图集渲染"),
++    "gdi_text.py": ("二级 · 字模", "GDI 兜底渲染"),
++}
++
++UI_LEVELS = {
++    "game.js": ("一级 · 前端/对话", "对话演出：请求/解析/打字机/立绘/回想/音量"),
++    "menubar.js": ("一级 · 前端/菜单", "顶部菜单：场景/服装/时期/窗口"),
++    "special.js": ("一级 · 前端/特别模式", "参数滑条/角色/语音/世界书"),
++    "opt.js": ("一级 · 前端/设置", "模型/连接/选项"),
++    "screens.js": ("二级 · 前端/壳", "界面开关、右键/ESC、通用退出"),
++    "savepages.js": ("二级 · 前端/存档", "存档网格/缩略图/页签"),
++    "savetabs4.js": ("二级 · 前端/存档", "存档页签资源"),
++    "uitext.js": ("二级 · 前端/字模", "中文换字模图"),
++    "sound.js": ("二级 · 前端/音频", "SE/BGM 播放"),
++    "zoom.js": ("二级 · 前端/窗口", "缩放"),
++    "scale.js": ("二级 · 前端/窗口", "整数倍缩放"),
++    "debug.js": ("二级 · 前端/调试", "调试面板"),
++    "config.js": ("二级 · 前端/配置", "前端配置常量"),
++}
++
++
++def py_info(path):
++    src = open(path, encoding="utf-8", errors="replace").read()
++    info = {"lines": src.count("\n") + 1, "deps": set(), "exports": [], "doc": ""}
++    try:
++        t = ast.parse(src)
++    except SyntaxError:
++        return info
++    doc = ast.get_docstring(t) or ""
++    info["doc"] = doc.strip().splitlines()[0] if doc.strip() else ""
++    for n in t.body:
++        if isinstance(n, (ast.FunctionDef, ast.ClassDef)) and not n.name.startswith("_"):
++            info["exports"].append(n.name)
++        elif isinstance(n, ast.Import):
++            info["deps"].update(a.name.split(".")[0] for a in n.names)
++        elif isinstance(n, ast.ImportFrom) and n.module:
++            info["deps"].add(n.module.split(".")[0])
++    local = {os.path.splitext(f)[0] for f in os.listdir(SRC) if f.endswith(".py")}
++    info["deps"] = sorted(d for d in info["deps"] if d in local)
++    return info
++
++
++def js_info(path):
++    src = open(path, encoding="utf-8", errors="replace").read()
++    info = {"lines": src.count("\n") + 1, "deps": [], "exports": [], "doc": ""}
++    head = re.search(r"^\s*(?://|/\*)\s*(.+)$", src, re.M)
++    info["doc"] = head.group(1).strip()[:60] if head else ""
++    names = re.findall(r"window\.(__\w+)\s*=", src)[:4] + re.findall(r"^\s*function\s+(\w+)", src, re.M)[:4]
++    info["exports"] = sorted(set(names))
++    info["deps"] = ["<script 全局>"]
++    return info
++
++
++def build():
++    rows = []
++    for dirpath, _dn, fns in os.walk(SRC):
++        for fn in sorted(fns):
++            p = os.path.join(dirpath, fn)
++            rel = os.path.relpath(p, ROOT).replace("\\", "/")
++            if fn.endswith(".py") and dirpath == SRC:
++                info = py_info(p)
++                lvl, duty = LEVELS.get(fn, ("未登记", "—"))
++                rows.append((lvl, rel, info, duty))
++            elif fn.endswith(".js") and os.path.basename(dirpath) == "ui":
++                info = js_info(p)
++                lvl, duty = UI_LEVELS.get(fn, ("未登记", "—"))
++                rows.append((lvl, rel, info, duty))
++    # 被谁调用：反向依赖（仅 py 内部；js 是全局脚本，不建图）
++    users = {}
++    for _l, rel, info, _d in rows:
++        mod = os.path.splitext(os.path.basename(rel))[0]
++        for other in rows:
++            om = os.path.splitext(os.path.basename(other[1]))[0]
++            if mod in other[2]["deps"]:
++                users.setdefault(mod, []).append(om)
++    return rows, users
++
++
++def render(rows, users):
++    out = ["# 架构映射表（自动生成，不要手改）", "",
++           "> 由 `program/tools/arch_map.py --write` 生成。改了代码就重跑，表会跟着变。",
++           "> 代理用法：按「层级」找到要改的那一行 → 只读该文件；关注「被谁调用」列判断影响面。", ""]
++    order = {}
++    for lvl, _rel, _i, _d in rows:
++        order.setdefault(lvl, 0)
++        order[lvl] += 1
++    for lvl in sorted(order, key=lambda x: (x.startswith("未"), x)):
++        out += ["## " + lvl, "",
++                "| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |", "|---|---|---|---|---|---|"]
++        for l, rel, info, duty in rows:
++            if l != lvl:
++                continue
++            mod = os.path.splitext(os.path.basename(rel))[0]
++            exp = ", ".join(info["exports"][:6]) or "—"
++            dep = ", ".join(info["deps"][:6]) or "—"
++            use = ", ".join(sorted(set(users.get(mod, [])))[:6]) or "—"
++            out.append("| `%s` | %d | %s | %s | %s | %s |" % (rel, info["lines"], duty, exp, dep, use))
++        out.append("")
++    big = sorted(rows, key=lambda r: -r[2]["lines"])[:8]
++    out += ["## 待拆（行数最多的 8 个）", "", "| 文件 | 行数 | 建议 |", "|---|---|---|"]
++    for _l, rel, info, _d in big:
++        n = info["lines"]
++        tip = "超过 800 行，必须拆" if n > 800 else ("超过 400 行，建议拆" if n > 400 else "可接受")
++        out.append("| `%s` | %d | %s |" % (rel, n, tip))
++    out.append("")
++    return "\n".join(out)
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--write", action="store_true")
++    ap.add_argument("--check", action="store_true")
++    a = ap.parse_args()
++    rows, users = build()
++    text = render(rows, users)
++    if a.write:
++        os.makedirs(os.path.dirname(OUT), exist_ok=True)
++        open(OUT, "w", encoding="utf-8", newline="").write(text)
++        print("已写入 %s（%d 个文件）" % (OUT, len(rows)))
++    elif a.check:
++        old = open(OUT, encoding="utf-8").read() if os.path.exists(OUT) else ""
++        if old != text:
++            print("映射表过期：跑 python tools/arch_map.py --write")
++            return 1
++        print("映射表是最新的")
++    else:
++        print(text)
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
 diff --git a/program/tools/digest.py b/program/tools/digest.py
 new file mode 100644
 index 0000000..40cdf10
