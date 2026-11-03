@@ -422,10 +422,20 @@
 }
 #specialScreen .spcpBox {
   position: relative;
-  width: 100%; min-height: 176px; max-height: 64vh; box-sizing: border-box;
-  padding: 34px 32px 26px;
+  width: 100%; min-height: 120px; max-height: 64vh; box-sizing: border-box;
+  padding: 16px 26px 18px;
   display: flex; flex-direction: column;
-  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
+  /* 不用位图做底框：位图一拉伸就变形（原来那个 544x216 的框被压扁了），
+     改成 CSS 画的框，高度多少都不会变形 */
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 80% at 18% 0%, rgba(120,220,255,.16), rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, rgba(10,52,84,.97), rgba(4,22,40,.98));
+  border: 1px solid rgba(140,225,255,.75);
+  box-shadow:
+    0 0 0 1px rgba(10,40,64,.9),
+    0 0 16px rgba(80,190,235,.35),
+    inset 0 0 22px rgba(80,190,235,.16);
   color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 }
 #specialScreen .spcpTitle {

@@ -1234,12 +1234,36 @@ document.addEventListener("pointerdown", function once(e) {
 }, { once: false });
 
 /* ---------- 菜单 ---------- */
+/* 结束游戏：先确认，再依次尝试 pywebview 桥接 → HTTP → window.close。
+   （WebView2 里裸 window.close() 不一定关得掉，这是原来点了没反应的原因） */
+function quitGame(skipConfirm) {
+  let yes = true;
+  if (!skipConfirm) {
+    try { yes = window.confirm("要结束游戏吗？"); } catch (e) { yes = true; }
+  }
+  /* 只有明确点了“取消”才不关；confirm 不可用（返回 undefined）时按继续处理 */
+  if (yes === false) return false;
+  try {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.win) {
+      window.pywebview.api.win("close");
+    }
+  } catch (e) {}
+  try { fetch("/api/window?action=close", { cache: "no-store" }); } catch (e) {}
+  setTimeout(function () { try { window.close(); } catch (e) {} }, 120);
+  return true;
+}
+window.__quitGame = quitGame;
+
 $("mainMenu").addEventListener("click", (e) => {
   const btn = e.target.closest("button");
   if (!btn) return;
   playSE("click");
   const act = btn.dataset.act;
-  if (act === "quit") { if (confirm("要结束游戏吗？")) window.close(); return; }
+  if (act === "quit") {
+    /* 结束游戏：pywebview 里 window.close() 不一定生效，优先走桥接 / HTTP 关窗口 */
+    quitGame();
+    return;
+  }
         if (act === "continue") {
           if (window.__openScreen) window.__openScreen("save", "load");
           return;
