@@ -48,10 +48,10 @@ index 3b6dac4..1bc5f05 100644
  | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
  | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
-index 40657bb..f254ed6 100644
+index 40657bb..c0eabb9 100644
 --- a/other/docs/更新日志_2026-11-03.md
 +++ b/other/docs/更新日志_2026-11-03.md
-@@ -123,3 +123,61 @@ cd program
+@@ -123,3 +123,65 @@ cd program
  路线图补上 `.md` 后缀并加进 README 文档表、交接文档开头被截断的句子、
  `bake_ui_text.py` 增加 `sp_switch_title` / `sp_cancel` 两个条目。
  
@@ -113,6 +113,10 @@ index 40657bb..f254ed6 100644
 +> 更正：压扁的是**条目底板** `sys_00110.png`（480x112 → 拉到 300x30），不是面板底框。
 +> 现在条目也改成 CSS 画的条子（渐变 + 高光 + 描边 + 发光），不再用位图拉伸；
 +> 面板底框（`sys_00100`）同样是 CSS 画的。两个位图都被 `sys_00110` 撑变形的问题一起解决了。
++> 再更正：面板和条目**都改回用原素材**（`sys_00100` / `sys_00110`），
++> 但改成 **CSS 九宫格（`border-image` 切片）**：四角保持等比、只拉伸中间段，
++> 所以既保留了原版边框花纹，又不会被压扁。条目高度 44px（原来 30px 太矮，硬拉才会变形），
++> 面板最少 150px、最多 64vh，角色多了列表内部滚动。
 \ No newline at end of file
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
@@ -1243,10 +1247,10 @@ index 138e9dd..fd7fd1e 100644
 \ No newline at end of file
 +window.addEventListener("app:ready", restoreCt1);
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 37660ed..1984ef3 100644
+index 37660ed..fa06202 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,4 +406,105 @@
+@@ -406,4 +406,83 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1266,20 +1270,13 @@ index 37660ed..1984ef3 100644
 +}
 +#specialScreen .spcpBox {
 +  position: relative;
-+  width: 100%; min-height: 120px; max-height: 64vh; box-sizing: border-box;
-+  padding: 16px 26px 18px;
++  width: 100%; min-height: 150px; max-height: 64vh; box-sizing: border-box;
 +  display: flex; flex-direction: column;
-+  /* 不用位图做底框：位图一拉伸就变形（原来那个 544x216 的框被压扁了），
-+     改成 CSS 画的框，高度多少都不会变形 */
-+  border-radius: 10px;
-+  background:
-+    radial-gradient(120% 80% at 18% 0%, rgba(120,220,255,.16), rgba(0,0,0,0) 60%),
-+    linear-gradient(180deg, rgba(10,52,84,.97), rgba(4,22,40,.98));
-+  border: 1px solid rgba(140,225,255,.75);
-+  box-shadow:
-+    0 0 0 1px rgba(10,40,64,.9),
-+    0 0 16px rgba(80,190,235,.35),
-+    inset 0 0 22px rgba(80,190,235,.16);
++  /* 原版底框 sys_00100（544x216）：九宫格切片，只拉伸中间段，四角等比缩放，不会被压扁 */
++  border: 26px solid transparent;
++  border-image: url("assets/ui/sys_00100.png") 26 30 26 30 / 26px 30px stretch;
++  background: linear-gradient(180deg, rgba(6,40,66,.94), rgba(3,18,34,.96)) padding-box;
++  padding: 2px 4px;
 +  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 +}
 +#specialScreen .spcpTitle {
@@ -1300,37 +1297,22 @@ index 37660ed..1984ef3 100644
 +#specialScreen .spcpItem {
 +  position: relative;
 +  flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
-+  width: 300px; height: 30px; padding: 0 16px; box-sizing: border-box;
-+  /* 条目底板不用 sys_00110（480x112）了：拉到 300x30 会纵向压扁，
-+     改成 CSS 画的条子（带高光/内阴影），宽度高度怎么变都不变形 */
-+  border: 1px solid rgba(120,220,255,.72);
-+  border-radius: 8px;
-+  background: linear-gradient(180deg, rgba(40,120,160,.95) 0%, rgba(14,70,104,.95) 45%, rgba(6,34,56,.97) 100%);
-+  box-shadow:
-+    inset 0 1px 0 rgba(190,245,255,.40),
-+    inset 0 -1px 0 rgba(0,20,36,.55),
-+    inset 0 0 16px rgba(80,195,235,.20),
-+    0 1px 4px rgba(0,0,0,.45);
++  width: 300px; height: 44px; box-sizing: border-box;
++  /* 原版条目底板 sys_00110（480x112）：同样的九宫格，四角等比、中间拉伸 */
++  border: 12px solid transparent;
++  border-image: url("assets/ui/sys_00110.png") 28 34 28 34 fill / 12px 16px stretch;
++  background: linear-gradient(180deg, rgba(18,80,116,.92), rgba(6,32,52,.96)) padding-box;
 +  color: #eaf7ff; cursor: pointer;
 +  display: flex; align-items: center; justify-content: center;
 +  appearance: none; -webkit-appearance: none;
 +}
 +#specialScreen .spcpItem:hover {
-+  border-color: rgba(165,240,255,.95);
-+  box-shadow:
-+    inset 0 1px 0 rgba(210,250,255,.5),
-+    inset 0 0 18px rgba(120,225,255,.32),
-+    0 0 10px rgba(90,200,240,.45);
++  filter: brightness(1.15) drop-shadow(0 0 6px rgba(120,225,255,.5));
 +}
-+#specialScreen .spcpItem:not(.active) { opacity: .60; }
++#specialScreen .spcpItem:not(.active) { opacity: .62; }
 +#specialScreen .spcpItem:not(.active):hover { opacity: 1; }
 +#specialScreen .spcpItem.active {
-+  border-color: rgba(190,250,255,1);
-+  background: linear-gradient(180deg, rgba(70,170,210,.98), rgba(20,90,130,.98) 50%, rgba(8,44,70,.98));
-+  box-shadow:
-+    inset 0 1px 0 rgba(225,255,255,.6),
-+    inset 0 0 22px rgba(140,235,255,.32),
-+    0 0 14px rgba(120,225,255,.55);
++  filter: brightness(1.22) drop-shadow(0 0 9px rgba(135,235,255,.8));
 +}
 +#specialScreen .spcpName {
 +  font-size: 13px; line-height: 1; letter-spacing: 2px;
