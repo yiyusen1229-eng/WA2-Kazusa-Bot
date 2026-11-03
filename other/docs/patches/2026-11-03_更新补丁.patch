@@ -48,7 +48,7 @@ index 3b6dac4..1bc5f05 100644
  | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
  | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
-index 40657bb..4b7923a 100644
+index 40657bb..987feae 100644
 --- a/other/docs/更新日志_2026-11-03.md
 +++ b/other/docs/更新日志_2026-11-03.md
 @@ -123,3 +123,80 @@ cd program
@@ -127,12 +127,11 @@ index 40657bb..4b7923a 100644
 +> 四角/边缘是原图的透明像素，默认白底就从这个透明处露出来，看着像一块白板。
 +> 处理：`background: rgba(3,20,32,.55)`（压住白底、顺带给条目一点对比），
 +> 这样原图边框照旧、白板消失。
-+> 最后这版：条目底板不用 border-image 了，改成 **烘成三段**（	ools/bake_char_bar.py）：
++> 最后这版：条目底板不用 border-image 了，改成 **烘成三段**（`tools/bake_char_bar.py`）：
 +> sp_bar_left.png / sp_bar_mid.png / sp_bar_right.png，左右帽原样、中间段横向拉长，
 +> 高度统一 30px。这样既没有透明留白（白底来源），也没有方块底（半透明底来源）。
 +> **升级后要跑一次**：cd program; .\build_env\venv\Scripts\python.exe tools\bake_char_bar.py
 +> （素材不入库，这三张图在本地生成）
-\ No newline at end of file
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
 --- a/program/src/char_res.py
