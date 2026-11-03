@@ -308,6 +308,7 @@ WA2-Kazusa-Bot/
 
 | 文档 | 内容 |
 |---|---|
+| [other/docs/架构/00_总览.md](other/docs/架构/00_总览.md) | **架构地图**：总览 + 7 个层级文档，按任务只读一层 |
 | [other/docs/交接速览.md](other/docs/交接速览.md) | **新会话先读这一页**（现状 / 目录 / 命令 / 坑 / 待办 / 省钱） |
 | [AGENTS.md](AGENTS.md) | 给 AI 代理的接手须知：命令、省钱规则、不许动的东西 |
 | [other/docs/更新日志_2026-11-03_第二轮.md](other/docs/更新日志_2026-11-03_第二轮.md) | **最新**：角色切换面板 + 结束游戏 + 白底修复 |
@@ -321,7 +322,6 @@ WA2-Kazusa-Bot/
 | [other/docs/创作手记.md](other/docs/创作手记.md) | 完整创作过程、失败的尝试、踩过的坑 |
 | [other/docs/架构与文件说明.md](other/docs/架构与文件说明.md) | 每个文件夹每个文件的作用 |
 | [other/docs/项目文档_字体机制.md](other/docs/项目文档_字体机制.md) | 字体图集机制说明 |
-| [other/docs/未完成功能_旧版.md](other/docs/未完成功能_旧版.md) | 旧版「哪些功能没做」（已被《后续更新路线图》取代） |
 | [other/docs/后续更新路线图.md](other/docs/后续更新路线图.md) | 后续更新路线图（P0/P1/P2 规划，非已实现） |
 | [other/docs/场景CG系统.md](other/docs/场景CG系统.md) | 场景背景 CG：文件名标签规则、导入工具、匹配算法、接口 |
 | [other/docs/设计_分层人格提示词.md](other/docs/设计_分层人格提示词.md) | 通用思路：base + 情境切片，按关系/场景/对象按需注入，省 token |
