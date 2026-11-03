@@ -48,10 +48,10 @@ index 3b6dac4..1bc5f05 100644
  | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
  | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
-index 40657bb..52aaeb6 100644
+index 40657bb..786548f 100644
 --- a/other/docs/更新日志_2026-11-03.md
 +++ b/other/docs/更新日志_2026-11-03.md
-@@ -123,3 +123,47 @@ cd program
+@@ -123,3 +123,58 @@ cd program
  路线图补上 `.md` 后缀并加进 README 文档表、交接文档开头被截断的句子、
  `bake_ui_text.py` 增加 `sp_switch_title` / `sp_cancel` 两个条目。
  
@@ -99,6 +99,17 @@ index 40657bb..52aaeb6 100644
 +
 +实测（真实 WebView2）：2 个角色时紧凑无滚动；注入 13 个条目时 `itemHeight=30.4`、
 +`scrollHeight 442 > clientHeight 232`（可滚）、标题在框外、无 JS 报错。
++### 八、补记：结束游戏不退出 + 底框变形（同一轮修）
++
++| 问题 | 原因 | 处理 |
++|---|---|---|
++| 点「结束游戏」不退出 | 只调了裸 `window.close()`，WebView2/pywebview 里不保证生效 | 改成 `quitGame()`：先 confirm，再依次走 **pywebview 桥接 `api.win("close")` → HTTP `/api/window?action=close` → `window.close()`**；confirm 不可用（返回 undefined）时也照关，只有明确点“取消”才不关 |
++| 角色面板底框被压扁 | `sys_00100.png`（544x216）被 `background-size:100% 100%` 纵向拉伸，边框和雪花花纹变形 | 不再用位图做底框，改成 **CSS 画**（渐变 + 青色描边 + 外发光 + 圆角），高度多少都不变形；条目底板仍用原素材 |
++
++验证：
++- `__quitGame` 三条分支：confirm=undefined → `true`（照关）、confirm=false → `false`（不关）、confirm=true → `true`
++- 服务端日志出现 `窗口控制: action=close`，说明 HTTP 关闭链路真的走到了（真实窗口下日志里是 `window=有`）
++- 面板 2 个角色时 120px 紧凑；注入 13 个条目时列表滚动（scrollHeight 442 > clientHeight 232）、条目 30px 不被压扁、底框无变形
 \ No newline at end of file
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
@@ -666,7 +677,7 @@ index 4e96265..aacdcdb 100644
              try:
                  if os.path.exists(_cp):
 diff --git a/program/src/ui/game.js b/program/src/ui/game.js
-index 4e29320..7e0af89 100644
+index 4e29320..1c95631 100644
 --- a/program/src/ui/game.js
 +++ b/program/src/ui/game.js
 @@ -9,7 +9,7 @@ let backlogOpen = false;
@@ -841,7 +852,45 @@ index 4e29320..7e0af89 100644
      // 立绘表情随情绪变，服装与场景只在模型明确标记时切换
      accumulateMood(reply);            // BGM 按累积氛围切换，不随单句变
  
-@@ -1194,13 +1252,13 @@ $("mainMenu").addEventListener("click", (e) => {
+@@ -1176,12 +1234,36 @@ document.addEventListener("pointerdown", function once(e) {
+ }, { once: false });
+ 
+ /* ---------- 菜单 ---------- */
++/* 结束游戏：先确认，再依次尝试 pywebview 桥接 → HTTP → window.close。
++   （WebView2 里裸 window.close() 不一定关得掉，这是原来点了没反应的原因） */
++function quitGame(skipConfirm) {
++  let yes = true;
++  if (!skipConfirm) {
++    try { yes = window.confirm("要结束游戏吗？"); } catch (e) { yes = true; }
++  }
++  /* 只有明确点了“取消”才不关；confirm 不可用（返回 undefined）时按继续处理 */
++  if (yes === false) return false;
++  try {
++    if (window.pywebview && window.pywebview.api && window.pywebview.api.win) {
++      window.pywebview.api.win("close");
++    }
++  } catch (e) {}
++  try { fetch("/api/window?action=close", { cache: "no-store" }); } catch (e) {}
++  setTimeout(function () { try { window.close(); } catch (e) {} }, 120);
++  return true;
++}
++window.__quitGame = quitGame;
++
+ $("mainMenu").addEventListener("click", (e) => {
+   const btn = e.target.closest("button");
+   if (!btn) return;
+   playSE("click");
+   const act = btn.dataset.act;
+-  if (act === "quit") { if (confirm("要结束游戏吗？")) window.close(); return; }
++  if (act === "quit") {
++    /* 结束游戏：pywebview 里 window.close() 不一定生效，优先走桥接 / HTTP 关窗口 */
++    quitGame();
++    return;
++  }
+         if (act === "continue") {
+           if (window.__openScreen) window.__openScreen("save", "load");
+           return;
+@@ -1194,13 +1276,13 @@ $("mainMenu").addEventListener("click", (e) => {
    showScreen("gameScreen");
    titleBgmStarted = true;
    setBg("classroom");
@@ -857,7 +906,7 @@ index 4e29320..7e0af89 100644
      });
    } else {
      // 开始游戏 = 新对话：清空历史与自动存档
-@@ -1214,7 +1272,7 @@ $("mainMenu").addEventListener("click", (e) => {
+@@ -1214,7 +1296,7 @@ $("mainMenu").addEventListener("click", (e) => {
          body: JSON.stringify({ slot: "auto", messages: [], meta: {} })
        }).catch(function () {});
      } catch (e) {}
@@ -866,7 +915,7 @@ index 4e29320..7e0af89 100644
    }
    setTimeout(() => $("input").focus(), 700);
  });
-@@ -1312,7 +1370,9 @@ document.addEventListener("keydown", (e) => {
+@@ -1312,7 +1394,9 @@ document.addEventListener("keydown", (e) => {
  
  /* ---------- 思考显示开关 ---------- */
  function thinkOn() {
@@ -877,7 +926,7 @@ index 4e29320..7e0af89 100644
  }
  
  function renderThinking() {
-@@ -1726,4 +1786,20 @@ window.__setCharName = function (n) {
+@@ -1726,4 +1810,20 @@ window.__setCharName = function (n) {
  fetch("/api/special/name", { cache: "no-store" })
    .then(function (r) { return r.json(); })
    .then(function (d) { if (d && d.ok && d.name) window.__setCharName(d.name); })
@@ -1191,10 +1240,10 @@ index 138e9dd..fd7fd1e 100644
 \ No newline at end of file
 +window.addEventListener("app:ready", restoreCt1);
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 37660ed..3135ec8 100644
+index 37660ed..43890db 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,4 +406,77 @@
+@@ -406,4 +406,87 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1214,10 +1263,20 @@ index 37660ed..3135ec8 100644
 +}
 +#specialScreen .spcpBox {
 +  position: relative;
-+  width: 100%; min-height: 176px; max-height: 64vh; box-sizing: border-box;
-+  padding: 34px 32px 26px;
++  width: 100%; min-height: 120px; max-height: 64vh; box-sizing: border-box;
++  padding: 16px 26px 18px;
 +  display: flex; flex-direction: column;
-+  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
++  /* 不用位图做底框：位图一拉伸就变形（原来那个 544x216 的框被压扁了），
++     改成 CSS 画的框，高度多少都不会变形 */
++  border-radius: 10px;
++  background:
++    radial-gradient(120% 80% at 18% 0%, rgba(120,220,255,.16), rgba(0,0,0,0) 60%),
++    linear-gradient(180deg, rgba(10,52,84,.97), rgba(4,22,40,.98));
++  border: 1px solid rgba(140,225,255,.75);
++  box-shadow:
++    0 0 0 1px rgba(10,40,64,.9),
++    0 0 16px rgba(80,190,235,.35),
++    inset 0 0 22px rgba(80,190,235,.16);
 +  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 +}
 +#specialScreen .spcpTitle {

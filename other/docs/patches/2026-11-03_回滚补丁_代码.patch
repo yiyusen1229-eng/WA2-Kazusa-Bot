@@ -564,7 +564,7 @@ index aacdcdb..4e96265 100644
              try:
                  if os.path.exists(_cp):
 diff --git a/program/src/ui/game.js b/program/src/ui/game.js
-index 7e0af89..4e29320 100644
+index 1c95631..4e29320 100644
 --- a/program/src/ui/game.js
 +++ b/program/src/ui/game.js
 @@ -9,7 +9,7 @@ let backlogOpen = false;
@@ -739,7 +739,45 @@ index 7e0af89..4e29320 100644
      // 立绘表情随情绪变，服装与场景只在模型明确标记时切换
      accumulateMood(reply);            // BGM 按累积氛围切换，不随单句变
  
-@@ -1252,13 +1194,13 @@ $("mainMenu").addEventListener("click", (e) => {
+@@ -1234,36 +1176,12 @@ document.addEventListener("pointerdown", function once(e) {
+ }, { once: false });
+ 
+ /* ---------- 菜单 ---------- */
+-/* 结束游戏：先确认，再依次尝试 pywebview 桥接 → HTTP → window.close。
+-   （WebView2 里裸 window.close() 不一定关得掉，这是原来点了没反应的原因） */
+-function quitGame(skipConfirm) {
+-  let yes = true;
+-  if (!skipConfirm) {
+-    try { yes = window.confirm("要结束游戏吗？"); } catch (e) { yes = true; }
+-  }
+-  /* 只有明确点了“取消”才不关；confirm 不可用（返回 undefined）时按继续处理 */
+-  if (yes === false) return false;
+-  try {
+-    if (window.pywebview && window.pywebview.api && window.pywebview.api.win) {
+-      window.pywebview.api.win("close");
+-    }
+-  } catch (e) {}
+-  try { fetch("/api/window?action=close", { cache: "no-store" }); } catch (e) {}
+-  setTimeout(function () { try { window.close(); } catch (e) {} }, 120);
+-  return true;
+-}
+-window.__quitGame = quitGame;
+-
+ $("mainMenu").addEventListener("click", (e) => {
+   const btn = e.target.closest("button");
+   if (!btn) return;
+   playSE("click");
+   const act = btn.dataset.act;
+-  if (act === "quit") {
+-    /* 结束游戏：pywebview 里 window.close() 不一定生效，优先走桥接 / HTTP 关窗口 */
+-    quitGame();
+-    return;
+-  }
++  if (act === "quit") { if (confirm("要结束游戏吗？")) window.close(); return; }
+         if (act === "continue") {
+           if (window.__openScreen) window.__openScreen("save", "load");
+           return;
+@@ -1276,13 +1194,13 @@ $("mainMenu").addEventListener("click", (e) => {
    showScreen("gameScreen");
    titleBgmStarted = true;
    setBg("classroom");
@@ -755,7 +793,7 @@ index 7e0af89..4e29320 100644
      });
    } else {
      // 开始游戏 = 新对话：清空历史与自动存档
-@@ -1272,7 +1214,7 @@ $("mainMenu").addEventListener("click", (e) => {
+@@ -1296,7 +1214,7 @@ $("mainMenu").addEventListener("click", (e) => {
          body: JSON.stringify({ slot: "auto", messages: [], meta: {} })
        }).catch(function () {});
      } catch (e) {}
@@ -764,7 +802,7 @@ index 7e0af89..4e29320 100644
    }
    setTimeout(() => $("input").focus(), 700);
  });
-@@ -1370,9 +1312,7 @@ document.addEventListener("keydown", (e) => {
+@@ -1394,9 +1312,7 @@ document.addEventListener("keydown", (e) => {
  
  /* ---------- 思考显示开关 ---------- */
  function thinkOn() {
@@ -775,7 +813,7 @@ index 7e0af89..4e29320 100644
  }
  
  function renderThinking() {
-@@ -1786,20 +1726,4 @@ window.__setCharName = function (n) {
+@@ -1810,20 +1726,4 @@ window.__setCharName = function (n) {
  fetch("/api/special/name", { cache: "no-store" })
    .then(function (r) { return r.json(); })
    .then(function (d) { if (d && d.ok && d.name) window.__setCharName(d.name); })
@@ -1089,10 +1127,10 @@ index fd7fd1e..138e9dd 100644
 +window.addEventListener("app:ready", restoreCt1);
 \ No newline at end of file
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 3135ec8..37660ed 100644
+index 43890db..37660ed 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,77 +406,4 @@
+@@ -406,87 +406,4 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1112,10 +1150,20 @@ index 3135ec8..37660ed 100644
 -}
 -#specialScreen .spcpBox {
 -  position: relative;
--  width: 100%; min-height: 176px; max-height: 64vh; box-sizing: border-box;
--  padding: 34px 32px 26px;
+-  width: 100%; min-height: 120px; max-height: 64vh; box-sizing: border-box;
+-  padding: 16px 26px 18px;
 -  display: flex; flex-direction: column;
--  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
+-  /* 不用位图做底框：位图一拉伸就变形（原来那个 544x216 的框被压扁了），
+-     改成 CSS 画的框，高度多少都不会变形 */
+-  border-radius: 10px;
+-  background:
+-    radial-gradient(120% 80% at 18% 0%, rgba(120,220,255,.16), rgba(0,0,0,0) 60%),
+-    linear-gradient(180deg, rgba(10,52,84,.97), rgba(4,22,40,.98));
+-  border: 1px solid rgba(140,225,255,.75);
+-  box-shadow:
+-    0 0 0 1px rgba(10,40,64,.9),
+-    0 0 16px rgba(80,190,235,.35),
+-    inset 0 0 22px rgba(80,190,235,.16);
 -  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 -}
 -#specialScreen .spcpTitle {
