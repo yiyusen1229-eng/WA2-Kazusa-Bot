@@ -48,10 +48,10 @@ index 3b6dac4..1bc5f05 100644
  | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
  | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
-index 40657bb..c9683cf 100644
+index 40657bb..30afa04 100644
 --- a/other/docs/更新日志_2026-11-03.md
 +++ b/other/docs/更新日志_2026-11-03.md
-@@ -123,3 +123,71 @@ cd program
+@@ -123,3 +123,75 @@ cd program
  路线图补上 `.md` 后缀并加进 README 文档表、交接文档开头被截断的句子、
  `bake_ui_text.py` 增加 `sp_switch_title` / `sp_cancel` 两个条目。
  
@@ -123,6 +123,10 @@ index 40657bb..c9683cf 100644
 +> 最终尺寸（按用户要求）：底框缩到 **400x159**（保持 544:216 原比例，等比缩放）；
 +> 条目缩到 **300x30**，再用**九宫格**把中间横向拉长（四角等比，不压扁）。
 +> 一屏能显示 3 行；少角色时列表垂直居中（`justify-content: safe center`），多角色时滚动。
++> 白底原因：条目是 `<button>`，浏览器默认自带浅色底（`buttonface`）。九宫格只在中间 fill、
++> 四角/边缘是原图的透明像素，默认白底就从这个透明处露出来，看着像一块白板。
++> 处理：`background: rgba(3,20,32,.55)`（压住白底、顺带给条目一点对比），
++> 这样原图边框照旧、白板消失。
 \ No newline at end of file
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
@@ -1253,10 +1257,10 @@ index 138e9dd..fd7fd1e 100644
 \ No newline at end of file
 +window.addEventListener("app:ready", restoreCt1);
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 37660ed..0be3a47 100644
+index 37660ed..07c770c 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,4 +406,82 @@
+@@ -406,4 +406,83 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1307,6 +1311,7 @@ index 37660ed..0be3a47 100644
 +  width: 300px; height: 30px; box-sizing: border-box;
 +  border: 7px solid transparent;
 +  border-image: url("assets/ui/sys_00110.png") 34 68 50 68 fill / 7px 14px stretch;
++  background: rgba(3,20,32,.55);  /* 点睛：压住 button 默认白底，同时让条子有对比 */
 +  color: #eaf7ff; cursor: pointer;
 +  display: flex; align-items: center; justify-content: center;
 +  appearance: none; -webkit-appearance: none;

@@ -1127,10 +1127,10 @@ index fd7fd1e..138e9dd 100644
 +window.addEventListener("app:ready", restoreCt1);
 \ No newline at end of file
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 0be3a47..37660ed 100644
+index 07c770c..37660ed 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,82 +406,4 @@
+@@ -406,83 +406,4 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1181,6 +1181,7 @@ index 0be3a47..37660ed 100644
 -  width: 300px; height: 30px; box-sizing: border-box;
 -  border: 7px solid transparent;
 -  border-image: url("assets/ui/sys_00110.png") 34 68 50 68 fill / 7px 14px stretch;
+-  background: rgba(3,20,32,.55);  /* 点睛：压住 button 默认白底，同时让条子有对比 */
 -  color: #eaf7ff; cursor: pointer;
 -  display: flex; align-items: center; justify-content: center;
 -  appearance: none; -webkit-appearance: none;
