@@ -343,52 +343,7 @@ def fewshot_msgs():
             out.append({"role": "assistant", "content": a})
     return out
 
-import re as _re
-ACTION_RE = _re.compile(r"<action>\s*(.*?)\s*</action>", _re.S)
 
-def split_scene(text):
-    """取出 <scene>地点</scene> 与 <outfit>编号</outfit>，返回 (正文, 场景, 服装)
-
-    场景名放宽到 40 字：素材里的地名带括号标签（如「和纱家别墅（客厅）」），
-    模型偶尔会整串抄过来，别被卡掉。
-    """
-    import re
-    scene = ""
-    outfit = ""
-    if not text:
-        return text, scene, outfit
-    m = re.search(r"<scene>\s*([^<]{1,40})\s*</scene>", text)
-    if m:
-        scene = m.group(1).strip()
-        text = text[:m.start()] + text[m.end():]
-    m = re.search(r"<outfit>\s*([^<]{1,12})\s*</outfit>", text)
-    if m:
-        outfit = m.group(1).strip()
-        text = text[:m.start()] + text[m.end():]
-    text = re.sub(r"</?(scene|outfit)[^>]*>", "", text).strip()
-    return text, scene, outfit
-
-
-def split_emotion(text):
-    """取出 <emotion>xxx</emotion>，返回 (正文, 情绪)。没有标记时情绪为 calm。"""
-    import re
-    if not text:
-        return text, "calm"
-    m = re.search(r"<emotion>\s*([^<]{1,20})\s*</emotion>", text)
-    emo = "calm"
-    if m:
-        emo = m.group(1).strip()
-        text = (text[:m.start()] + text[m.end():]).strip()
-    # 兼容模型把标记写在其它位置/多次出现
-    text = re.sub(r"</?emotion[^>]*>", "", text).strip()
-    return text, emo
-
-
-def split_action(text):
-    """把 <action> 从回复里拆出来，返回 (action, 纯台词)"""
-    acts = ACTION_RE.findall(text or "")
-    rest = ACTION_RE.sub("", text or "").strip()
-    return acts, rest
 
 # ---------------- 人设 / 世界书（见 persona_ctx.py） ----------------
 import threading as _th
@@ -397,6 +352,10 @@ from sessions import session_save, session_load, session_list, session_thumb
 import sessions as _sessions
 import memory as _memory
 import pricing as _pricing
+from text_parse import (
+    ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
+    ja_clean as _ja_clean, ja_ok as _ja_ok,
+)
 
 # 特别模式「查看文件」：没导入时要指到程序真正读的默认位置，而不是空的 char/ 目录
 _defaults = persona_ctx.default_paths()
@@ -490,16 +449,6 @@ persona_ctx.set_logger(log)      # 人设/世界书的日志也走这里
 persona_stage.set_logger(log)    # 关系阶段的日志
 
 
-def split_thinking(text):
-    """把 <thinking>…</thinking> 从回复里拆出来"""
-    import re as _re
-    m = _re.search(r"<thinking>(.*?)</thinking>", text or "", _re.S)
-    if not m:
-        return (text or "").strip(), ""
-    inner = m.group(1).strip()
-    rest = _re.sub(r"<thinking>.*?</thinking>", "", text, flags=_re.S).strip()
-    return rest, inner
-
 
 _JA_CACHE = {}
 TRANSLATE_MODEL = 'qwen2.5:14b-instruct-q4_K_M'
@@ -511,32 +460,6 @@ _JA_SHOTS = [
 ]
 
 
-def _ja_clean(x):
-    """只留第一行, 去掉假名/汉字/日文标点以外的字符, 并截掉解释性尾巴"""
-    x = (x or '').split('\\n')[0].strip()
-    for stop in ('翻訳', '場合は', '注意', 'つまり', '：', ':', '，', ','):
-        i = x.find(stop)
-        if i > 0:
-            x = x[:i]
-    # 句号后还有解释的, 只取第一句
-    if '。' in x[:-1]:
-        x = x.split('。')[0] + '。'
-
-    out = []
-    for c in x:
-        o = ord(c)
-        if (0x3040 <= o <= 0x30FF) or (0x4E00 <= o <= 0x9FFF) or \
-           (0x3000 <= o <= 0x303F) or (0xFF00 <= o <= 0xFF60) or c in '　 ー…':
-            out.append(c)
-    j = ''.join(out).strip()
-    # 人称修正: 和纱用「あたし」, 不用「俺/僕/わたし」
-    for bad in ('俺', '僕', 'わたし', '私'):
-        j = j.replace(bad, 'あたし')
-    return j
-
-
-def _ja_ok(x):
-    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
 
 
 def translate_ja(text):
