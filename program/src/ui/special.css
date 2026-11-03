@@ -418,15 +418,15 @@
 /* 标题在框外；列表在框内滚动；取消也在框外，避免压住边框花纹 */
 #specialScreen .spcpWrap {
   display: flex; flex-direction: column; align-items: center;
-  width: 520px; max-height: 84vh;
+  width: 400px; max-height: 84vh;
 }
 #specialScreen .spcpBox {
   position: relative;
   width: 100%; aspect-ratio: 544 / 216; box-sizing: border-box;
   display: flex; flex-direction: column; overflow: hidden;
-  /* 原版底框 sys_00100（544x216）：元素强制同比例，再 100% 100% 铺图 = 等比缩放，不失真 */
+  /* 原版底框 sys_00100（544x216）：元素强制同比例 + 图片 100% 100% = 等比缩放，不失真 */
   background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
-  padding: 44px 56px 40px;
+  padding: 32px 41px 29px;
   color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 }
 #specialScreen .spcpTitle {
@@ -436,6 +436,7 @@
 }
 #specialScreen .spcpList {
   display: flex; flex-direction: column; gap: 4px; align-items: center;
+  justify-content: safe center;   /* 少角色时居中，多角色时从顶部开始滚 */
   flex: 1 1 auto; min-height: 0; padding: 2px 4px;
   overflow-y: auto; overflow-x: hidden;
   scrollbar-width: thin; scrollbar-color: rgba(120,210,255,.55) rgba(8,40,64,.35);
@@ -447,10 +448,11 @@
 #specialScreen .spcpItem {
   position: relative;
   flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
-  /* 原版条目底板 sys_00110（480x112）：元素强制同比例，图片 100% 100% 铺 = 等比缩放，不失真 */
-  width: 240px; aspect-ratio: 480 / 112; box-sizing: border-box;
-  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
-  border: 0;
+  /* 原版条目底板 sys_00110（480x112）：先缩到 30px 高，再用九宫格拉长——
+     上下/左右四角等比，只有中间段横向拉伸，所以又细又长也不变形 */
+  width: 300px; height: 30px; box-sizing: border-box;
+  border: 7px solid transparent;
+  border-image: url("assets/ui/sys_00110.png") 34 68 50 68 fill / 7px 14px stretch;
   color: #eaf7ff; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   appearance: none; -webkit-appearance: none;
