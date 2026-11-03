@@ -48,10 +48,10 @@ index 3b6dac4..1bc5f05 100644
  | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
  | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
-index 40657bb..786548f 100644
+index 40657bb..f254ed6 100644
 --- a/other/docs/更新日志_2026-11-03.md
 +++ b/other/docs/更新日志_2026-11-03.md
-@@ -123,3 +123,58 @@ cd program
+@@ -123,3 +123,61 @@ cd program
  路线图补上 `.md` 后缀并加进 README 文档表、交接文档开头被截断的句子、
  `bake_ui_text.py` 增加 `sp_switch_title` / `sp_cancel` 两个条目。
  
@@ -110,6 +110,9 @@ index 40657bb..786548f 100644
 +- `__quitGame` 三条分支：confirm=undefined → `true`（照关）、confirm=false → `false`（不关）、confirm=true → `true`
 +- 服务端日志出现 `窗口控制: action=close`，说明 HTTP 关闭链路真的走到了（真实窗口下日志里是 `window=有`）
 +- 面板 2 个角色时 120px 紧凑；注入 13 个条目时列表滚动（scrollHeight 442 > clientHeight 232）、条目 30px 不被压扁、底框无变形
++> 更正：压扁的是**条目底板** `sys_00110.png`（480x112 → 拉到 300x30），不是面板底框。
++> 现在条目也改成 CSS 画的条子（渐变 + 高光 + 描边 + 发光），不再用位图拉伸；
++> 面板底框（`sys_00100`）同样是 CSS 画的。两个位图都被 `sys_00110` 撑变形的问题一起解决了。
 \ No newline at end of file
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
@@ -1240,10 +1243,10 @@ index 138e9dd..fd7fd1e 100644
 \ No newline at end of file
 +window.addEventListener("app:ready", restoreCt1);
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 37660ed..43890db 100644
+index 37660ed..1984ef3 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,4 +406,87 @@
+@@ -406,4 +406,105 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1298,18 +1301,36 @@ index 37660ed..43890db 100644
 +  position: relative;
 +  flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
 +  width: 300px; height: 30px; padding: 0 16px; box-sizing: border-box;
-+  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
-+  border: 0; color: #eaf7ff; cursor: pointer;
++  /* 条目底板不用 sys_00110（480x112）了：拉到 300x30 会纵向压扁，
++     改成 CSS 画的条子（带高光/内阴影），宽度高度怎么变都不变形 */
++  border: 1px solid rgba(120,220,255,.72);
++  border-radius: 8px;
++  background: linear-gradient(180deg, rgba(40,120,160,.95) 0%, rgba(14,70,104,.95) 45%, rgba(6,34,56,.97) 100%);
++  box-shadow:
++    inset 0 1px 0 rgba(190,245,255,.40),
++    inset 0 -1px 0 rgba(0,20,36,.55),
++    inset 0 0 16px rgba(80,195,235,.20),
++    0 1px 4px rgba(0,0,0,.45);
++  color: #eaf7ff; cursor: pointer;
 +  display: flex; align-items: center; justify-content: center;
 +  appearance: none; -webkit-appearance: none;
 +}
 +#specialScreen .spcpItem:hover {
-+  filter: brightness(1.15) drop-shadow(0 0 7px rgba(120,225,255,.55));
++  border-color: rgba(165,240,255,.95);
++  box-shadow:
++    inset 0 1px 0 rgba(210,250,255,.5),
++    inset 0 0 18px rgba(120,225,255,.32),
++    0 0 10px rgba(90,200,240,.45);
 +}
 +#specialScreen .spcpItem:not(.active) { opacity: .60; }
 +#specialScreen .spcpItem:not(.active):hover { opacity: 1; }
 +#specialScreen .spcpItem.active {
-+  filter: brightness(1.12) drop-shadow(0 0 9px rgba(135,235,255,.85));
++  border-color: rgba(190,250,255,1);
++  background: linear-gradient(180deg, rgba(70,170,210,.98), rgba(20,90,130,.98) 50%, rgba(8,44,70,.98));
++  box-shadow:
++    inset 0 1px 0 rgba(225,255,255,.6),
++    inset 0 0 22px rgba(140,235,255,.32),
++    0 0 14px rgba(120,225,255,.55);
 +}
 +#specialScreen .spcpName {
 +  font-size: 13px; line-height: 1; letter-spacing: 2px;
