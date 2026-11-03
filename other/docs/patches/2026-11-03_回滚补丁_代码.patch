@@ -1,0 +1,1292 @@
+diff --git a/program/src/char_res.py b/program/src/char_res.py
+index 6f21164..34f826c 100644
+--- a/program/src/char_res.py
++++ b/program/src/char_res.py
+@@ -63,19 +63,6 @@ def _read_text(path):
+ 
+ # ------------------------------------------------------------------ 提示词
+ def prompt_path():
+-    """优先认正式人设文件；persona_ic/cc/coda.txt 是时期补丁，不能当整份人设读。
+-
+-    时期补丁由 persona_ctx 在 base 之后追加。这里如果按目录字母序取，
+-    persona_cc.txt 会排在 persona_core.txt 前面，正好会把整份人设顶掉。
+-    """
+-    try:
+-        d = _sf.kind_dir("prompt")
+-    except Exception:
+-        d = ""
+-    for name in ("persona_core.txt", "persona.txt", "base.txt"):
+-        p = os.path.join(d, name) if d else ""
+-        if p and os.path.isfile(p):
+-            return p
+     return char_file("prompt", TEXT_EXTS)
+ 
+ 
+diff --git a/program/src/main.py b/program/src/main.py
+index ab85d5c..d12d314 100644
+--- a/program/src/main.py
++++ b/program/src/main.py
+@@ -28,7 +28,6 @@ AI 聊天界面架构 —— 可插拔的桌面聊天 UI 框架
+ # ============================================================================
+ import os
+ import sys
+-import shutil
+ import applog
+ import tts_client
+ import json
+@@ -54,8 +53,8 @@ import urllib.error
+ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+ 
+ BUILD_TAG = time.strftime("%H%M%S")
+-APP_NAME = "WHITE ALBUM 2"
+-WINDOW_TITLE = APP_NAME
++APP_NAME = "AI 聊天界面架构"
++WINDOW_TITLE = "%s  [%s]" % (APP_NAME, BUILD_TAG)
+ OLLAMA = "http://127.0.0.1:11434"
+ # 安全模式: 存在 模型开关.txt(或环境变量 WA2_NO_MODELS=1) 时不加载任何模型
+ def _no_models_flag():
+@@ -408,34 +407,6 @@ special_files.set_default_paths(
+ )
+ 
+ 
+-def _set_character_sessions():
+-    """合并版：存档按角色分开，切换角色不会读到另一个人的记录。"""
+-    try:
+-        d = os.path.join(characters.active_dir(), "sessions")
+-        os.makedirs(d, exist_ok=True)
+-        old = _sessions.SESS_DIR
+-        if old and os.path.isdir(old) and os.path.abspath(old) != os.path.abspath(d):
+-            # 第一次升级：把老的公共存档迁给当前角色
+-            try:
+-                if not os.listdir(d):
+-                    for fn in os.listdir(old):
+-                        sp = os.path.join(old, fn)
+-                        if os.path.isfile(sp):
+-                            shutil.copy2(sp, os.path.join(d, fn))
+-            except Exception:
+-                pass
+-        _sessions.SESS_DIR = d
+-        try:
+-            special_files.DEFAULT_PATHS["memory"] = d
+-        except Exception:
+-            pass
+-    except Exception as e:
+-        log("角色存档目录设置失败: %s" % e)
+-
+-
+-_set_character_sessions()
+-
+-
+ def qs(q, names, default=""):
+     """从 parse_qs 结果里取第一个存在的参数名（正式名 + 兼容旧名）"""
+     for n in names:
+@@ -657,9 +628,8 @@ def _stage_llm(system, user, max_tokens=6, timeout=20):
+         "max_tokens": max_tokens,
+         "temperature": 0,
+     }
+-    if "pro" in model or "deepseek" in model.lower():
++    if "pro" in model:
+         payload["thinking"] = {"type": "disabled"}
+-        payload["reasoning_effort"] = "none"
+     rq = urllib.request.Request(
+         base_url + "/v1/chat/completions",
+         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+@@ -702,9 +672,8 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
+     }
+     if not cc:
+         payload["reasoning_effort"] = "none"
+-    if cc and ("pro" in model or "deepseek" in (base_url or "").lower() or "deepseek" in (model or "").lower()):
++    if cc and "pro" in model:
+         payload["thinking"] = {"type": "disabled"}
+-        payload["reasoning_effort"] = "none"
+     rq = urllib.request.Request(
+         base_url + "/v1/chat/completions",
+         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+@@ -1298,19 +1267,6 @@ class Handler(SimpleHTTPRequestHandler):
+         """
+         if self.path.startswith("/api/character/sprite/index.json"):
+             return self._json(characters.sprite_index(os.path.join(ASSETS_DIR, "sprites")))
+-        if self.path == "/api/character/opening":
+-            try:
+-                p = os.path.join(characters.active_dir(), "opening.json")
+-                if os.path.isfile(p):
+-                    with open(p, encoding="utf-8") as f:
+-                        d = json.load(f)
+-                    if isinstance(d, dict):
+-                        return self._json({"ok": True, "zh": d.get("zh", ""),
+-                                           "ja": d.get("ja", ""),
+-                                           "emotion": d.get("emotion", "calm")})
+-            except Exception:
+-                pass
+-            return self._json({"ok": False})
+         if self.path.startswith("/api/character/list"):
+             return self._json({"ok": True,
+                                "active": characters.active_id(),
+@@ -1325,10 +1281,6 @@ class Handler(SimpleHTTPRequestHandler):
+                 persona_stage.reset()
+             except Exception:
+                 pass
+-            try:
+-                _set_character_sessions()
+-            except Exception:
+-                pass
+             try:
+                 res["name"] = special_cfg.get_name()
+                 res["dir"] = characters.active_dir()
+@@ -1372,8 +1324,6 @@ class Handler(SimpleHTTPRequestHandler):
+                     log("日文配音: %s" % ja)
+                 else:
+                     lang = "zh"          # 翻译失败就退回中文
+-            if lang == "ja":
+-                speak_text = tts_client.normalize_ja_names(speak_text)
+             applog.log("TTS 准备: lang=%s emo=%s 文本=%s (翻译耗时 %.1fs)"
+                        % (lang, emotion, speak_text[:24], time.time() - t_t0), "TTS")
+             t_s0 = time.time()
+@@ -1571,18 +1521,12 @@ class Handler(SimpleHTTPRequestHandler):
+         raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
+         # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
+         prev_bg = (req.get("bg") or "").strip()
+-        # 当前衣服 / 手动时期：决定这一轮用哪套人设和世界书
+-        outfit_now = (req.get("outfit") or "").strip()
+-        period_req = (req.get("period") or "").strip().lower()
+-        period = period_req if period_req in ("ic", "cc", "coda") else persona_ctx.period_of(outfit_now)
+-        log("时期: %s (outfit=%s, 手动=%s)" % (persona_ctx.PERIOD_LABELS.get(period, period),
+-                                              outfit_now[:20], period_req or "auto"))
+ 
+         # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
+         msgs, mem_note = _memory_context(msgs, bool(cc))
+ 
+-        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs, period=period)
+-        system = persona_ctx.persona_text(raw_msgs, period=period)
++        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs)
++        system = persona_ctx.persona_text(raw_msgs)
+ 
+         # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
+         #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
+@@ -1626,12 +1570,6 @@ class Handler(SimpleHTTPRequestHandler):
+         except Exception as e:
+             log("story_rag 失败: %s" % e)
+ 
+-        try:
+-            _sp = characters.sprite_index(os.path.join(ASSETS_DIR, "sprites"))
+-            _outfit_names = list((_sp.get("outfits") or {}).keys())
+-            outfit_hint = "、".join(_outfit_names) if _outfit_names else "（按当前角色立绘）"
+-        except Exception:
+-            outfit_hint = "（按当前角色立绘）"
+         if cc:
+             # 云端：人设末尾补语言/格式约束，前面插 few-shot
+             # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
+@@ -1639,7 +1577,8 @@ class Handler(SimpleHTTPRequestHandler):
+                 "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
+                 + scene_cg.prompt_hint() +
+                 "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
+-                + outfit_hint +
++                "高中·春秋JK制服（校服）、舞台演出服、coda·常服（眼镜）、coda·第二套常服、"
++                "婚后·居家服、礼服、和服（浴衣）、睡衣、高中·冬装、高中·夏季JK制服。"
+                 "平时绝对不要输出。"
+                 "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
+                 "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
+@@ -1655,9 +1594,8 @@ class Handler(SimpleHTTPRequestHandler):
+         }
+         if not cc:
+             payload["reasoning_effort"] = "none"
+-        if cc and ("pro" in model or "deepseek" in (base_url or "").lower() or "deepseek" in (model or "").lower()):
++        if cc and "pro" in model:
+             payload["thinking"] = {"type": "disabled"}
+-            payload["reasoning_effort"] = "none"
+         t0 = time.time()
+         try:
+             rq = urllib.request.Request(
+@@ -1705,10 +1643,8 @@ class Handler(SimpleHTTPRequestHandler):
+ 
+             self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
+                         "action": action, "action_zh": action_zh,
+-                        "emotion": emo,
+                         "scene": scene_now, "outfit": outfit_now,
+                         "bg": bg_hit.get("id", ""),
+-                        "period": period,
+                         "usage": _uinfo,
+                         "model": model,
+                         "ms": int((time.time() - t0) * 1000),
+diff --git a/program/src/persona_ctx.py b/program/src/persona_ctx.py
+index b2e2a1a..f4d70a6 100644
+--- a/program/src/persona_ctx.py
++++ b/program/src/persona_ctx.py
+@@ -123,56 +123,13 @@ def _read(path):
+         return ""
+ 
+ 
+-PERIOD_LABELS = {
+-    "ic": "IC（高中篇）",
+-    "cc": "CC（大学/出道篇）",
+-    "coda": "CODA（成年篇）",
+-}
+-
+-
+-def period_of(outfit=""):
+-    """按当前衣服名判断时期；认不出来按 IC（新游戏默认校服）"""
+-    s = (outfit or "").strip()
+-    low = s.lower()
+-    if low in PERIOD_LABELS:
+-        return low
+-    if s.startswith("CC") or low.startswith("cc"):
+-        return "cc"
+-    if (s.startswith("coda") or low.startswith("coda") or s.startswith("CODA")
+-            or s.startswith("婚后") or s.startswith("睡衣") or s.startswith("礼服")):
+-        return "coda"
+-    if s.startswith(("高中", "舞台", "学园祭", "浴衣", "和服", "打工")):
+-        return "ic"
+-    # 兜底：只拿到编号时（前端通常发衣服名，不会走到这里）
+-    if s in ("013", "014", "016", "017"):
+-        return "cc"
+-    return "ic"
+-
+-
+-def _period_overlay(period):
+-    """时期补丁：persona_ic.txt / persona_cc.txt / persona_coda.txt"""
+-    p = (period or "").strip().lower()
+-    if p not in PERIOD_LABELS:
+-        return ""
+-    pd = prompt_dir()
+-    for name in ("persona_%s.txt" % p, "persona_core_%s.txt" % p):
+-        t = _read(os.path.join(pd, name))
+-        if t:
+-            return t
+-    return ""
+-
+-
+-def persona_text(messages=None, period=None):
++def persona_text(messages=None):
+     """人设：特别模式导入的提示词最优先（当前角色文件夹的 prompt/）。
+ 
+     否则用角色文件夹里的 `base.txt` + 当前阶段那一份（`stage1~4.txt`）——
+     角色文件夹是空的才回落到程序自带的 persona/。阶段由 persona_stage 从最近对话判断，
+     只注入命中的那一份，省 token。没有拆分文件时，用整份的 persona_core / persona.txt。
+-
+-    period 给 ic / cc / coda 时，会在人设最后追加 `persona_<period>.txt` 的时期补丁；
+-    补丁里写明「最高优先级」，用来覆盖基础人设里不属于当前时期的身份/时间。
+     """
+-    base = ""
+     try:
+         imported = char_res.prompt_text()
+     except Exception as e:
+@@ -180,47 +137,35 @@ def persona_text(messages=None, period=None):
+         imported = ""
+     if imported:
+         _note_persona_src("角色文件夹的提示词")
+-        base = imported
+-    else:
+-        for d in (prompt_dir(), PERSONA_DIR):
+-            b = _read(os.path.join(d, "base.txt"))
+-            if not b:
+-                continue
+-            try:
+-                stage = persona_stage.current(messages or [])
+-            except Exception as e:
+-                _log("关系阶段判断失败（按 1 处理）: %s" % e)
+-                stage = 1
+-            stage_txt = _read(os.path.join(d, "stage%d.txt" % stage))
+-            if stage_txt:
+-                _note_persona_src("%s/base+stage%d" % (os.path.basename(os.path.dirname(d)), stage))
+-                base = b + "\n\n" + stage_txt
+-            else:
+-                _note_persona_src("%s/base" % os.path.basename(os.path.dirname(d)))
+-                base = b
+-            break
++        return imported
+ 
++    for d in (prompt_dir(), PERSONA_DIR):
++        base = _read(os.path.join(d, "base.txt"))
+         if not base:
+-            # 整份的（兼容没拆分的安装 / 只放了一份提示词的角色）
+-            pd = prompt_dir()
+-            for f in (os.path.join(pd, "persona_core.txt"), os.path.join(pd, "persona.txt"),
+-                      PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
+-                      PERSONA_FILE, LEGACY_PERSONA_FILE):
+-                t = _read(f)
+-                if t:
+-                    _note_persona_src(os.path.basename(f))
+-                    base = t
+-                    break
+-        if not base:
+-            _note_persona_src("内置默认")
+-            base = "你是示例角色，说话简短，只用简体中文。"
+-
+-    p = (period or "").strip().lower()
+-    ov = _period_overlay(p)
+-    if ov:
+-        _note_persona_src("%s + 时期:%s" % (_PERSONA_SRC["v"], p))
+-        base = base + "\n\n" + ov
+-    return base
++            continue
++        try:
++            stage = persona_stage.current(messages or [])
++        except Exception as e:
++            _log("关系阶段判断失败（按 1 处理）: %s" % e)
++            stage = 1
++        stage_txt = _read(os.path.join(d, "stage%d.txt" % stage))
++        if stage_txt:
++            _note_persona_src("%s/base+stage%d" % (os.path.basename(os.path.dirname(d)), stage))
++            return base + "\n\n" + stage_txt
++        _note_persona_src("%s/base" % os.path.basename(os.path.dirname(d)))
++        return base
++
++    # 整份的（兼容没拆分的安装 / 只放了一份提示词的角色）
++    pd = prompt_dir()
++    for f in (os.path.join(pd, "persona_core.txt"), os.path.join(pd, "persona.txt"),
++              PERSONA_CORE_FILE, LEGACY_PERSONA_CORE_FILE,
++              PERSONA_FILE, LEGACY_PERSONA_FILE):
++        t = _read(f)
++        if t:
++            _note_persona_src(os.path.basename(f))
++            return t
++    _note_persona_src("内置默认")
++    return "你是示例角色，说话简短，只用简体中文。"
+ 
+ 
+ def load_worldbook():
+@@ -240,23 +185,15 @@ def load_worldbook():
+     return {"entries": []}
+ 
+ 
+-def worldbook_context(messages, depth=None, max_entries=None, max_chars=None, period=None):
+-    """按关键词匹配注入世界书（每轮重读，导入的新世界书立刻生效）
+-
+-    period=ic/cc/coda 时，只注入通用条目和当前时期的条目；
+-    条目的 period 字段可以是 ic / cc / coda / all。
+-    """
++def worldbook_context(messages, depth=None, max_entries=None, max_chars=None):
++    """按关键词匹配注入世界书（每轮重读，导入的新世界书立刻生效）"""
+     wb = load_worldbook()
+     depth = depth or wb.get("scan_depth", 3)
+     max_entries = max_entries or wb.get("max_entries", 3)
+     max_chars = max_chars or wb.get("max_chars", 1200)
+     recent = " ".join((m.get("content") or "") for m in messages[-depth:])
+-    p = (period or "").strip().lower() or None
+     hits = []
+     for e in wb.get("entries", []):
+-        ep = (e.get("period") or "").strip().lower()
+-        if ep and ep != "all" and p and ep != p:
+-            continue
+         cs = e.get("case_sensitive", False)
+         hay = recent if cs else recent.lower()
+         for kw in e.get("keywords", []):
+diff --git a/program/src/tts_client.py b/program/src/tts_client.py
+index aacdcdb..4e96265 100644
+--- a/program/src/tts_client.py
++++ b/program/src/tts_client.py
+@@ -50,37 +50,6 @@ URL = "http://%s:%d" % (HOST, PORT)
+ GPT_W = os.path.join(GSV, "GPT_weights_v4", "Touma_Kazusa-e15.ckpt")
+ SOVITS_W = os.path.join(GSV, "SoVITS_weights_v4", "Touma_Kazusa_e8_s33072_l32.pth")
+ 
+-_model_key = ""      # 合并版：当前已加载的角色语音配置签名
+-
+-
+-def _char_json(name):
+-    """读当前角色文件夹里的可选配置文件；没有/坏了都返回 {}。"""
+-    try:
+-        import characters
+-        p = os.path.join(characters.active_dir(), name)
+-        if os.path.isfile(p):
+-            import json
+-            with open(p, encoding="utf-8") as f:
+-                d = json.load(f)
+-            return d if isinstance(d, dict) else {}
+-    except Exception:
+-        pass
+-    return {}
+-
+-
+-def _character_tts():
+-    """角色的 tts.json：{gpt, sovits}；相对路径按 GPT-SoVITS 根目录解析"""
+-    d = _char_json("tts.json")
+-    g = (d.get("gpt") or "").strip()
+-    s = (d.get("sovits") or "").strip()
+-    if not g or not s:
+-        return {}
+-    if not os.path.isabs(g):
+-        g = os.path.join(GSV, g)
+-    if not os.path.isabs(s):
+-        s = os.path.join(GSV, s)
+-    return {"gpt": g, "sovits": s}
+-
+ # 参考音频：按情绪准备（语气由参考决定，音色由模型决定）
+ # 现在放在当前角色文件夹的 voice/<情绪>/ 下；老版本的 refs_touma 只当兜底
+ LEGACY_REFS_DIR = os.path.join(os.path.dirname(GSV), "refs_touma")
+@@ -103,11 +72,6 @@ EMOTION_PARAMS = {
+     "angry":   {"speed_factor": 1.14, "temperature": 0.75, "top_k": 8,  "top_p": 0.95},
+     "shy":     {"speed_factor": 0.90, "temperature": 0.70, "top_k": 6,  "top_p": 0.92},
+     "surprised": {"speed_factor": 1.12, "temperature": 0.80, "top_k": 9, "top_p": 0.95},
+-    "毒舌":     {"speed_factor": 1.02, "temperature": 0.55, "top_k": 4,  "top_p": 0.88},
+-    "撒娇":     {"speed_factor": 0.94, "temperature": 0.70, "top_k": 6,  "top_p": 0.92},
+-    "哭腔":     {"speed_factor": 0.90, "temperature": 0.55, "top_k": 4,  "top_p": 0.88},
+-    "调侃吐槽": {"speed_factor": 1.05, "temperature": 0.72, "top_k": 7,  "top_p": 0.93},
+-    "问句":     {"speed_factor": 1.00, "temperature": 0.60, "top_k": 5,  "top_p": 0.90},
+ }
+ 
+ # 别名：前端按关键字判断出来的是 sad / warm，映射到新情绪
+@@ -306,25 +270,6 @@ def _post(path, timeout=30):
+         return r.read()
+ 
+ 
+-def _ensure_char_model():
+-    """合并版：切到当前角色 tts.json 里的 GPT/SoVITS 权重（同一进程，不重启）"""
+-    global _model_key, _last_err
+-    m = _character_tts()
+-    if not m:
+-        return True
+-    key = m["gpt"] + "|" + m["sovits"]
+-    if key == _model_key:
+-        return True
+-    try:
+-        _post("/set_gpt_weights?weights_path=" + urllib.parse.quote(m["gpt"]))
+-        _post("/set_sovits_weights?weights_path=" + urllib.parse.quote(m["sovits"]))
+-        _model_key = key
+-        return True
+-    except Exception as e:
+-        _last_err = "切换角色权重失败: %s" % e
+-        return False
+-
+-
+ def _wait_ready(timeout=120):
+     import socket
+     t0 = time.time()
+@@ -337,22 +282,6 @@ def _wait_ready(timeout=120):
+     return False
+ 
+ 
+-def _child_env():
+-    """给 GPT-SoVITS 子进程准备环境：runtime/ 里的 ffmpeg 进 PATH，TMP 指到 tts/tmp。"""
+-    env = os.environ.copy()
+-    rt = os.path.dirname(PY)
+-    if os.path.isdir(rt):
+-        env["PATH"] = rt + os.pathsep + env.get("PATH", "")
+-    tmp = os.path.join(os.path.dirname(GSV), "tmp")
+-    try:
+-        os.makedirs(tmp, exist_ok=True)
+-        env["TMP"] = tmp
+-        env["TEMP"] = tmp
+-    except Exception:
+-        pass
+-    return env
+-
+-
+ def start():
+     """拉起 API 服务并切到我们的权重（幂等）。
+ 
+@@ -403,7 +332,6 @@ def _start_locked():
+         _proc = subprocess.Popen(
+             [PY, API_PY, "-a", HOST, "-p", str(PORT), "-c", cfg],
+             cwd=GSV,
+-            env=_child_env(),
+             stdout=subprocess.DEVNULL,
+             stderr=subprocess.DEVNULL,
+             creationflags=0x08000000 if os.name == "nt" else 0,
+@@ -442,7 +370,7 @@ def start_translate():
+         pass
+     try:
+         _tproc = subprocess.Popen(
+-            [PY, T_PY], cwd=GSV, env=_child_env(),
++            [PY, T_PY], cwd=GSV,
+             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+             creationflags=0x08000000 if os.name == "nt" else 0)
+     except Exception:
+@@ -496,50 +424,6 @@ def clear_tts_cache():
+         pass
+ 
+ 
+-
+-# 角色名的中文写法 → 日文读音。数据放当前角色文件夹的 pronunciation.json，
+-# 代码里不写死具体角色；没有这个文件就原样送 TTS。
+-_NAME_CACHE = {"path": "", "mtime": 0, "pairs": []}
+-
+-
+-def _name_pairs():
+-    try:
+-        import characters
+-        p = os.path.join(characters.active_dir(), "pronunciation.json")
+-        if not os.path.isfile(p):
+-            return []
+-        mt = os.path.getmtime(p)
+-        if _NAME_CACHE["path"] == p and _NAME_CACHE["mtime"] == mt:
+-            return _NAME_CACHE["pairs"]
+-        import json
+-        with open(p, encoding="utf-8") as f:
+-            d = json.load(f)
+-        pairs = []
+-        if isinstance(d, dict):
+-            pairs = [(str(k), str(v)) for k, v in d.items()]
+-        elif isinstance(d, list):
+-            for it in d:
+-                if isinstance(it, (list, tuple)) and len(it) >= 2:
+-                    pairs.append((str(it[0]), str(it[1])))
+-                elif isinstance(it, dict) and it.get("from") and it.get("to"):
+-                    pairs.append((str(it["from"]), str(it["to"])))
+-        pairs.sort(key=lambda x: -len(x[0]))
+-        _NAME_CACHE.update({"path": p, "mtime": mt, "pairs": pairs})
+-        return pairs
+-    except Exception:
+-        return []
+-
+-
+-def normalize_ja_names(text):
+-    """按角色 pronunciation.json 把名字换成假名；界面文字不变。"""
+-    if not text:
+-        return text
+-    for a, b in _name_pairs():
+-        if a in text:
+-            text = text.replace(a, b)
+-    return text
+-
+-
+ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
+     """返回 wav 字节；失败返回 None
+ 
+@@ -549,15 +433,11 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
+     global _last_err, _ready
+     if not _ready:
+         return None
+-    if lang == "ja":
+-        text = normalize_ja_names(text)
+     try:
+         _cp = _tts_cache_path(text, lang, emo)
+     except Exception:
+         _cp = None
+     with _synth_lock:
+-        if not _ensure_char_model():
+-            return None
+         if _cp:
+             try:
+                 if os.path.exists(_cp):
+diff --git a/program/src/ui/game.js b/program/src/ui/game.js
+index 7e0af89..4e29320 100644
+--- a/program/src/ui/game.js
++++ b/program/src/ui/game.js
+@@ -9,7 +9,7 @@ let backlogOpen = false;
+ let currentBgm = null;
+ let bgmEnabled = true;
+ /* 角色名：存在 char/name.txt，特别模式里改的就是它 */
+-let CHAR_NAME = "角色";
++let CHAR_NAME = "和纱";
+ 
+ /* ---------- 素材表 ---------- */
+ /* 旧的四张通用背景：新场景图还没导入、或读档时遇到旧存档的场景名，就退回这里 */
+@@ -250,8 +250,8 @@ function detectMood(text) {
+   if (/抱歉|对不起|哭|寂寞|后悔|离开|再见|讨厌我/.test(t)) return "sad";
+   if (/早点睡|注意|吃药|别勉强|你也|小心|累了吧|照顾好/.test(t)) return "warm";
+   if (/呵|笑|有趣|真拿你没办法|好吧/.test(t)) return "smile";
+-  if (/……|没事|没什么|有事|随便|不知道/.test(t)) return "calm";
+-  return "calm";
++  if (/……|没事|没什么|有事|随便|不知道/.test(t)) return "cold";
++  return "cold";
+ }
+ 
+ const MOOD_BGM = { angry: "tense", sad: "sad", warm: "warm", smile: "warm", cold: "calm" };
+@@ -299,24 +299,6 @@ function currentBgmMood() {
+ }
+ 
+ 
+-/* 合并版：按当前角色给开场白 */
+-var OPENING_LINE = { zh: "「……」", ja: "", emo: "calm" };
+-
+-function loadOpeningLine() {
+-  return fetch("/api/character/opening", { cache: "no-store" })
+-    .then(function (r) { return r.json(); })
+-    .then(function (d) {
+-      if (d && d.ok && (d.zh || d.ja)) {
+-        OPENING_LINE = { zh: d.zh || "「……」", ja: d.ja || "", emo: d.emotion || "calm" };
+-      }
+-    })
+-    .catch(function () {});
+-}
+-window.__loadOpeningLine = loadOpeningLine;
+-loadOpeningLine();
+-
+-function openingLine() { return OPENING_LINE; }
+-
+ /* ---------- 会话存档 ---------- */
+ function sessionSave() {
+   try {
+@@ -349,14 +331,9 @@ function sessionRestore() {
+       }
+       if (last) {
+         try { showReply(last); } catch (e) { $("msgText").textContent = last; }
+-        var _lastJa = "";
+-        for (var _i = history.length - 1; _i >= 0; _i--) {
+-          if (history[_i].role === "assistant") { _lastJa = history[_i].content || ""; break; }
+-        }
+-        if (_lastJa) speakLineJa(_lastJa, "calm");
+       }
+       if (meta.outfit) {
+-        try { setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit); } catch (e) {}
++        try { setSpriteByScene(meta.bg || "classroom", "cold", true, meta.outfit); } catch (e) {}
+       }
+       console.log("[session] 已恢复", history.length, "条");
+       try { rebuildBacklog(); } catch (e) {}
+@@ -375,7 +352,7 @@ window.__loadSession = function (data) {
+     titleBgmStarted = true;
+     if (meta.bg) { currentBg = null; setBg(meta.bg); } else { setBg("classroom"); }
+     if (meta.outfit) { currentOutfit = meta.outfit; }
+-    setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit || "");
++    setSpriteByScene(meta.bg || "classroom", "cold", true, meta.outfit || "");
+     gdiRenderName(CHAR_NAME, $("namePlate"));
+     setBgm("calm", 600);
+     let last = "";
+@@ -384,11 +361,6 @@ window.__loadSession = function (data) {
+     }
+     if (last) {
+       try { showReply(last); } catch (e) { $("msgText").textContent = last; }
+-      var _lastJa = "";
+-      for (var _i = history.length - 1; _i >= 0; _i--) {
+-        if (history[_i].role === "assistant") { _lastJa = history[_i].content || ""; break; }
+-      }
+-      if (_lastJa) speakLineJa(_lastJa, "calm");
+     }
+     try { rebuildBacklog(); } catch (e) {}
+     setTimeout(function () { $("input").focus(); }, 300);
+@@ -537,11 +509,8 @@ function outfitOf(scene) {
+   const name = OUTFIT_BY_SCENE[scene];
+   if (name && SPRITE_INDEX[name]) return name;
+   /* 场景表没命中（或这套衣服没有立绘）：优先校服，再退到索引里的第一套 */
++  if (SPRITE_INDEX["高中·春秋JK制服"]) return "高中·春秋JK制服";
+   const keys = Object.keys(SPRITE_INDEX);
+-  for (let i = 0; i < keys.length; i++) {
+-    const o = SPRITE_INDEX[keys[i]] || {};
+-    if (String(o.code || "") === "001") return keys[i];
+-  }
+   return keys.length ? keys[0] : "";
+ }
+ 
+@@ -568,7 +537,7 @@ function spritePath(outfit, emotion) {
+ /** 按场景切换服装 */
+ function setSpriteByScene(scene, mood, force, wantOutfit) {
+   // 服装以 currentOutfit 为准；只有对话明确换衣服（wantOutfit）才改
+-  const outfit = resolveOutfit(wantOutfit) || resolveOutfit(currentOutfit) || outfitOf(scene) || "";
++  const outfit = resolveOutfit(wantOutfit) || currentOutfit || outfitOf(scene) || "";
+   const key = outfit + "|" + (mood || "");
+   if (currentSprite === key && !force) return;
+   currentOutfit = outfit;
+@@ -706,30 +675,6 @@ function fetchVoice(text, timeoutMs) {
+   });
+ }
+ 
+-
+-/* ---------- 开场白语音 ---------- */
+-function waitTtsReady(cb, tries) {
+-  if (!ttsOn) return;
+-  fetch("/api/voice/ok", { cache: "no-store" })
+-    .then(function (r) { return r.json(); })
+-    .then(function (d) {
+-      if (d && d.ready) cb();
+-      else if (tries > 0) setTimeout(function () { waitTtsReady(cb, tries - 1); }, 1000);
+-    })
+-    .catch(function () {
+-      if (tries > 0) setTimeout(function () { waitTtsReady(cb, tries - 1); }, 1000);
+-    });
+-}
+-
+-function speakLineJa(ja, emo) {
+-  if (!ttsOn) return;
+-  var clean = (ja || "").replace(/^[「『]|[」』]$/g, "").trim();
+-  if (!clean) return;
+-  window.__speakJa = clean;
+-  window.__lastEmo = emo || window.__lastEmo || "soft";
+-  waitTtsReady(function () { speakReply(clean); }, 60);
+-}
+-
+ function speakReply(text) {
+   stopSpeak();
+   return fetchVoice(text, 15000).then((a) => {
+@@ -984,7 +929,7 @@ function addHistory(role, text, raw) {
+   body.className = "body";
+   const who = document.createElement("span");
+   who.className = "who";
+-  who.textContent = role === "user" ? "你" : CHAR_NAME;
++  who.textContent = role === "user" ? "你" : "和纱";
+   /* 和纱的话统一加「」：存档里的 zh 是翻译原文（不带括号），实时消息带括号，这里统一 */
+   if (role === "assistant") {
+     text = "「" + String(text).replace(/^[「『]/, "").replace(/[」』]$/, "") + "」";
+@@ -1173,8 +1118,6 @@ async function send() {
+     body.memory = true;
+     // 当前背景一并带上：模型只说地点没说时间时，新场景沿用现在的时段（白天/晚上）
+     if (currentBg) body.bg = currentBg;
+-    if (currentOutfit) body.outfit = currentOutfit;
+-    try { var _pm = localStorage.getItem("app_period") || "auto"; if (_pm !== "auto") body.period = _pm; } catch (e) {}
+     return body;
+   })()),
+     });
+@@ -1203,15 +1146,14 @@ async function send() {
+     // 先合成语音；语音没准备好就先不出文字，等语音出来一起出
+     speakReply(reply).then(() => {
+       // 场景/服装只在模型明确标记时才切，且与文字同一时刻出现
+-      const _want = window.__lockOutfit ? "" : (window.__nextOutfit || "");
+-      if (window.__nextScene && !window.__lockScene) { setBg(window.__nextScene); }
+-      window.__nextScene = "";
++      const _want = window.__nextOutfit || "";
++      if (window.__nextScene) { setBg(window.__nextScene); window.__nextScene = ""; }
+       window.__nextOutfit = "";
+       setSpriteByScene(currentBg || "classroom", mood, true, _want);
+       showReply(shown);
+     });
+ 
+-    const mood = (window.__lastEmo || detectMood(shown));
++    const mood = detectMood(shown);
+     // 立绘表情随情绪变，服装与场景只在模型明确标记时切换
+     accumulateMood(reply);            // BGM 按累积氛围切换，不随单句变
+ 
+@@ -1252,13 +1194,13 @@ $("mainMenu").addEventListener("click", (e) => {
+   showScreen("gameScreen");
+   titleBgmStarted = true;
+   setBg("classroom");
+-  setSpriteByScene("classroom", "calm", true);
++  setSpriteByScene("classroom", "cold", true);
+   gdiRenderName(CHAR_NAME, $("namePlate"));
+   setBgm("calm", 600);
+   if (window.__wantRestore) {
+     window.__wantRestore = false;
+     sessionRestore().then(function (ok) {
+-      if (!ok) setTimeout(() => { var _o = openingLine(); typewriter(_o.zh); speakLineJa(_o.ja, _o.emo); }, 200);
++      if (!ok) setTimeout(() => { typewriter("「……有事？」"); }, 200);
+     });
+   } else {
+     // 开始游戏 = 新对话：清空历史与自动存档
+@@ -1272,7 +1214,7 @@ $("mainMenu").addEventListener("click", (e) => {
+         body: JSON.stringify({ slot: "auto", messages: [], meta: {} })
+       }).catch(function () {});
+     } catch (e) {}
+-    setTimeout(() => { var _o = openingLine(); typewriter(_o.zh); speakLineJa(_o.ja, _o.emo); }, 460);
++    setTimeout(() => { typewriter("「……有事？」"); }, 460);
+   }
+   setTimeout(() => $("input").focus(), 700);
+ });
+@@ -1370,9 +1312,7 @@ document.addEventListener("keydown", (e) => {
+ 
+ /* ---------- 思考显示开关 ---------- */
+ function thinkOn() {
+-  var v = localStorage.getItem("app_show_think");
+-  if (v === null) { try { localStorage.setItem("app_show_think", "1"); } catch (e) {} return true; }
+-  return v === "1";
++  return localStorage.getItem("app_show_think") === "1";
+ }
+ 
+ function renderThinking() {
+@@ -1786,20 +1726,4 @@ window.__setCharName = function (n) {
+ fetch("/api/special/name", { cache: "no-store" })
+   .then(function (r) { return r.json(); })
+   .then(function (d) { if (d && d.ok && d.name) window.__setCharName(d.name); })
+-  .catch(function () {});
+-
+-
+-/* ---------- 启动默认全屏 ---------- */
+-function applyStartupWinMode() {
+-  try {
+-    var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+-    if ((P.winMode || "full") !== "full") return;
+-    if (window.__setWinMode) window.__setWinMode("full");
+-  } catch (e) {}
+-}
+-document.addEventListener("DOMContentLoaded", function () {
+-  setTimeout(applyStartupWinMode, 900);
+-});
+-window.addEventListener("app:ready", function () {
+-  setTimeout(applyStartupWinMode, 300);
+-});
++  .catch(function () {});
+\ No newline at end of file
+diff --git a/program/src/ui/index.html b/program/src/ui/index.html
+index 0e2c611..8a8c84e 100644
+--- a/program/src/ui/index.html
++++ b/program/src/ui/index.html
+@@ -3,15 +3,15 @@
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-<title>WHITE ALBUM 2</title>
++<title>AI 聊天界面架构</title>
+ <link rel="stylesheet" href="screens-base.css?v=11022135">
+ <link rel="stylesheet" href="opt-screen.css?v=11022135">
+ <link rel="stylesheet" href="save-screen.css?v=11022135">
+-<link rel="stylesheet" href="game450.css?v=202611031130">
++<link rel="stylesheet" href="game450.css?v=11022135">
+ <link rel="stylesheet" href="unifont.css?v=11022135">
+-<link rel="stylesheet" href="opt.css?v=202611031205">
+-  <link rel="stylesheet" href="menubar.css?v=202611031205">
+-<link rel="stylesheet" href="special.css?v=202611032110">
++<link rel="stylesheet" href="opt.css?v=11022135">
++  <link rel="stylesheet" href="menubar.css?v=11022135">
++<link rel="stylesheet" href="special.css?v=11022135">
+ </head>
+ <body>
+ <div id="stage">
+@@ -175,15 +175,6 @@
+       </div>
+     </div>
+ 
+-    <!-- 角色切换：直接列出现有角色，一键切换 -->
+-    <div id="spCharPick" class="spCharPick" data-no-uitext="1" role="dialog" aria-hidden="true">
+-      <div class="spcpBox">
+-        <img class="spcpTitle" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
+-        <div id="spcpList" class="spcpList"></div>
+-        <button id="spcpCancel" class="spcpCancel" type="button"><img src="assets/ui/text/sp_cancel.png" alt="取消"></button>
+-      </div>
+-    </div>
+-
+     <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
+     <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+   </div>
+@@ -200,9 +191,6 @@
+ 
+ 
+ 
+-<!-- ================= 场景 / 服装手动选择 ================= -->
+-
+-
+ <!-- ================= 对话画面 ================= -->
+ <div id="gameScreen" class="screen">
+   <div id="bgLayer"></div>
+@@ -234,7 +222,7 @@
+   <div id="msgWrap">
+     <div id="msgBox">
+       <div class="fill"></div>
+-      <div id="namePlate">角色</div>
++      <div id="namePlate">和纱</div>
+       <div id="msgText"></div>
+       <div class="walogo">AI CHAT UI</div>
+     </div>
+@@ -243,7 +231,7 @@
+   <div id="inputBar">
+     <img id="inputFrame" src="assets/input_frame.png" alt="">
+     <input id="input" type="text" placeholder="" autocomplete="off">
+-    <button id="thinkBtn" title="显示/隐藏 角色的动作描写"><img class="lbl" src="assets/ui/text/log_act_label.png" alt=""><img class="val" src="assets/ui/text/log_act_offv.png" alt=""></button>
++    <button id="thinkBtn" title="显示/隐藏 和纱的动作描写"><img class="lbl" src="assets/ui/text/log_act_label.png" alt=""><img class="val" src="assets/ui/text/log_act_offv.png" alt=""></button>
+     <button id="sendBtn">发送</button>
+   </div>
+ 
+@@ -271,17 +259,17 @@
+ 
+ <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
+ <script src="config.js?v=11022135"></script>
+-<script src="opt.js?v=202611031205"></script>
++<script src="opt.js?v=11022135"></script>
+   <script src="savetabs4.js?v=11022135"></script>
+   <script src="savepages.js?v=11022135"></script>
+   <script src="screens.js?v=11022135"></script>
+-  <script src="special.js?v=202611032030"></script>
+-<script src="game.js?v=202611031220"></script>
++  <script src="special.js?v=11022135"></script>
++<script src="game.js?v=11022135"></script>
+ <script src="sound.js?v=11022135"></script>
+ <script src="zoom.js?v=11022135"></script>
+ <script src="debug.js?v=11022135"></script>
+ <script src="scale.js?v=11022135"></script>
+-<script src="menubar.js?v=202611031205"></script>
++<script src="menubar.js?v=11022135"></script>
+ <script src="uitext.js?v=11022135"></script>
+ <script>
+ /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
+diff --git a/program/src/ui/menubar.css b/program/src/ui/menubar.css
+index e7ac03d..779d66e 100644
+--- a/program/src/ui/menubar.css
++++ b/program/src/ui/menubar.css
+@@ -156,5 +156,3 @@ body.mbOpen #stage { filter: brightness(.94); }
+ /* 拖动时降低重绘开销，减少迟滞 */
+ body.mbDragging #stage { pointer-events: none; }
+ body.mbDragging * { transition: none !important; animation: none !important; }
+-
+-.mbSub { max-height: 70vh; overflow-y: auto; }
+diff --git a/program/src/ui/menubar.js b/program/src/ui/menubar.js
+index be17d73..ff6de4b 100644
+--- a/program/src/ui/menubar.js
++++ b/program/src/ui/menubar.js
+@@ -154,163 +154,6 @@
+     } catch (e) {}
+   }
+ 
+-
+-  /* ================= 顶部菜单：场景 / 服装 ================= */
+-  var _sceneMeta = null;
+-  function sceneMeta() {
+-    if (_sceneMeta) return _sceneMeta;
+-    var keys = [];
+-    try { keys = Object.keys(CG_URL); } catch (e) {}
+-    if (!keys.length) return null;
+-    var map = {}, ids = {}, places = [], times = {};
+-    keys.forEach(function (id) {
+-      var p = id.split("（")[0];
+-      var m = id.match(/（(白天|黄昏|晚上|黑夜|深夜)）/);
+-      var t = m ? m[1] : "默认";
+-      if (!ids[p]) { ids[p] = []; places.push(p); }
+-      ids[p].push({ id: id, time: t });
+-      map[id] = { place: p, time: t };
+-    });
+-    places.sort(function (a, b) { return a.localeCompare(b, "zh"); });
+-    places.forEach(function (p) {
+-      var ts = [];
+-      ids[p].forEach(function (x) { if (ts.indexOf(x.time) < 0) ts.push(x.time); });
+-      times[p] = ts;
+-    });
+-    _sceneMeta = { map: map, ids: ids, places: places, times: times };
+-    return _sceneMeta;
+-  }
+-
+-  function sceneState(meta) {
+-    var cur = (typeof currentBg === "string") ? currentBg : "";
+-    var p = "", t = "";
+-    if (cur && meta.map[cur]) { p = meta.map[cur].place; t = meta.map[cur].time; }
+-    if (!p || !meta.ids[p]) {
+-      p = meta.ids["教室"] ? "教室" : meta.places[0];
+-      t = (meta.times[p] || [""])[0];
+-    }
+-    if (!t || (meta.times[p] || []).indexOf(t) < 0) t = (meta.times[p] || [""])[0];
+-    return { place: p, time: t };
+-  }
+-
+-  function applySceneById(id) {
+-    try { currentBg = null; setBg(id); sessionSave(); } catch (e) {}
+-    window.__nextScene = "";
+-  }
+-
+-  function applyOutfitByName(name) {
+-    try {
+-      currentOutfit = name;
+-      setSpriteByScene(currentBg || "classroom", window.__lastEmo || "", true, name);
+-      sessionSave();
+-    } catch (e) {}
+-    window.__nextOutfit = "";
+-  }
+-
+-  function menuSub(title, items, current, onPick) {
+-    var row = el("div", "mi-row has-sub", title);
+-    var sub = el("div", "mbSub");
+-    items.forEach(function (v) {
+-      var r = el("div", "mi-row", v);
+-      if (v === current) r.classList.add("checked");
+-      r.addEventListener("click", function (ev) {
+-        ev.stopPropagation();
+-        onPick(v);
+-        closeAll();
+-      });
+-      sub.appendChild(r);
+-    });
+-    row.appendChild(sub);
+-    row.addEventListener("mouseenter", function () { row.classList.add("open"); });
+-    row.addEventListener("mouseleave", function () { row.classList.remove("open"); });
+-    return row;
+-  }
+-
+-  function menuToggle(title, on, menu, fn) {
+-    var row = el("div", "mi-row", title + "：" + (on ? "开" : "关"));
+-    if (on) row.classList.add("checked");
+-    row.addEventListener("click", function (ev) {
+-      ev.stopPropagation();
+-      fn(!on);
+-      refreshSceneMenu(menu);
+-    });
+-    return row;
+-  }
+-
+-  function refreshSceneMenu(menu) {
+-    menu.innerHTML = "";
+-    var meta = sceneMeta();
+-    if (!meta) {
+-      menu.appendChild(el("div", "mi-row", "场景数据加载中…"));
+-      return;
+-    }
+-    var st = sceneState(meta);
+-    menu.appendChild(menuSub("场景地点", meta.places, st.place, function (p) {
+-      var ts = meta.times[p] || [];
+-      var t = ts.indexOf(st.time) >= 0 ? st.time : (ts[0] || "");
+-      var ids = meta.ids[p] || [];
+-      var hit = null;
+-      for (var i = 0; i < ids.length; i++) if (ids[i].time === t) { hit = ids[i]; break; }
+-      if (!hit) hit = ids[0];
+-      if (hit) applySceneById(hit.id);
+-    }));
+-    menu.appendChild(menuSub("场景时段", meta.times[st.place] || [], st.time, function (t) {
+-      var ids = meta.ids[st.place] || [];
+-      var hit = null;
+-      for (var i = 0; i < ids.length; i++) if (ids[i].time === t) { hit = ids[i]; break; }
+-      if (!hit) hit = ids[0];
+-      if (hit) applySceneById(hit.id);
+-    }));
+-    menu.appendChild(el("div", "mi-sep"));
+-
+-    var outfits = [];
+-    try { outfits = Object.keys(SPRITE_INDEX).sort(function (a, b) { return a.localeCompare(b, "zh"); }); } catch (e) {}
+-    var curOut = (typeof currentOutfit === "string") ? currentOutfit : "";
+-    menu.appendChild(menuSub("服装", outfits, curOut, function (n) { applyOutfitByName(n); }));
+-    var _pm = "auto";
+-    try { _pm = localStorage.getItem("app_period") || "auto"; } catch (e) {}
+-    var _plabels = [["自动", "auto"], ["IC（高中）", "ic"], ["CC（大学/出道）", "cc"], ["CODA（成年）", "coda"]];
+-    var _plabel = "自动";
+-    for (var _pi = 0; _pi < _plabels.length; _pi++) {
+-      if (_plabels[_pi][1] === _pm) _plabel = _plabels[_pi][0];
+-    }
+-    menu.appendChild(menuSub("时期", _plabels.map(function (x) { return x[0]; }), _plabel, function (lab) {
+-      var val = "auto";
+-      for (var _pj = 0; _pj < _plabels.length; _pj++) if (_plabels[_pj][0] === lab) val = _plabels[_pj][1];
+-      try { localStorage.setItem("app_period", val); } catch (e) {}
+-      closeAll();
+-    }));
+-    menu.appendChild(el("div", "mi-sep"));
+-
+-    menu.appendChild(menuToggle("锁定场景", !!window.__lockScene, menu, function (v) {
+-      window.__lockScene = v;
+-      try { if (window.App && window.App.setPref) window.App.setPref("lockScene", v); } catch (e) {}
+-      try { localStorage.setItem("lockScene", v ? "1" : "0"); } catch (e) {}
+-    }));
+-    menu.appendChild(menuToggle("锁定服装", !!window.__lockOutfit, menu, function (v) {
+-      window.__lockOutfit = v;
+-      try { if (window.App && window.App.setPref) window.App.setPref("lockOutfit", v); } catch (e) {}
+-      try { localStorage.setItem("lockOutfit", v ? "1" : "0"); } catch (e) {}
+-    }));
+-  }
+-
+-  function makeSceneMenu() {
+-    var item = el("div", "mbItem", "场景 / 服装");
+-    var menu = el("div", "mbMenu");
+-    item.appendChild(menu);
+-    item.addEventListener("click", function (ev) {
+-      ev.stopPropagation();
+-      var wasOpen = item.classList.contains("open");
+-      closeAll();
+-      if (!wasOpen) {
+-        refreshSceneMenu(menu);
+-        item.classList.add("open");
+-        document.body.classList.add("mbOpen");
+-      }
+-    });
+-    return item;
+-  }
+-
+   function build() {
+     if (document.getElementById("menuBar")) return;
+     var bar = el("div", "");
+@@ -326,7 +169,6 @@
+           { label: "中文", w: 0, h: 0, act: "zh" },
+         ] }
+     ]));
+-    bar.appendChild(makeSceneMenu());
+     bar.appendChild(makeMenu("系统", [
+       { label: "系统设置", action: function () {
+           if (window.__openOptions) window.__openOptions();
+diff --git a/program/src/ui/opt.js b/program/src/ui/opt.js
+index fd7fd1e..138e9dd 100644
+--- a/program/src/ui/opt.js
++++ b/program/src/ui/opt.js
+@@ -1018,4 +1018,4 @@ if (document.readyState === "loading") {
+ } else {
+   restoreCt1();
+ }
+-window.addEventListener("app:ready", restoreCt1);
++window.addEventListener("app:ready", restoreCt1);
+\ No newline at end of file
+diff --git a/program/src/ui/special.css b/program/src/ui/special.css
+index 9168490..37660ed 100644
+--- a/program/src/ui/special.css
++++ b/program/src/ui/special.css
+@@ -406,63 +406,4 @@
+ }
+ #specialScreen .spVal img.sym {
+   height: 12px;
+-}
+-
+-/* ---------- 角色切换面板 ---------- */
+-#specialScreen .spCharPick {
+-  position: absolute; inset: 0; z-index: 400;
+-  display: none; align-items: center; justify-content: center;
+-  background: rgba(0, 6, 14, .58);
+-}
+-#specialScreen .spCharPick.show { display: flex; }
+-#specialScreen .spcpBox {
+-  position: relative;
+-  width: 380px; height: 156px; box-sizing: border-box;
+-  padding: 12px 30px 0;
+-  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
+-  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
+-}
+-#specialScreen .spcpTitle {
+-  display: block; height: 13px; width: auto;
+-  margin: 0 auto 4px;
+-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
+-}
+-#specialScreen .spcpList {
+-  display: flex; flex-direction: column; gap: 3px; align-items: center;
+-}
+-#specialScreen .spcpItem {
+-  position: relative;
+-  width: 300px; height: 30px; padding: 0 16px; box-sizing: border-box;
+-  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
+-  border: 0; color: #eaf7ff; cursor: pointer;
+-  display: flex; align-items: center; justify-content: center;
+-  appearance: none; -webkit-appearance: none;
+-}
+-#specialScreen .spcpItem:hover {
+-  filter: brightness(1.15) drop-shadow(0 0 7px rgba(120,225,255,.55));
+-}
+-#specialScreen .spcpItem:not(.active) { opacity: .60; }
+-#specialScreen .spcpItem:not(.active):hover { opacity: 1; }
+-#specialScreen .spcpItem.active {
+-  filter: brightness(1.12) drop-shadow(0 0 9px rgba(135,235,255,.85));
+-}
+-#specialScreen .spcpName {
+-  font-size: 13px; line-height: 1; letter-spacing: 2px;
+-  color: #f2fcff; text-shadow: 0 1px 3px rgba(0,12,24,.95);
+-}
+-#specialScreen .spcpName img { height: 13px; width: auto; display: block; pointer-events: none; }
+-#specialScreen .spcpMsg {
+-  height: 32px; display: flex; align-items: center; justify-content: center;
+-  color: #bfe6f7; font-size: 11px;
+-}
+-#specialScreen .spcpCancel {
+-  position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%);
+-  width: 76px; height: 18px; padding: 0; box-sizing: border-box;
+-  background: url("assets/ui/btn_3state.png") 0 0 / 100% 300% no-repeat;
+-  border: 0; cursor: pointer; isolation: isolate;
+-}
+-#specialScreen .spcpCancel:active { background-position: 0 50%; }
+-#specialScreen .spcpCancel:hover { filter: brightness(1.12); }
+-#specialScreen .spcpCancel img {
+-  height: 8px; width: auto; display: block; margin: 0 auto; pointer-events: none;
+ }
+\ No newline at end of file
+diff --git a/program/src/ui/special.js b/program/src/ui/special.js
+index 7840fee..6bb488b 100644
+--- a/program/src/ui/special.js
++++ b/program/src/ui/special.js
+@@ -301,7 +301,6 @@
+     renderNameView();
+     if (window.__setCharName && res.name) window.__setCharName(res.name);
+     try { if (window.__reloadSprites) window.__reloadSprites(); } catch (e) {}
+-    try { if (window.__loadOpeningLine) window.__loadOpeningLine(); } catch (e) {}
+     refreshStatus();
+     loadName();
+   }
+@@ -316,86 +315,29 @@
+ 
+   var charBusy = false;
+ 
+-  function openCharPicker() {
+-    var panel = $("spCharPick");
+-    var list = $("spcpList");
+-    if (!panel || !list) return;
+-    list.innerHTML = "";
+-    var loading = document.createElement("div");
+-    loading.className = "spcpMsg";
+-    loading.textContent = "读取角色列表…";
+-    list.appendChild(loading);
+-    panel.classList.add("show");
+-    panel.setAttribute("aria-hidden", "false");
+-    fetch("/api/character/list", { cache: "no-store" })
+-      .then(function (r) { return r.json(); })
+-      .then(function (d) {
+-        var chars = (d && d.characters) || [];
+-        list.innerHTML = "";
+-        if (!chars.length) {
+-          var empty = document.createElement("div");
+-          empty.className = "spcpMsg";
+-          empty.textContent = "还没有角色";
+-          list.appendChild(empty);
+-          return;
+-        }
+-        chars.forEach(function (c) {
+-          var b = document.createElement("button");
+-          b.type = "button";
+-          b.className = "spcpItem" + (c.active ? " active" : "");
+-          var name = document.createElement("span");
+-          name.className = "spcpName";
+-          var display = c.name || c.id || "未命名";
+-          name.textContent = display;
+-          b.appendChild(name);
+-          b.addEventListener("click", function () {
+-            if (c.active) { closeCharPicker(); return; }
+-            doSwitchCharacter(c.id);
+-          });
+-          list.appendChild(b);
+-          try { setGlyph(name, display); } catch (e) {}
+-        });
+-      })
+-      .catch(function () {
+-        list.innerHTML = "";
+-        var err = document.createElement("div");
+-        err.className = "spcpMsg";
+-        err.textContent = "读取失败";
+-        list.appendChild(err);
+-      });
+-  }
+-
+-  function closeCharPicker() {
+-    var panel = $("spCharPick");
+-    if (!panel) return;
+-    panel.classList.remove("show");
+-    panel.setAttribute("aria-hidden", "true");
+-  }
+-
+-  function doSwitchCharacter(id) {
+-    if (charBusy || !id) return;
++  function switchCharacter() {
++    if (charBusy) return;
+     charBusy = true;
+-    postCharacter("/api/character/switch", { id: id })
++    flash("正在选择角色文件夹…");
++    postCharacter("/api/character/pick")
+       .then(function (d) {
+         charBusy = false;
+-        if (d && d.ok) {
+-          closeCharPicker();
+-          afterCharacter(d);
+-          flash("已切换到 " + (d.name || d.id));
+-        } else {
+-          flash((d && d.error) || "切换失败");
+-        }
++        if (d && d.ok) { afterCharacter(d); flash("已切换到 " + (d.name || d.id)); return; }
++        /* 取消 / 选错：也从后端重读一次名字和状态，
++           让「角色名称」永远显示真正生效的那个角色，而不是上一屏残留 */
++        loadName();
++        refreshStatus();
++        if (d && d.error) flash(d.error);
++        else if (d && d.cancelled) flash("已取消，当前角色：" + (d.name || d.active || ""));
+       })
+       .catch(function () {
+         charBusy = false;
++        loadName();
++        refreshStatus();
+         flash("切换失败");
+       });
+   }
+ 
+-  function switchCharacter() {
+-    openCharPicker();
+-  }
+-
+   function newCharacter() {
+     if (charBusy) return;
+     charBusy = true;
+@@ -416,18 +358,6 @@
+     var nw = $("spNew");
+     if (sw) sw.addEventListener("click", function (e) { e.stopPropagation(); switchCharacter(); });
+     if (nw) nw.addEventListener("click", function (e) { e.stopPropagation(); newCharacter(); });
+-    var cancel = $("spcpCancel");
+-    if (cancel) cancel.addEventListener("click", function (e) { e.stopPropagation(); closeCharPicker(); });
+-    var pick = $("spCharPick");
+-    if (pick) pick.addEventListener("click", function (e) {
+-      if (e.target === pick) closeCharPicker();
+-    });
+-    document.addEventListener("keydown", function (e) {
+-      if (e.key === "Escape" && pick && pick.classList.contains("show")) {
+-        e.preventDefault();
+-        closeCharPicker();
+-      }
+-    });
+   }
+ 
+   function bindSave() {
+@@ -455,7 +385,7 @@
+   }
+ 
+   /* ---------- 角色名：char/name.txt（对话框左上角显示的就是这个） ---------- */
+-  var nameValue = "角色";
++  var nameValue = "和纱";
+   var keepInput = false;
+ 
+   /* 平时：字模显示，输入框藏起来 */

@@ -40,10 +40,23 @@
 
 > 框架更新：场景/服装顶部菜单、IC/CC/CODA 时期系统、角色切换列表、
 > 按角色隔离存档与语音配置；只含代码，不含素材与角色设定。
+> **本版代码已经合进 `master`**，clone 下来直接就是最新版；补丁只给老安装用。
 
 - [更新日志 2026-11-03](other/docs/更新日志_2026-11-03.md)
-- [一键更新补丁](other/docs/patches/2026-11-03_更新补丁.patch) —— 仓库根目录执行
-  `git apply "other/docs/patches/2026-11-03_更新补丁.patch"`
+- 老安装升级：[一键更新补丁](other/docs/patches/2026-11-03_更新补丁.patch)
+- 想退回旧版：[回滚补丁](other/docs/patches/2026-11-03_回滚补丁_代码.patch)（只回代码，不动文档）
+
+## 版本与回滚
+
+| 用途 | 命令 / 位置 |
+|---|---|
+| 旧版代码锚点 | tag `v2026-11-02-old`（框架更新之前的最后一版） |
+| 看旧版代码 | GitHub：`.../tree/v2026-11-02-old/program/src` |
+| 老安装升级到最新 | `git apply "other/docs/patches/2026-11-03_更新补丁.patch"` |
+| 已经是最新、想退回旧版 | `git apply -R "other/docs/patches/2026-11-03_回滚补丁_代码.patch"` |
+| 整个工作区硬退回旧版 | `git checkout v2026-11-02-old -- program` |
+
+> 补丁和旧版 tag 都会保留，不会因为发布新版被删掉。
 
 ## 近期更新（2026-11-02 22:50）
 

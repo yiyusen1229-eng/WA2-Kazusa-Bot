@@ -1,8 +1,3 @@
-# 2026-11-03 框架更新补丁（无素材 / 无角色资源）
-# 仓库根目录执行：
-#   git apply "other/docs/patches/2026-11-03_合并与时期系统.patch"
-# 说明见同目录 README_补丁说明.md
-
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
 --- a/program/src/char_res.py
