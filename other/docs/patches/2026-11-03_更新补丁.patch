@@ -48,10 +48,10 @@ index 3b6dac4..1bc5f05 100644
  | `892800e` | 右键只在当前界面响应；对话界面滚轮上滑打开回想 |
  | `f0217b3` | 翻页图标、回想滚轮到底退出、多角色管理（总角色资源文件夹） |
 diff --git a/other/docs/更新日志_2026-11-03.md b/other/docs/更新日志_2026-11-03.md
-index 40657bb..d922e90 100644
+index 40657bb..c9683cf 100644
 --- a/other/docs/更新日志_2026-11-03.md
 +++ b/other/docs/更新日志_2026-11-03.md
-@@ -123,3 +123,68 @@ cd program
+@@ -123,3 +123,71 @@ cd program
  路线图补上 `.md` 后缀并加进 README 文档表、交接文档开头被截断的句子、
  `bake_ui_text.py` 增加 `sp_switch_title` / `sp_cancel` 两个条目。
  
@@ -120,6 +120,9 @@ index 40657bb..d922e90 100644
 +> 最终版：底框和条目都**回到原素材、按原比例等比缩放**（`aspect-ratio` 锁定 544:216 / 480:112，
 +> 图片 `100% 100%` 铺在同比例容器里 = 等比缩放），自画的渐变/色块全部删掉。
 +> 代价：底框比例固定，装不下就列表内部滚动（面板 520x206，一屏约 2 个角色）。
++> 最终尺寸（按用户要求）：底框缩到 **400x159**（保持 544:216 原比例，等比缩放）；
++> 条目缩到 **300x30**，再用**九宫格**把中间横向拉长（四角等比，不压扁）。
++> 一屏能显示 3 行；少角色时列表垂直居中（`justify-content: safe center`），多角色时滚动。
 \ No newline at end of file
 diff --git a/program/src/char_res.py b/program/src/char_res.py
 index 34f826c..6f21164 100644
@@ -1250,10 +1253,10 @@ index 138e9dd..fd7fd1e 100644
 \ No newline at end of file
 +window.addEventListener("app:ready", restoreCt1);
 diff --git a/program/src/ui/special.css b/program/src/ui/special.css
-index 37660ed..637b4f5 100644
+index 37660ed..0be3a47 100644
 --- a/program/src/ui/special.css
 +++ b/program/src/ui/special.css
-@@ -406,4 +406,80 @@
+@@ -406,4 +406,82 @@
  }
  #specialScreen .spVal img.sym {
    height: 12px;
@@ -1269,15 +1272,15 @@ index 37660ed..637b4f5 100644
 +/* 标题在框外；列表在框内滚动；取消也在框外，避免压住边框花纹 */
 +#specialScreen .spcpWrap {
 +  display: flex; flex-direction: column; align-items: center;
-+  width: 520px; max-height: 84vh;
++  width: 400px; max-height: 84vh;
 +}
 +#specialScreen .spcpBox {
 +  position: relative;
 +  width: 100%; aspect-ratio: 544 / 216; box-sizing: border-box;
 +  display: flex; flex-direction: column; overflow: hidden;
-+  /* 原版底框 sys_00100（544x216）：元素强制同比例，再 100% 100% 铺图 = 等比缩放，不失真 */
++  /* 原版底框 sys_00100（544x216）：元素强制同比例 + 图片 100% 100% = 等比缩放，不失真 */
 +  background: url("assets/ui/sys_00100.png") center / 100% 100% no-repeat;
-+  padding: 44px 56px 40px;
++  padding: 32px 41px 29px;
 +  color: #eaf7ff; font-family: "Microsoft YaHei", "Droid Sans Fallback", sans-serif;
 +}
 +#specialScreen .spcpTitle {
@@ -1287,6 +1290,7 @@ index 37660ed..637b4f5 100644
 +}
 +#specialScreen .spcpList {
 +  display: flex; flex-direction: column; gap: 4px; align-items: center;
++  justify-content: safe center;   /* 少角色时居中，多角色时从顶部开始滚 */
 +  flex: 1 1 auto; min-height: 0; padding: 2px 4px;
 +  overflow-y: auto; overflow-x: hidden;
 +  scrollbar-width: thin; scrollbar-color: rgba(120,210,255,.55) rgba(8,40,64,.35);
@@ -1298,10 +1302,11 @@ index 37660ed..637b4f5 100644
 +#specialScreen .spcpItem {
 +  position: relative;
 +  flex: 0 0 auto;             /* 不许被压扁：装不下就滚动 */
-+  /* 原版条目底板 sys_00110（480x112）：元素强制同比例，图片 100% 100% 铺 = 等比缩放，不失真 */
-+  width: 240px; aspect-ratio: 480 / 112; box-sizing: border-box;
-+  background: url("assets/ui/sys_00110.png") center / 100% 100% no-repeat;
-+  border: 0;
++  /* 原版条目底板 sys_00110（480x112）：先缩到 30px 高，再用九宫格拉长——
++     上下/左右四角等比，只有中间段横向拉伸，所以又细又长也不变形 */
++  width: 300px; height: 30px; box-sizing: border-box;
++  border: 7px solid transparent;
++  border-image: url("assets/ui/sys_00110.png") 34 68 50 68 fill / 7px 14px stretch;
 +  color: #eaf7ff; cursor: pointer;
 +  display: flex; align-items: center; justify-content: center;
 +  appearance: none; -webkit-appearance: none;
