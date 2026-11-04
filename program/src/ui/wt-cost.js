@@ -7,15 +7,30 @@
 
   function costNum(el, str) {
     if (!el) return;
-    if (el.dataset.v === str) return;
+    if (el.dataset.v === str && el.children.length) return;
     el.dataset.v = str;
     var html = "";
     for (var i = 0; i < str.length; i++) {
       var ch = str.charAt(i);
       var key = (ch === ".") ? "cost_dot" : ("cost_d" + ch);
-      html += '<img src="assets/ui/text/' + key + '.png" alt="">';
+      html += '<img src="assets/ui/text/' + key + '.png" alt="' + ch + '">';
     }
     el.innerHTML = html;
+    /* 字模图缺失时退回文字，至少能看到数字 */
+    var imgs = el.querySelectorAll("img");
+    for (var j = 0; j < imgs.length; j++) {
+      (function (img, c) {
+        img.addEventListener("error", function () {
+          if (!el.dataset.plain) {
+            el.dataset.plain = "1";
+            el.style.fontSize = "11px";
+            el.style.color = "#cfe9f5";
+            el.style.lineHeight = "12px";
+            el.textContent = str;
+          }
+        });
+      })(imgs[j], str);
+    }
   }
 
   /* 金额转成"纯数字串"（币种符号已经是一张固定的 ¥ 图） */
@@ -29,6 +44,8 @@
 
   function renderCost(u) {
     if (!u) return;
+    /* 每次渲染前重新确认元素（拆分后元素可能比脚本晚出现） */
+    try { bindCostEls(); } catch (e) {}
     if (u.tokens !== undefined) {
       costNum(COST_EL.nowT, String(Math.round(u.tokens)));
       costNum(COST_EL.nowC, moneyStr(u.cost));
@@ -128,6 +145,7 @@
   }
   WA2.cost = _exp;
   WA2.register("cost", _exp);
+  if (WA2.cost) WA2.cost.render = renderCost;
   /* __export_all__ */
   ["costNum", "moneyStr", "renderCost", "WA2", "_exp", "_names", "ch", "css", "el", "html", "key"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}

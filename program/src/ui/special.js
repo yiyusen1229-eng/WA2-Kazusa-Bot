@@ -75,7 +75,7 @@
       .then(function (d) {
         if (seq !== priceSeq || !d || !d.ok) return;
         priceState = { cost: d.cost, phase: d.phase, model: d.model };
-        renderCost();
+        renderPriceEstimate();
       })
       .catch(function () { /* 后端没起来就保留上一次的数 */ });
   }
@@ -89,7 +89,7 @@
     return c.toFixed(3);
   }
 
-  function renderCost() {
+  function renderPriceEstimate() {
     var el = $("spv-cost");
     if (!el) return;
     var s = formatCost(priceState.cost);
@@ -145,7 +145,7 @@
     setNum($("spv-recent"), state.recent + "% = " + t.recent);
     setNum($("spv-entries"), state.entries + "% = " + t.entries);
     setNum($("spv-turn"), "≈ " + t.turn);
-    renderCost();
+    renderPriceEstimate();
   }
 
   function scheduleReadouts() {
@@ -198,7 +198,7 @@
 
   /* sp-* 模块（sliders/char/panels）是本文件拆出去的，它们要用这里的函数和状态 */
   window.__spExported = true;
-  ["CTX_MAX", "DEF", "EST_OUT_TOKENS", "FIXED_OVERHEAD", "KNOB_PAD", "NUM_SRC", "a", "activeModel", "c", "ctx", "dirty", "el", "entries", "formatCost", "html", "m", "numHTML", "out", "priceState", "priceTimer", "rb", "readTimer", "recent", "refreshPrice", "renderCost", "renderReadouts", "s", "scheduleReadouts", "seq", "setGlyph", "setNum", "sl", "src", "state", "t", "tokens", "trigger", "turn", "url"].forEach(function (n) {
+  ["CTX_MAX", "DEF", "EST_OUT_TOKENS", "FIXED_OVERHEAD", "KNOB_PAD", "NUM_SRC", "a", "activeModel", "c", "ctx", "dirty", "el", "entries", "formatCost", "html", "m", "numHTML", "out", "priceState", "priceTimer", "rb", "readTimer", "recent", "refreshPrice", "renderPriceEstimate", "renderReadouts", "s", "scheduleReadouts", "seq", "setGlyph", "setNum", "sl", "src", "state", "t", "tokens", "trigger", "turn", "url"].forEach(function (n) {
     try { var v = eval(n); window[n] = v; } catch (e) {}
   });
 })();

@@ -46,7 +46,7 @@
     })()),
       });
       const d = await r.json();
-      if (d && d.usage) { try { renderCost(d.usage); } catch (e) {} }
+      if (d && d.usage) { try { (WA2.cost && WA2.cost.render ? WA2.cost.render : window.renderCost)(d.usage); } catch (e) {} }
       if (d.error) { $("msgText").textContent = "[错误] " + d.error; return; }
       const reply = (d.reply || "").trim();
         const replyZh = (d.reply_zh || "").trim();
@@ -59,7 +59,6 @@
     renderThinking();
       history.push({ role: "assistant", content: reply });
       window.__history = history;
-      history.push({ role: "assistant", content: reply });
       window.__history = history;
       // 对话框显示中文（有译文用译文），历史记录也显示中文
       const shown = replyZh ? ("「" + replyZh.replace(/^「|」$/g, "") + "」") : reply;
