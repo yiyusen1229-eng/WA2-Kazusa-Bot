@@ -40,6 +40,12 @@ LEVELS = {
     "tts_client.py": ("二级 · 角色", "语音合成与参考音频"),
     "scene_cg.py": ("二级 · 场景", "场景 CG 标签与匹配"),
     "sub_render.py": ("二级 · 字模", "中文→字体图集渲染"),
+    "api_window.py": ("二级 · 接口/窗口", "窗口控制 /api/window"),
+    "api_char.py": ("二级 · 接口/角色", "角色查询与切换后处理"),
+    "api_modelcfg.py": ("二级 · 接口/模型", "/api/modelcfg"),
+    "api_tts.py": ("二级 · 接口/语音", "/api/tts 语音合成"),
+    "api_text.py": ("二级 · 接口/字模", "/api/text 字模渲染"),
+    "api_chat.py": ("二级 · 接口/对话", "/api/chat 对话入口"),
     "gdi_text.py": ("二级 · 字模", "GDI 兜底渲染"),
 }
 
