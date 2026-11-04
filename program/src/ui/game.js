@@ -6,8 +6,6 @@ let typing = false;
 let fullText = "";
 let turnCount = 0;
 let backlogOpen = false;
-let currentBgm = null;
-let bgmEnabled = true;
 /* 角色名：存在 char/name.txt，特别模式里改的就是它 */
 let CHAR_NAME = "角色";
 
@@ -40,29 +38,9 @@ function bgSrc(name) {
 }
 
 
-const BGM_KEY = { menu: "bgmMenu", calm: "bgmCalm", warm: "bgmWarm", sad: "bgmSad", tense: "bgmTense" };
-function bgmSrc(name) {
-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
-  const C = (window.App && window.App.catalogGet) ? window.App.catalogGet() : { bgm: [] };
-  const id = P[BGM_KEY[name] || "bgmCalm"];
-  const item = C.bgm && C.bgm[id === undefined ? 0 : id];
-  return item ? "assets/snd/" + item.file : "";
-}
-function bgmVolume() {
-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
-  /* OPTION 2 的 BGM 滑块优先（volBgm），没有就退回旧的 bgmVol；两者都要乘全体音量 */
-  const b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 28 : P.bgmVol));
-  const m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
-  return (b / 100) * m;
-}
-
-/* 语音音量：OPTION 2 的 VOICE 滑块 × 全体音量（原来 playback 里写死 1.0，滑块等于没用） */
-function voiceVolume() {
-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
-  const v = (P.volVoice === undefined ? 90 : P.volVoice);
-  const m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
-  return (v / 100) * m;
-}
+/* 音量/BGM 已搬到 wt-audio.js（WA2.audio），这里只留薄封装 */
+function bgmVolume() { return WA2.audio.bgmVolume(); }
+function voiceVolume() { return WA2.audio.voiceVolume(); }
 
 /* ---------- 开场动画 ---------- */
 (function intro() {
@@ -183,65 +161,9 @@ function voiceVolume() {
   }, 2000);
 })();
 
-/* ---------- 音频 ---------- */
-const SE_BASE = "assets/snd/";
-const seCache = {};
-function playSE(kind) {
-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
-  const C = (window.App && window.App.catalogGet) ? window.App.catalogGet() : { se: [] };
-  const key = kind === "exit" ? (P.seExit || 58)
-                 : kind === "page" ? (P.sePage || 57)
-                 : (kind === "click" ? P.seClick : (kind === "cancel" ? P.seCancel : P.seHover));
-  const item = C.se && C.se[key || 0];
-  if (!item) return;
-  const master = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
-  const vol = ((P.seVol === undefined ? 35 : P.seVol) / 100) * master;
-  let a = seCache[item.file];
-  if (!a) { a = new Audio(SE_BASE + item.file); a.preload = "auto"; seCache[item.file] = a; }
-  a.volume = vol;
-  try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
-}
-
-const bgmAudio = new Audio();
-bgmAudio.loop = true;
-bgmAudio.volume = 0;
-bgmAudio.preload = "auto";
-
-// 设置界面改音量时立即生效
-window.addEventListener("app:prefs", function (e) {
-  const P = e.detail || {};
-  if (bgmAudio && !bgmAudio.paused) {
-    /* OPTION2 的 BGM 滑块优先（volBgm），没有就退回旧的 bgmVol */
-  var _b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 30 : P.bgmVol));
-  var _m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
-  bgmAudio.volume = (_b / 100) * _m;
-  }
-});
-
-function setBgm(name, fadeMs = 1200) {
-  if (!bgmEnabled) return;
-  const src = bgmSrc(name);
-  if (currentBgm === name && !bgmAudio.paused) return;
-  currentBgm = name;
-  const from = bgmAudio.volume;
-  const fadeOut = setInterval(() => {
-    bgmAudio.volume = Math.max(0, bgmAudio.volume - from / 12);
-  }, fadeMs / 12);
-  setTimeout(() => {
-    clearInterval(fadeOut);
-    bgmAudio.src = src;
-    bgmAudio.volume = 0;
-    bgmAudio.play().then(() => {
-      const to = bgmVolume();
-      let v = 0;
-      const fadeIn = setInterval(() => {
-        v += to / 14;
-        bgmAudio.volume = Math.min(to, v);
-        if (v >= to) clearInterval(fadeIn);
-      }, fadeMs / 14);
-    }).catch(() => {});
-  }, fadeMs);
-}
+/* ---------- 音频：实现搬到 wt-audio.js ---------- */
+function playSE(kind) { return WA2.audio.playSE(kind); }
+function setBgm(name, fadeMs) { return WA2.audio.setBgm(name, fadeMs); }
 
 /* ---------- 情绪判断 ---------- */
 function detectMood(text) {
@@ -293,9 +215,9 @@ function accumulateMood(reply) {
 
 function currentBgmMood() {
   for (const k in MOOD_BGM) {
-    if (MOOD_BGM[k] === currentBgm) return k === "smile" ? "warm" : MOOD_BGM[k];
+    if (MOOD_BGM[k] === WA2.audio.current) return k === "smile" ? "warm" : MOOD_BGM[k];
   }
-  return currentBgm || "calm";
+  return WA2.audio.current || "calm";
 }
 
 
@@ -1372,9 +1294,9 @@ document.querySelectorAll("#toolbar .tb").forEach(el => {
     playSE("click");
     if (el.dataset.act === "log") toggleBacklog();
     if (el.dataset.act === "bgm") {
-      bgmEnabled = !bgmEnabled;
-      if (!bgmEnabled) bgmAudio.pause(); else setBgm(currentBgm || "calm", 300);
-      el.style.opacity = bgmEnabled ? "1" : ".4";
+      WA2.audio.enabled = !WA2.audio.enabled;
+      if (!WA2.audio.enabled) WA2.audio.pauseBgm(); else setBgm(WA2.audio.current || "calm", 300);
+      el.style.opacity = WA2.audio.enabled ? "1" : ".4";
     }
   });
 });
@@ -1590,7 +1512,7 @@ window.__applyVolumes = function () {
   var bv = 0, vv = 0;
   try { bv = bgmVolume(); } catch (e) {}
   try { vv = voiceVolume(); } catch (e) {}
-  try { bgmAudio.volume = bv; } catch (e) {}
+  try { WA2.audio.applyVolume(); } catch (e) {}
   try { if (ttsAudio) ttsAudio.volume = vv; } catch (e) {}
   window.__volBgm = bv;
   window.__volVoice = vv;
