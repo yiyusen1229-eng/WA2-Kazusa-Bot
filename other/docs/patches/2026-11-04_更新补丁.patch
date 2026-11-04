@@ -367,10 +367,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..7605e63
+index 0000000..994bc20
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,145 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -480,6 +480,22 @@ index 0000000..7605e63
 +
 +> 踩到的坑（已修）：`globals().get("_WINDOW")` 搬到新模块后会查错命名空间，改成 `main._WINDOW`；
 +> 拆分脚本替换 `import pricing as _pricing` 时把别名弄丢，已还原。
++
++
++### 8. 代码拆分第 3 步（前端起点）：`window.WA2`
++
++- 新增 `program/src/ui/wt-core.js`（约 90 行，零行为变化）：
++  - `WA2.util`：`$ / $$ / on / clamp / pad2 / isNum`（以后各文件别再各写一份）
++  - `WA2.state`：`character / outfit / emotion / scene / volume`（跨文件共享状态）
++  - `WA2.register(名字, 对象)` + `WA2.features`：功能模块登记处，探针靠它检查文件有没有加载
++  - `WA2.ready(fn)` / `WA2.summary()`
++- `index.html` 里 **最先加载**（在 `config.js` 之前），`?v=202611040100`
++- 验证（探针，无截图）：`hasWA2=true`、`util.$("mainMenu")` 为真、
++  `state` 五个键齐、`__openSpecial` / `__showUIScreen` / `playSE` 都在、
++  特别模式能打开、`errors=[]`
++
++> 这一步只“加钩子”，不改任何现有逻辑；`game.js` / `opt.js` / `special.js` 仍用自己的闭包，
++> 后续按 7b～7d 逐块搬进来。
 +
 +## 四、变更文件
 +
@@ -1996,10 +2012,10 @@ index 0000000..a02c5cc
 +- 所有“本地数据”都在 `.gitignore`，别手滑 `git add -f`。
 diff --git a/other/docs/架构/08_代码拆分计划.md b/other/docs/架构/08_代码拆分计划.md
 new file mode 100644
-index 0000000..dd5990d
+index 0000000..dd0c7a0
 --- /dev/null
 +++ b/other/docs/架构/08_代码拆分计划.md
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,75 @@
 +# 08 · 代码拆分计划（进行中）
 +
 +> 目标：把「一个大文件」拆成「一个功能一个文件」，让代理只读需要的那一只。
@@ -2065,7 +2081,10 @@ index 0000000..dd5990d
 +| 4 | `api/window.py`、`api/text.py`、`api/tts.py` | 中 | 探针：窗口/字模/语音 |
 +| 5 | `chat_llm.py` + `api/chat.py` | **高** | 假模型注入 system 对比、6 自测 |
 +| 6 | `api/session.py`、`api/special.py`、`api/scene.py` | 中 | 存读档/角色切换/场景 |
-+| 7 | 前端 `window.WA2` + 按功能拆 game.js | **高** | 探针（不截图）+ 手动玩一轮 |
++| 7a ✅ | `wt-core.js`：`window.WA2` 命名空间 + 公共小函数 + 功能登记（零行为变化） | 低 | 探针：WA2/工具/界面开关/无报错 |
++| 7b | `wt-audio.js`：BGM/SE/语音音量（先把音频对象挂到 WA2.state） | 中 | 探针：音量函数存在 + 手工听一轮 |
++| 7c | `wt-sprite.js`：服装/表情解析 | 中 | 探针：`__spriteSummary()` 结果不变 |
++| 7d | `wt-backlog.js`、`wt-chat.js`、`wt-core.js` 收尾 | **高** | 探针 + 手玩一条对话 |
 +
 +## 硬规矩
 +
@@ -2074,10 +2093,10 @@ index 0000000..dd5990d
 +- 每次拆完更新本文件「现状」表，标 ✅。
 diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
 new file mode 100644
-index 0000000..00940ed
+index 0000000..1717f17
 --- /dev/null
 +++ b/other/docs/架构/映射表.md
-@@ -0,0 +1,174 @@
+@@ -0,0 +1,180 @@
 +# 架构映射表（自动生成，不要手改）
 +
 +> 由 `program/tools/arch_map.py --write` 生成。改了代码就重跑，表会跟着变。
@@ -2131,6 +2150,12 @@ index 0000000..00940ed
 +|---|---|---|---|---|---|
 +| `src/ui/savepages.js` | 373 | 存档网格/缩略图/页签 | __renderSaveSlots, __renderSaveSlotsNow, __savePage, dateHTML, fillContent, numHTML | <script 全局> | — |
 +| `src/ui/savetabs4.js` | 69 | 存档页签资源 | __savePage, __saveTabsPaint, __setSavePage, activeImg, boxEl, hoverImg | <script 全局> | — |
++
++## 二级 · 前端/核心
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/wt-core.js` | 72 | window.WA2 命名空间、公共小函数、功能登记 | — | <script 全局> | — |
 +
 +## 二级 · 前端/窗口
 +
@@ -3729,12 +3754,101 @@ index 0000000..b18514b
 +def ja_ok(x):
 +    """至少两个假名才算“像日语”，防止把中文塞给 TTS。"""
 +    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
+diff --git a/program/src/ui/index.html b/program/src/ui/index.html
+index 1c1a04c..0e94dfa 100644
+--- a/program/src/ui/index.html
++++ b/program/src/ui/index.html
+@@ -272,6 +272,7 @@
+ </div>
+ 
+ <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
++<script src="wt-core.js?v=202611040100"></script>
+ <script src="config.js?v=11022135"></script>
+ <script src="opt.js?v=202611031205"></script>
+   <script src="savetabs4.js?v=11022135"></script>
+diff --git a/program/src/ui/wt-core.js b/program/src/ui/wt-core.js
+new file mode 100644
+index 0000000..2f58e09
+--- /dev/null
++++ b/program/src/ui/wt-core.js
+@@ -0,0 +1,71 @@
++/* wt-core.js —— 前端共享命名空间（拆分第 1 步，只加不改行为）
++ *
++ * 以后每个功能一个文件，都挂到 WA2 下面：
++ *     WA2.util     公共小函数（$ / on / clamp…）
++ *     WA2.state    跨文件共享的运行时状态（当前角色、当前衣服、音量…）
++ *     WA2.chat     对话：请求 / 解析 / 打字机      （待拆）
++ *     WA2.sprite   立绘 / 服装 / 场景              （待拆）
++ *     WA2.backlog  回想 / 历史                     （待拆）
++ *     WA2.audio    BGM / SE / 语音音量             （待拆）
++ *
++ * 规矩：
++ *   1. 新文件只“往 WA2 上加属性”，不改别人的、不覆盖别人的；
++ *   2. index.html 里 wt-core.js 必须最先加载；
++ *   3. 旧的 IIFE 可以继续用自己的私有变量，等搬完再删；
++ *   4. 每个功能文件用 WA2.register("名字", 对象) 登记自己，便于探针检查。
++ */
++(function () {
++  var WA2 = window.WA2 = window.WA2 || {};
++
++  WA2.version = "2026-11-04";
++
++  /* 公共小函数：以后各文件别再各写一份 */
++  WA2.util = WA2.util || {
++    $: function (id) { return document.getElementById(id); },
++    $$: function (sel, root) {
++      return Array.prototype.slice.call((root || document).querySelectorAll(sel));
++    },
++    on: function (el, ev, fn, opt) {
++      if (el) el.addEventListener(ev, fn, opt);
++      return el;
++    },
++    clamp: function (v, a, b) { return v < a ? a : (v > b ? b : v); },
++    pad2: function (n) { return (n < 10 ? "0" : "") + n; },
++    isNum: function (v) { return typeof v === "number" && isFinite(v); }
++  };
++
++  /* 跨文件共享状态：只放“多个文件都要读”的东西 */
++  WA2.state = WA2.state || {
++    character: null,     // 当前角色 id（切换后由 special.js 更新）
++    outfit: "",          // 当前衣服名
++    emotion: "calm",     // 当前表情
++    scene: "",           // 当前场景
++    volume: { bgm: 100, voice: 100, se: 100 }
++  };
++
++  /* 功能模块登记处：探针靠它检查“拆出来的文件到底加载了没” */
++  WA2.features = WA2.features || {};
++  WA2.register = function (name, obj) {
++    WA2.features[name] = obj || true;
++    WA2[name] = obj || WA2[name];
++  };
++
++  /* DOM 就绪（各文件都可用，省得各自写一遍） */
++  WA2.ready = function (fn) {
++    if (document.readyState === "loading") {
++      document.addEventListener("DOMContentLoaded", fn);
++    } else {
++      fn();
++    }
++  };
++
++  /* 给控制台/探针一个一眼能看的状态摘要 */
++  WA2.summary = function () {
++    return {
++      version: WA2.version,
++      features: Object.keys(WA2.features),
++      state: WA2.state,
++      ready: document.readyState
++    };
++  };
++})();
 diff --git a/program/tools/arch_map.py b/program/tools/arch_map.py
 new file mode 100644
-index 0000000..b4cc5a8
+index 0000000..347479c
 --- /dev/null
 +++ b/program/tools/arch_map.py
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,180 @@
 +# -*- coding: utf-8 -*-
 +"""扫描源码，生成「架构映射表」——层级 / 文件 / 职责 / 导出 / 依赖 / 被谁调用。
 +
@@ -3787,6 +3901,7 @@ index 0000000..b4cc5a8
 +}
 +
 +UI_LEVELS = {
++    "wt-core.js": ("二级 · 前端/核心", "window.WA2 命名空间、公共小函数、功能登记"),
 +    "game.js": ("一级 · 前端/对话", "对话演出：请求/解析/打字机/立绘/回想/音量"),
 +    "menubar.js": ("一级 · 前端/菜单", "顶部菜单：场景/服装/时期/窗口"),
 +    "special.js": ("一级 · 前端/特别模式", "参数滑条/角色/语音/世界书"),
