@@ -253,3 +253,8 @@
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
+
+/* 兼容：菜单/按钮可能直接调 window.__quitGame */
+if (typeof window.__quitGame !== "function" && typeof quitGame === "function") {
+  window.__quitGame = quitGame;
+}

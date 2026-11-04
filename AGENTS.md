@@ -54,7 +54,9 @@ python program\tools\check_assets.py                  # 素材自检
 2. **单文件上限 400 行**：超过就要拆；超过 800 行的（`main.py`、`game.js`、`opt.js`）已在待拆清单。
 3. **新文件必须登记**到 `program/tools/arch_map.py` 的 `LEVELS` / `UI_LEVELS`，否则映射表显示「未登记」。
 4. **改完代码跑** `python program/tools/arch_map.py --write`；提交前 `--check` 必须通过。
-5. **只读一层**：先看 `other/docs/架构/映射表.md` 的「层级 / 被谁调用」两列，再决定读哪个文件。
+5. **动过前端模块就跑** `python program/tools/check_split.py`：同名全局覆盖、丢语句、
+   未定义引用、重复语句、漏搬函数，五类坑一次扫出来。
+6. **只读一层**：先看 `other/docs/架构/映射表.md` 的「层级 / 被谁调用」两列，再决定读哪个文件。
 
 ## 不许动的东西
 

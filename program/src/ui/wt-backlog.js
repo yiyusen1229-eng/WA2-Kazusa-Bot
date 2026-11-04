@@ -159,3 +159,8 @@
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
+
+/* 兼容：读档/切换角色后可能直接调 window.__rebuildBacklog */
+if (typeof window.__rebuildBacklog !== "function") {
+  window.__rebuildBacklog = function () { try { return rebuildBacklog(); } catch (e) {} };
+}

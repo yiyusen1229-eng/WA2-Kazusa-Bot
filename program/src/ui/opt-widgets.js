@@ -213,7 +213,7 @@
         imgs[idx] = img;
       });
 
-      function paint(idx) {
+      function paint2(idx) {
         var img = imgs[idx];
         if (!img) { return; }   /* 控件被删但 sel 还有残留 key，直接跳过 */
         if (CT2.sel[idx]) {
@@ -229,7 +229,7 @@
 
       /* 全量重画（启动时按 prefs 还原后调用；paint 只重画 sel 里的控件，不够用） */
       window.__ct2RepaintAll = function () {
-        for (var i = 0; i < imgs.length; i++) paint(i);
+        for (var i = 0; i < imgs.length; i++) paint2(i);
         for (var si = 0; si < CT2.sliders.length; si++) drawFill2(si);
       };
 
@@ -249,11 +249,11 @@
         if (!CT2.sel[want]) {
           delete CT2.sel[other];
           CT2.sel[want] = 1;
-          paint(want); paint(other);
+          paint2(want); paint2(other);
         }
       }
 
-      function clickWidget(idx) {
+      function clickWidget2(idx) {
         var g = CT2.widgets[idx][4];
         /* 左右箭头：一格 = 5% */
         var ar = ARROWS[idx];
@@ -275,13 +275,13 @@
           return;
         }
         if (g === 0) return;                     /* 试听按钮：暂未接 */
-        if (CT2.sel[idx]) { delete CT2.sel[idx]; paint(idx); applyCt2(); return; }
+        if (CT2.sel[idx]) { delete CT2.sel[idx]; paint2(idx); applyCt2(); return; }
         for (var k in CT2.sel) {
           var wk = CT2.widgets[+k];
-          if (+k !== idx && wk && wk[4] === g) { delete CT2.sel[k]; paint(+k); }
+          if (+k !== idx && wk && wk[4] === g) { delete CT2.sel[k]; paint2(+k); }
         }
         CT2.sel[idx] = 1;
-        paint(idx);
+        paint2(idx);
         /* 选中分支原来漏了 applyCt2 —— 于是「是/否确认」「右键功能」只在界面上变，实际不生效 */
         applyCt2();
       }
@@ -294,14 +294,14 @@
         d.style.width = (w[2] * sx) + "px";
         d.style.height = (w[3] * sy) + "px";
         d.addEventListener("mouseenter", function () {
-          imgs[idx].dataset.hover = "1"; paint(idx);
+          imgs[idx].dataset.hover = "1"; paint2(idx);
         });
         d.addEventListener("mouseleave", function () {
-          delete imgs[idx].dataset.hover; paint(idx);
+          delete imgs[idx].dataset.hover; paint2(idx);
         });
         d.addEventListener("click", function (e) {
           e.stopPropagation();
-          clickWidget(idx);
+          clickWidget2(idx);
         });
         box.appendChild(d);
       });
@@ -367,7 +367,7 @@
       }
 
       for (var k3 in CT2.sel) { if (+k3 >= CT2.widgets.length) delete CT2.sel[k3]; }
-      for (var k2 in CT2.sel) paint(+k2);
+      for (var k2 in CT2.sel) paint2(+k2);
       for (var si2 = 0; si2 < CT2.sliders.length; si2++) { drawFill2(si2); syncPill(si2); }
     }
 

@@ -57,3 +57,6 @@
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
+
+/* gdi 可用性标记：默认当作可用，失败时由 wt-text 置 false */
+if (window.__gdiOK === undefined) { window.__gdiOK = true; }

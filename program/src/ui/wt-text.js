@@ -241,3 +241,11 @@
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
+
+/* 兼容：旧代码/探针会用这两个名字 */
+if (typeof window.__startReveal !== "function") {
+  window.__startReveal = function (el, text) { try { return startReveal(el, text); } catch (e) {} };
+}
+if (typeof window.__stopReveal !== "function") {
+  window.__stopReveal = function () { try { return stopReveal(); } catch (e) {} };
+}
