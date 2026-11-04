@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WHITE ALBUM 2</title>
-<link rel="stylesheet" href="screens-base.css?v=202611042040">
-<link rel="stylesheet" href="opt-screen.css?v=202611042040">
-<link rel="stylesheet" href="save-screen.css?v=202611042040">
-<link rel="stylesheet" href="game450.css?v=202611042040">
-<link rel="stylesheet" href="unifont.css?v=202611042040">
-<link rel="stylesheet" href="opt.css?v=202611042040">
-  <link rel="stylesheet" href="menubar.css?v=202611042040">
-<link rel="stylesheet" href="special.css?v=202611042040">
+<link rel="stylesheet" href="screens-base.css?v=202611042110">
+<link rel="stylesheet" href="opt-screen.css?v=202611042110">
+<link rel="stylesheet" href="save-screen.css?v=202611042110">
+<link rel="stylesheet" href="game450.css?v=202611042110">
+<link rel="stylesheet" href="unifont.css?v=202611042110">
+<link rel="stylesheet" href="opt.css?v=202611042110">
+  <link rel="stylesheet" href="menubar.css?v=202611042110">
+<link rel="stylesheet" href="special.css?v=202611042110">
 </head>
 <body>
 <div id="stage">
@@ -203,6 +203,19 @@
     <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
   </div>
 
+  <!-- ===== 记忆书：常驻设定（只读）+ 自动摘要条目（可删） =====
+       文字走原生 DOM（和回想一样），不用字模：条目是动态长句，字模换行会压扁。 -->
+  <div id="memScreen" class="uiScreen">
+    <div class="memWrap">
+      <div class="memTitle" data-no-uitext="1">记忆书</div>
+      <div class="memStanding" id="memStanding" data-no-uitext="1"></div>
+      <div class="memList" id="memList" data-no-uitext="1"></div>
+      <div class="memHint" id="memHint" data-no-uitext="1"></div>
+    </div>
+    <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
+    <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+  </div>
+
 
 
 <!-- ================= 场景 / 服装手动选择 ================= -->
@@ -279,39 +292,40 @@
 </div>
 
 <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
-<script src="wt-core.js?v=202611042040"></script>
-<script src="wt-update.js?v=202611042040"></script>
-<script src="wt-audio.js?v=202611042040"></script>
-<script src="wt-sprite.js?v=202611042040"></script>
-<script src="wt-voice.js?v=202611042040"></script>
-<script src="wt-text.js?v=202611042040"></script>
-<script src="wt-backlog.js?v=202611042040"></script>
-<script src="wt-choices.js?v=202611042040"></script>
-<script src="wt-chat.js?v=202611042040"></script>
-<script src="wt-session.js?v=202611042040"></script>
-<script src="wt-cost.js?v=202611042040"></script>
-<script src="wt-mood.js?v=202611042040"></script>
-<script src="wt-gdi.js?v=202611042040"></script>
-<script src="wt-nav.js?v=202611042040"></script>
-<script src="config.js?v=202611042040"></script>
-<script src="opt-widgets.js?v=202611042040"></script>
-<script src="opt-model.js?v=202611042040"></script>
-<script src="opt.js?v=202611042040"></script>
-  <script src="savetabs4.js?v=202611042040"></script>
-  <script src="savepages.js?v=202611042040"></script>
-  <script src="screens.js?v=202611042040"></script>
-  <script src="sp-sliders.js?v=202611042040"></script>
-<script src="sp-char.js?v=202611042040"></script>
-<script src="sp-panels.js?v=202611042040"></script>
-<script src="sp-pack.js?v=202611042040"></script>
-<script src="special.js?v=202611042040"></script>
-<script src="game.js?v=202611042040"></script>
-<script src="sound.js?v=202611042040"></script>
-<script src="zoom.js?v=202611042040"></script>
-<script src="debug.js?v=202611042040"></script>
-<script src="scale.js?v=202611042040"></script>
-<script src="menubar.js?v=202611042040"></script>
-<script src="uitext.js?v=202611042040"></script>
+<script src="wt-core.js?v=202611042110"></script>
+<script src="wt-update.js?v=202611042110"></script>
+<script src="wt-audio.js?v=202611042110"></script>
+<script src="wt-sprite.js?v=202611042110"></script>
+<script src="wt-voice.js?v=202611042110"></script>
+<script src="wt-text.js?v=202611042110"></script>
+<script src="wt-backlog.js?v=202611042110"></script>
+<script src="wt-choices.js?v=202611042110"></script>
+<script src="wt-chat.js?v=202611042110"></script>
+<script src="wt-session.js?v=202611042110"></script>
+<script src="wt-cost.js?v=202611042110"></script>
+<script src="wt-mood.js?v=202611042110"></script>
+<script src="wt-gdi.js?v=202611042110"></script>
+<script src="wt-nav.js?v=202611042110"></script>
+<script src="config.js?v=202611042110"></script>
+<script src="opt-widgets.js?v=202611042110"></script>
+<script src="opt-model.js?v=202611042110"></script>
+<script src="opt.js?v=202611042110"></script>
+  <script src="savetabs4.js?v=202611042110"></script>
+  <script src="savepages.js?v=202611042110"></script>
+  <script src="screens.js?v=202611042110"></script>
+<script src="mem-screen.js?v=202611042110"></script>
+  <script src="sp-sliders.js?v=202611042110"></script>
+<script src="sp-char.js?v=202611042110"></script>
+<script src="sp-panels.js?v=202611042110"></script>
+<script src="sp-pack.js?v=202611042110"></script>
+<script src="special.js?v=202611042110"></script>
+<script src="game.js?v=202611042110"></script>
+<script src="sound.js?v=202611042110"></script>
+<script src="zoom.js?v=202611042110"></script>
+<script src="debug.js?v=202611042110"></script>
+<script src="scale.js?v=202611042110"></script>
+<script src="menubar.js?v=202611042110"></script>
+<script src="uitext.js?v=202611042110"></script>
 <script>
 /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
 window.addEventListener("load", function () {

@@ -331,6 +331,9 @@
       { label: "系统设置", action: function () {
           if (window.__openOptions) window.__openOptions();
       } },
+      { label: "记忆书", action: function () {
+          if (window.__openMemory) window.__openMemory();
+      } },
       { label: "返回标题", action: function () { location.reload(); } }
     ]));
 

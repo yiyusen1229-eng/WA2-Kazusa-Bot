@@ -381,6 +381,7 @@ from api_tts import TtsApi
 from api_text import TextApi
 from api_chat import ChatApi
 from api_charpack import CharPackApi
+from api_memory import MemoryApi
 from api_update import UpdateApi
 from text_parse import (
     ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
@@ -753,8 +754,8 @@ def _repack_async(msgs, a, b):
 # ---------------- HTTP 服务 ----------------
 
 
-class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, ModelCfgApi,
-              TtsApi, TextApi, SimpleHTTPRequestHandler):
+class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
+              ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
 
@@ -982,6 +983,9 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, ModelCfgApi,
                 return self._json({"ok": False, "error": str(e)})
         if self.path == "/api/prefs":
             return self._json({"ok": True, "prefs": prefs_load()})
+        if self.path == "/api/memory":
+            # 记忆书查看（常驻设定 + 自动摘要条目）
+            return self._memory_get()
         if self.path == "/api/modelcfg":
             return self._json(model_cfg_all())
         if self.path.startswith("/api/session/load"):
@@ -1078,6 +1082,9 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, ModelCfgApi,
         if self.path == "/api/charpack/import":
             # 角色包导入：弹「选文件」，解成 characters/ 下的新角色（不自动切换）
             return self._charpack_import()
+        if self.path == "/api/memory/delete":
+            # 删掉运行时记忆书里的一条（不动存档里的快照）
+            return self._memory_delete()
         if self.path.startswith("/api/special/upload"):
             # 特别模式的角色资源：原始字节流，文件名走 query（前端 encodeURIComponent）
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
