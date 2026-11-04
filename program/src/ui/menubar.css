@@ -158,3 +158,28 @@ body.mbDragging #stage { pointer-events: none; }
 body.mbDragging * { transition: none !important; animation: none !important; }
 
 .mbSub { max-height: 70vh; overflow-y: auto; }
+
+/* ============================================================
+   更新通知：贴在标题栏里，可点击
+   ============================================================ */
+#menuBar .upd {
+  -webkit-app-region: no-drag;
+  margin-right: 8px;
+  padding: 0 9px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffd66b, #f0a92e);
+  color: #3a2400;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 0 5px rgba(255, 190, 60, .45);
+  animation: updPulse 1.8s ease-in-out infinite;
+}
+#menuBar .upd:hover { filter: brightness(1.08); }
+#menuBar .upd.done { animation: none; opacity: .65; }
+@keyframes updPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(255, 190, 60, .30); }
+  50%      { box-shadow: 0 0 11px rgba(255, 210, 90, .85); }
+}

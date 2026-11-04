@@ -358,6 +358,7 @@ from api_modelcfg import ModelCfgApi
 from api_tts import TtsApi
 from api_text import TextApi
 from api_chat import ChatApi
+from api_update import UpdateApi
 from text_parse import (
     ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
     ja_clean as _ja_clean, ja_ok as _ja_ok,
@@ -728,7 +729,7 @@ def _repack_async(msgs, a, b):
 # ---------------- HTTP 服务 ----------------
 
 
-class Handler(ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
+class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
 
@@ -872,6 +873,10 @@ class Handler(ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleH
             return self._tts()
         if self.path == "/api/ping":
             return self._json({"ok": True, "app": APP_NAME})
+        if self.path.startswith("/api/update"):
+            return self._update_check()
+        if self.path.startswith("/api/open_url"):
+            return self._open_url()
         if self.path == "/api/voice/ok":
             try:
                 import tts_client as _tc

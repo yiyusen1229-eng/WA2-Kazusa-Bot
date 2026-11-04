@@ -63,6 +63,8 @@ python program\tools\check_assets.py                  # 素材自检
 - 新增的日志 / 补丁 / 快照：`名称_YYYY-MM-DD_HH-MM-SS.后缀`（例如 `更新日志_2026-11-04_01-55-30.md`）
 - 已发布过的文件不改名（避免断链）
 - 补丁放在 `other/docs/patches/`，日志放在 `other/docs/`
+- **每次发布都要 bump 版本号**：`version.json`（仓库根）与 `program/src/version.py` 的
+  `VERSION` 保持一致（格式 `YYYY-MM-DD.N`），否则客户端查不到更新
 
 ## 不许动的东西
 

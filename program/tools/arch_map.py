@@ -46,6 +46,9 @@ LEVELS = {
     "api_tts.py": ("二级 · 接口/语音", "/api/tts 语音合成"),
     "api_text.py": ("二级 · 接口/字模", "/api/text 字模渲染"),
     "api_chat.py": ("二级 · 接口/对话", "/api/chat 对话入口"),
+    "api_update.py": ("二级 · 接口/更新", "版本检查 /api/update、打开链接 /api/open_url"),
+    "version.py": ("二级 · 核心", "版本号与 GitHub 仓库地址"),
+    "wt-update.js": ("二级 · 前端/更新", "启动查新版本 + 标题栏通知（WA2.update）"),
     "gdi_text.py": ("二级 · 字模", "GDI 兜底渲染"),
 }
 
