@@ -519,3 +519,31 @@ body.histOpen #toolbar { display:none !important; }
 #costBar .num { display: inline-flex; align-items: center; margin: 0 1px; }
 #costBar .row img.lb { margin: 0 .5px; }
 #costBar .num img { height: 12px; width: auto; display: block; margin: 0 .4px; }
+
+/* ===== 切角色过渡：整幕压黑 =====
+   层级：.uiScreen 是 120，这里 200，标题栏 2147483000 —— 只盖舞台，不盖窗口按钮。
+   流程见 sp-char.js：压黑 180ms → 换人 → 淡回 200ms；慢的时候中间显示角色名。 */
+#charFade {
+  position: absolute; inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+  z-index: 200;
+}
+#charFade.on {
+  opacity: 1;
+  pointer-events: auto;      /* 过渡期间挡住点击，别在换人的时候发消息 */
+}
+#charFadeName {
+  position: absolute; left: 0; right: 0; top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 14px;
+  color: #dff6ff;
+  opacity: 0;
+  transition: opacity .15s ease;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9);
+}
+#charFade.slow #charFadeName { opacity: 1; }
+#charFadeName img { height: 14px; width: auto; display: block; margin: 0 auto; }

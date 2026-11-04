@@ -83,7 +83,7 @@
                 return;
               }
               if (c.active) { closeCharPicker(); return; }
-              doSwitchCharacter(c.id);
+              doSwitchCharacter(c.id, display);
             });
             list.appendChild(b);
             try { setGlyph(name, display); } catch (e) {}
@@ -105,24 +105,93 @@
       panel.setAttribute("aria-hidden", "true");
     }
 
-    function doSwitchCharacter(id) {
+    /* ---------- 切角色过渡 ----------
+       顺序：存当前会话 → 压黑 → 换人 → 淡回。
+       · 存档要等写完再换：后端一切换就把存档目录指到新角色了，
+         这一笔写晚了会落到别人名下。
+       · 压黑至少留 180+100ms，太快就成了"闪一下"，反而像卡了。
+       · 请求超过 420ms 才在中间显示目标角色名（正常切换根本看不到）。 */
+    var FADE_OUT = 180, HOLD = 100, SLOW_MS = 420;
+
+    function fadeEl() { return $("charFade"); }
+
+    function fadeOn(name) {
+      var el = fadeEl();
+      if (!el) return;
+      var nm = $("charFadeName");
+      if (nm) {
+        nm.textContent = "";
+        if (name) {
+          try { setGlyph(nm, name); } catch (e) { nm.textContent = name; }
+        }
+      }
+      el.classList.remove("slow");
+      el.classList.add("on");
+      setTimeout(function () {
+        if (el.classList.contains("on")) el.classList.add("slow");
+      }, SLOW_MS);
+    }
+
+    function fadeOff() {
+      var el = fadeEl();
+      if (!el) return;
+      el.classList.remove("on");
+      el.classList.remove("slow");
+    }
+
+    function setInputEnabled(on) {
+      var inp = $("input");
+      if (inp) inp.disabled = !on;
+      var sb = $("sendBtn");
+      if (sb) { sb.disabled = !on; sb.style.opacity = on ? "" : "0.5"; }
+    }
+
+    function saveBeforeSwitch() {
+      try {
+        if (!window.sessionSave) return Promise.resolve();
+        if (!(window.__history && window.__history.length)) return Promise.resolve();
+        var p = window.sessionSave();
+        if (!p || typeof p.then !== "function") return Promise.resolve();
+        /* 存档卡住也不能把切换卡死 */
+        return Promise.race([p, new Promise(function (r) { setTimeout(r, 800); })]);
+      } catch (e) {
+        return Promise.resolve();
+      }
+    }
+
+    function doSwitchCharacter(id, name) {
       if (charBusy || !id) return;
       charBusy = true;
-      postCharacter("/api/character/switch", { id: id })
-        .then(function (d) {
+      closeCharPicker();
+      window.__charSwitching = true;       // send() 会看这个标志
+      setInputEnabled(false);
+      fadeOn(name || id);
+      var t0 = Date.now();
+
+      saveBeforeSwitch().then(function () {
+        return postCharacter("/api/character/switch", { id: id });
+      }).then(function (d) {
+        var wait = Math.max(0, FADE_OUT + HOLD - (Date.now() - t0));
+        setTimeout(function () {
           charBusy = false;
+          window.__charSwitching = false;
+          setInputEnabled(true);
           if (d && d.ok) {
-            closeCharPicker();
             afterCharacter(d);
+            fadeOff();
             flash("已切换到 " + (d.name || d.id));
           } else {
+            fadeOff();                     // 失败就退回原角色，画面不留黑
             flash((d && d.error) || "切换失败");
           }
-        })
-        .catch(function () {
-          charBusy = false;
-          flash("切换失败");
-        });
+        }, wait);
+      }).catch(function () {
+        charBusy = false;
+        window.__charSwitching = false;
+        setInputEnabled(true);
+        fadeOff();
+        flash("切换失败");
+      });
     }
 
     function switchCharacter() {

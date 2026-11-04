@@ -6,6 +6,7 @@
   var $ = (WA2.util && WA2.util.$) || function (id) { return document.getElementById(id); };
 
   async function send() {
+    if (window.__charSwitching) return;      // 切角色过渡中：先别发，等新角色就位
     const inp = $("input");
     const text = inp.value.trim();
     if (!text || typing) return;

@@ -7,7 +7,9 @@
 
   function sessionSave() {
     try {
-      fetch("/api/session/save", {
+      /* 返回 promise：切角色前要等这一笔写完再换人，
+         否则后端已经把存档目录切到新角色，这一笔会落到别人名下 */
+      return fetch("/api/session/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -16,7 +18,7 @@
           meta: { bg: currentBg || "", outfit: (WA2.state.outfit || ""), at: Date.now() }
         })
       }).catch(function () {});
-    } catch (e) {}
+    } catch (e) { return null; }
   }
 
   /* 读档：保持 history 是同一个数组（别的模块持有引用），只换内容 */
