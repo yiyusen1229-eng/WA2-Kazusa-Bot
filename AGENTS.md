@@ -5,7 +5,7 @@
 
 ## 项目是什么
 
-WA2 冬马和纱桌面聊天程序：Python 本地 HTTP 服务 + WebView2 无边框窗口，galgame 界面，
+桌面聊天程序：Python 本地 HTTP 服务 + WebView2 无边框窗口，类galgame 界面，
 对话走云端 LLM，语音走本地 GPT-SoVITS。角色 = `characters/<角色>/` 一个文件夹（自包含）。
 
 ## 架构地图（别一次读整个项目）
@@ -70,4 +70,4 @@ python program\tools\check_assets.py                  # 素材自检
 
 - `characters/`、`res/assets/`、`persona/`、`worldbook/`、`sessions/`、`release/` 是本地数据，**不入库、不上传**。
 - 世界书结构不改；人设/记忆书内容只留本机，文档里不抄设定细节。
-- 发布流程见 `新对话交接说明.md` 第 12、13 条（先整合旧补丁再发新补丁，旧补丁保留）。
+- 发布流程见 `新对话交接说明.md` 第11、12、13 条（先整合旧补丁再发新补丁，旧补丁保留）。
