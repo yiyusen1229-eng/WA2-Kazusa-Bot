@@ -24,7 +24,19 @@ SRC = os.path.join(BASE, "src")
 RES = os.path.join(BASE, "res")
 APP = os.path.join(BASE, "build_env")
 UI2 = os.path.join(BASE, "ui2")
-OUTNAME = "和纱_本地测试"
+# 产物名：和纱_<版本号>_<时间戳>（版本号取 src/version.py，时间戳带时分秒）
+def _read_version():
+    try:
+        t = io.open(os.path.join(SRC, "version.py"), encoding="utf-8").read()
+        m = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', t)
+        return m.group(1) if m else "dev"
+    except Exception:
+        return "dev"
+
+
+_VER = _read_version()
+_STAMP = time.strftime("%Y-%m-%d_%H-%M-%S")
+OUTNAME = "和纱_%s_%s" % (_VER, _STAMP)
 OUTDIR = os.path.join(os.path.dirname(BASE), "release", OUTNAME)
 ZIP = os.path.join(os.path.dirname(BASE), "release", OUTNAME + ".zip")
 PY = os.path.join(APP, "venv", "Scripts", "python.exe")
@@ -103,7 +115,25 @@ def _copy_into(src, name):
 # 用户数据：fewshot / 界面偏好 / 上下文设置 / 导入的角色资源（不复制存档、缓存、日志）
 for f in ("fewshot.json", "prefs.json", "memory.json"):
     _copy_into(os.path.join(APP, f), f)
-_copy_into(os.path.join(APP, "characters"), "characters")
+def _copy_characters(src, dst):
+    """角色文件夹要带上，但**不能带存档 / 缓存**（用户的聊天记录不该进安装包）"""
+    skip_dirs = {"sessions", "cache", "logs", "text_cache", "__pycache__"}
+    skip_chars = {"新角色"}          # 测试时新建的占位角色，不进包
+    for dp, dns, fns in os.walk(src):
+        dns[:] = [d for d in dns if d not in skip_dirs]
+        if os.path.normpath(dp) == os.path.normpath(src):
+            dns[:] = [d for d in dns if d not in skip_chars]
+        rel = os.path.relpath(dp, src)
+        target = dst if rel == "." else os.path.join(dst, rel)
+        os.makedirs(target, exist_ok=True)
+        for f in fns:
+            if f.endswith((".log", ".tmp")):
+                continue
+            shutil.copy2(os.path.join(dp, f), os.path.join(target, f))
+
+
+if os.path.isdir(os.path.join(APP, "characters")):
+    _copy_characters(os.path.join(APP, "characters"), os.path.join(OUTDIR, "characters"))
 # 空配置模板（不含密钥）
 cfg = os.path.join(OUTDIR, "config.example.json")
 if not os.path.exists(cfg):
@@ -122,6 +152,8 @@ with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
     for dp, _d, fs in os.walk(OUTDIR):
         for f in fs:
             if f == "config.json":
+                continue
+            if "/sessions/" in os.path.join(dp, f).replace("\\", "/") + "/":
                 continue
             full = os.path.join(dp, f)
             rel = os.path.join(OUTNAME, os.path.relpath(full, OUTDIR))
