@@ -306,6 +306,10 @@
             if (!inp) return;
             wrap._inp = inp;
             inp.value = got[f] || "";
+            if (f === "key" && got.key_from_env) {
+              // key 来自环境变量：界面上只有掩码，真 key 不出后端
+              inp.title = "密钥来自环境变量，不会写进 config.json";
+            }
             commitField(wrap);
           });
           setModelName(sec, got.model);

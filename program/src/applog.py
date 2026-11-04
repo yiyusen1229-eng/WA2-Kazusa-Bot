@@ -10,6 +10,8 @@
   · 线程栈快照（手动触发或检测到长时间无响应时）
 
 日志位置: <项目>/logs/app-YYYYMMDD.log
+
+写之前统一过一遍 `secret.redact()`：日志里不该出现 `sk-...` / `Bearer ...` 这类东西。
 """
 import datetime
 import os
@@ -17,6 +19,11 @@ import sys
 import threading
 import time
 import traceback
+
+try:
+    import secret as _secret
+except Exception:                      # 极端情况下（单文件跑）也不能让日志挂掉
+    _secret = None
 
 _LOCK = threading.Lock()
 _FILE = None
@@ -67,6 +74,11 @@ def path():
 
 def log(msg, level="INFO"):
     f = _open()
+    if _secret is not None:
+        try:
+            msg = _secret.redact(msg)
+        except Exception:
+            pass
     t = time.time() - _T0
     line = "[%s] [+%7.2fs] [%-5s] [%s] %s\n" % (
         datetime.datetime.now().strftime("%H:%M:%S"), t, level,

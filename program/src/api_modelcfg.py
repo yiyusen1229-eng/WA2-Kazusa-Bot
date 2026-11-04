@@ -2,6 +2,7 @@
 "ModelCfgApi 的 mixin：从 main.py 拆出，方法体未改动。"
 
 import json
+import secret
 import tts_client
 
 
@@ -32,8 +33,13 @@ class ModelCfgApi:
         key = (body.get("key") or "").strip()
         model = (body.get("model") or "").strip()
 
+        # key 来自环境变量时界面拿到的是掩码：探测要用真 key，保存仍交给掩码保护
+        probe_key = key
+        if sec == "chat" and (not key or secret.is_masked(key)):
+            probe_key = secret.env_key() or key
+
         if body.get("probe"):
-            ok, latency, models = probe_endpoint(sec, endpoint, key, model)
+            ok, latency, models = probe_endpoint(sec, endpoint, probe_key, model)
             # 语音板块：端点没起来就顺手把本地 GPT-SoVITS 拉起来再探一次
             if (not ok) and sec == "voice":
                 ep = (endpoint or "").lower()

@@ -30,6 +30,7 @@ import os
 import sys
 import shutil
 import applog
+import secret
 import tts_client
 import json
 import time
@@ -162,12 +163,20 @@ def prefs_save(d):
 
 
 def cloud_cfg():
+    """云端配置：**环境变量里的 key 优先**于 config.json。
+
+    这样设了 WA2_API_KEY / DEEPSEEK_API_KEY 就完全不用往文件里写 key；
+    文件里那份仍然保留，方便「临时去掉环境变量」时回落，不会被覆盖掉。
+    """
     try:
         d = json.load(open(CLOUD_CFG_FILE, encoding="utf-8"))
-        if d.get("api_key") and d.get("model"):
-            return d
     except Exception:
-        pass
+        d = {}
+    if not isinstance(d, dict):
+        d = {}
+    d = secret.apply_env(d)
+    if d.get("api_key") and d.get("model"):
+        return d
     return {}
 
 def _http_ok(url, headers=None, timeout=4):
@@ -300,11 +309,17 @@ def model_cfg_all():
     chat_ep = d.get("base_url") or OLLAMA
     chat_key = d.get("api_key") or ""
     chat_model = d.get("model") or DEFAULT_MODEL
-    return {
+    out = {
         "chat": pick("chat", chat_ep, chat_key, chat_model),
         "voice": pick("voice", TTS_ENDPOINT_HINT, "", "GPT-SoVITS"),
         "mt": pick("mt", OLLAMA, "", TRANSLATE_MODEL),
     }
+    # key 来自环境变量时，界面只拿到掩码：真 key 不出后端，也不会被保存回去
+    env = secret.env_key()
+    if env:
+        out["chat"]["key"] = secret.mask(env)
+        out["chat"]["key_from_env"] = True
+    return out
 
 
 def model_cfg_save(sec, endpoint, key, model, connected):
@@ -313,6 +328,13 @@ def model_cfg_save(sec, endpoint, key, model, connected):
     except Exception:
         d = {}
     m = d.get("models") or {}
+    key = key or ""
+    # 界面回填的是掩码（key 来自环境变量）时，别把 `sk-****abcd` 写进 config.json
+    if secret.is_masked(key):
+        old = (m.get(sec) or {}).get("key") or ""
+        if sec == "chat" and not old:          # 老配置只有扁平字段，也要留住
+            old = d.get("api_key") or ""
+        key = old
     m[sec] = {"endpoint": endpoint, "key": key,
               "model": model, "connected": bool(connected)}
     d["models"] = m
@@ -443,12 +465,13 @@ _TEXT_CACHE_MAX = 2000
 
 
 def log(msg):
-    """轻量日志: 打包后没有控制台, 写文件方便排查"""
+    """轻量日志: 打包后没有控制台, 写文件方便排查（写之前先脱敏）"""
     try:
         import datetime
         p = os.path.join(os.environ.get("TEMP", "."), "wa2_app.log")
         with open(p, "a", encoding="utf-8") as f:
-            f.write("[%s] %s\n" % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
+            f.write("[%s] %s\n" % (datetime.datetime.now().strftime("%H:%M:%S"),
+                                   secret.redact(msg)))
     except Exception:
         pass
 
