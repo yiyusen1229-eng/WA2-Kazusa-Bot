@@ -367,10 +367,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..994bc20
+index 0000000..88eb402
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,145 @@
+@@ -0,0 +1,169 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -496,6 +496,30 @@ index 0000000..994bc20
 +
 +> 这一步只“加钩子”，不改任何现有逻辑；`game.js` / `opt.js` / `special.js` 仍用自己的闭包，
 +> 后续按 7b～7d 逐块搬进来。
++
++
++### 9. 代码拆分第 4 步（前端第一个功能模块）：`wt-audio.js`
++
++- 新增 `program/src/ui/wt-audio.js`（约 150 行）：`WA2.audio` 提供
++  `bgmSrc / bgmVolume / voiceVolume / playSE / setBgm / pauseBgm / applyVolume`
++  以及 `current`（当前 BGM）/ `enabled`（BGM 开关）
++- `game.js` 里对应的三块整体删掉，只留薄封装：
++  `bgmVolume() / voiceVolume() / playSE() / setBgm()` → 转调 `WA2.audio`
++- `currentBgm` / `bgmEnabled` 两个私有变量退役，改读写 `WA2.audio.current / enabled`
++- `__applyVolumes` 改为调 `WA2.audio.applyVolume()`
++- `index.html` 在 `wt-core.js` 之后加载 `wt-audio.js`（`?v=202611040115`）
++- `game.js`：**1829 → 1752 行**
++
++验证（探针，无截图）：
++
++| 项 | 结果 |
++|---|---|
++| `WA2.audio` 7 个函数 | 全在 |
++| `bgmSrc("menu")` | `assets/snd/bgm_menu.mp3`（与拆分前一致） |
++| `bgmVolume / voiceVolume` | 0.375 / 0.75（与 prefs 计算一致） |
++| `playSE("click")` / `setBgm("menu",0)` | 均 ok，`current="menu"` |
++| `enabled` 切换 | ok |
++| 页面 `errors` | `[]` |
 +
 +## 四、变更文件
 +
@@ -2012,7 +2036,7 @@ index 0000000..a02c5cc
 +- 所有“本地数据”都在 `.gitignore`，别手滑 `git add -f`。
 diff --git a/other/docs/架构/08_代码拆分计划.md b/other/docs/架构/08_代码拆分计划.md
 new file mode 100644
-index 0000000..dd0c7a0
+index 0000000..dd1a241
 --- /dev/null
 +++ b/other/docs/架构/08_代码拆分计划.md
 @@ -0,0 +1,75 @@
@@ -2082,7 +2106,7 @@ index 0000000..dd0c7a0
 +| 5 | `chat_llm.py` + `api/chat.py` | **高** | 假模型注入 system 对比、6 自测 |
 +| 6 | `api/session.py`、`api/special.py`、`api/scene.py` | 中 | 存读档/角色切换/场景 |
 +| 7a ✅ | `wt-core.js`：`window.WA2` 命名空间 + 公共小函数 + 功能登记（零行为变化） | 低 | 探针：WA2/工具/界面开关/无报错 |
-+| 7b | `wt-audio.js`：BGM/SE/语音音量（先把音频对象挂到 WA2.state） | 中 | 探针：音量函数存在 + 手工听一轮 |
++| 7b ✅ | `wt-audio.js`：BGM/SE/语音音量搬出（`WA2.audio`，game.js 只留薄封装） | 中 | 探针：7 个函数在、bgmSrc 一致、playSE/setBgm 不报错 |
 +| 7c | `wt-sprite.js`：服装/表情解析 | 中 | 探针：`__spriteSummary()` 结果不变 |
 +| 7d | `wt-backlog.js`、`wt-chat.js`、`wt-core.js` 收尾 | **高** | 探针 + 手玩一条对话 |
 +
@@ -2093,10 +2117,10 @@ index 0000000..dd0c7a0
 +- 每次拆完更新本文件「现状」表，标 ✅。
 diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
 new file mode 100644
-index 0000000..1717f17
+index 0000000..a4bbacb
 --- /dev/null
 +++ b/other/docs/架构/映射表.md
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,181 @@
 +# 架构映射表（自动生成，不要手改）
 +
 +> 由 `program/tools/arch_map.py --write` 生成。改了代码就重跑，表会跟着变。
@@ -2106,7 +2130,7 @@ index 0000000..1717f17
 +
 +| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
 +|---|---|---|---|---|---|
-+| `src/ui/game.js` | 1830 | 对话演出：请求/解析/打字机/立绘/回想/音量 | __endIntro, __history, __loadOpeningLine, bgSrc, bgmSrc, bgmVolume | <script 全局> | — |
++| `src/ui/game.js` | 1752 | 对话演出：请求/解析/打字机/立绘/回想/音量 | __endIntro, __history, __loadOpeningLine, bgSrc, bgmVolume, finish | <script 全局> | — |
 +
 +## 一级 · 前端/特别模式
 +
@@ -2181,6 +2205,7 @@ index 0000000..1717f17
 +| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
 +|---|---|---|---|---|---|
 +| `src/ui/sound.js` | 54 | SE/BGM 播放 | hit, se | <script 全局> | — |
++| `src/ui/wt-audio.js` | 134 | BGM / SE / 语音音量（WA2.audio） | __volBgm, __volVoice, bgmSrc, bgmVolume, catalog, prefs | <script 全局> | — |
 +
 +## 二级 · 场景
 +
@@ -2269,7 +2294,7 @@ index 0000000..1717f17
 +
 +| 文件 | 行数 | 建议 |
 +|---|---|---|
-+| `src/ui/game.js` | 1830 | 超过 800 行，必须拆 |
++| `src/ui/game.js` | 1752 | 超过 800 行，必须拆 |
 +| `src/main.py` | 1322 | 超过 800 行，必须拆 |
 +| `src/ui/opt.js` | 1022 | 超过 800 行，必须拆 |
 +| `src/ui/special.js` | 774 | 超过 400 行，建议拆 |
@@ -3754,18 +3779,307 @@ index 0000000..b18514b
 +def ja_ok(x):
 +    """至少两个假名才算“像日语”，防止把中文塞给 TTS。"""
 +    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
+diff --git a/program/src/ui/game.js b/program/src/ui/game.js
+index 1c95631..b1655bd 100644
+--- a/program/src/ui/game.js
++++ b/program/src/ui/game.js
+@@ -6,8 +6,6 @@ let typing = false;
+ let fullText = "";
+ let turnCount = 0;
+ let backlogOpen = false;
+-let currentBgm = null;
+-let bgmEnabled = true;
+ /* 角色名：存在 char/name.txt，特别模式里改的就是它 */
+ let CHAR_NAME = "角色";
+ 
+@@ -40,29 +38,9 @@ function bgSrc(name) {
+ }
+ 
+ 
+-const BGM_KEY = { menu: "bgmMenu", calm: "bgmCalm", warm: "bgmWarm", sad: "bgmSad", tense: "bgmTense" };
+-function bgmSrc(name) {
+-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+-  const C = (window.App && window.App.catalogGet) ? window.App.catalogGet() : { bgm: [] };
+-  const id = P[BGM_KEY[name] || "bgmCalm"];
+-  const item = C.bgm && C.bgm[id === undefined ? 0 : id];
+-  return item ? "assets/snd/" + item.file : "";
+-}
+-function bgmVolume() {
+-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+-  /* OPTION 2 的 BGM 滑块优先（volBgm），没有就退回旧的 bgmVol；两者都要乘全体音量 */
+-  const b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 28 : P.bgmVol));
+-  const m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+-  return (b / 100) * m;
+-}
+-
+-/* 语音音量：OPTION 2 的 VOICE 滑块 × 全体音量（原来 playback 里写死 1.0，滑块等于没用） */
+-function voiceVolume() {
+-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+-  const v = (P.volVoice === undefined ? 90 : P.volVoice);
+-  const m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+-  return (v / 100) * m;
+-}
++/* 音量/BGM 已搬到 wt-audio.js（WA2.audio），这里只留薄封装 */
++function bgmVolume() { return WA2.audio.bgmVolume(); }
++function voiceVolume() { return WA2.audio.voiceVolume(); }
+ 
+ /* ---------- 开场动画 ---------- */
+ (function intro() {
+@@ -183,65 +161,9 @@ function voiceVolume() {
+   }, 2000);
+ })();
+ 
+-/* ---------- 音频 ---------- */
+-const SE_BASE = "assets/snd/";
+-const seCache = {};
+-function playSE(kind) {
+-  const P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
+-  const C = (window.App && window.App.catalogGet) ? window.App.catalogGet() : { se: [] };
+-  const key = kind === "exit" ? (P.seExit || 58)
+-                 : kind === "page" ? (P.sePage || 57)
+-                 : (kind === "click" ? P.seClick : (kind === "cancel" ? P.seCancel : P.seHover));
+-  const item = C.se && C.se[key || 0];
+-  if (!item) return;
+-  const master = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+-  const vol = ((P.seVol === undefined ? 35 : P.seVol) / 100) * master;
+-  let a = seCache[item.file];
+-  if (!a) { a = new Audio(SE_BASE + item.file); a.preload = "auto"; seCache[item.file] = a; }
+-  a.volume = vol;
+-  try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
+-}
+-
+-const bgmAudio = new Audio();
+-bgmAudio.loop = true;
+-bgmAudio.volume = 0;
+-bgmAudio.preload = "auto";
+-
+-// 设置界面改音量时立即生效
+-window.addEventListener("app:prefs", function (e) {
+-  const P = e.detail || {};
+-  if (bgmAudio && !bgmAudio.paused) {
+-    /* OPTION2 的 BGM 滑块优先（volBgm），没有就退回旧的 bgmVol */
+-  var _b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 30 : P.bgmVol));
+-  var _m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
+-  bgmAudio.volume = (_b / 100) * _m;
+-  }
+-});
+-
+-function setBgm(name, fadeMs = 1200) {
+-  if (!bgmEnabled) return;
+-  const src = bgmSrc(name);
+-  if (currentBgm === name && !bgmAudio.paused) return;
+-  currentBgm = name;
+-  const from = bgmAudio.volume;
+-  const fadeOut = setInterval(() => {
+-    bgmAudio.volume = Math.max(0, bgmAudio.volume - from / 12);
+-  }, fadeMs / 12);
+-  setTimeout(() => {
+-    clearInterval(fadeOut);
+-    bgmAudio.src = src;
+-    bgmAudio.volume = 0;
+-    bgmAudio.play().then(() => {
+-      const to = bgmVolume();
+-      let v = 0;
+-      const fadeIn = setInterval(() => {
+-        v += to / 14;
+-        bgmAudio.volume = Math.min(to, v);
+-        if (v >= to) clearInterval(fadeIn);
+-      }, fadeMs / 14);
+-    }).catch(() => {});
+-  }, fadeMs);
+-}
++/* ---------- 音频：实现搬到 wt-audio.js ---------- */
++function playSE(kind) { return WA2.audio.playSE(kind); }
++function setBgm(name, fadeMs) { return WA2.audio.setBgm(name, fadeMs); }
+ 
+ /* ---------- 情绪判断 ---------- */
+ function detectMood(text) {
+@@ -293,9 +215,9 @@ function accumulateMood(reply) {
+ 
+ function currentBgmMood() {
+   for (const k in MOOD_BGM) {
+-    if (MOOD_BGM[k] === currentBgm) return k === "smile" ? "warm" : MOOD_BGM[k];
++    if (MOOD_BGM[k] === WA2.audio.current) return k === "smile" ? "warm" : MOOD_BGM[k];
+   }
+-  return currentBgm || "calm";
++  return WA2.audio.current || "calm";
+ }
+ 
+ 
+@@ -1372,9 +1294,9 @@ document.querySelectorAll("#toolbar .tb").forEach(el => {
+     playSE("click");
+     if (el.dataset.act === "log") toggleBacklog();
+     if (el.dataset.act === "bgm") {
+-      bgmEnabled = !bgmEnabled;
+-      if (!bgmEnabled) bgmAudio.pause(); else setBgm(currentBgm || "calm", 300);
+-      el.style.opacity = bgmEnabled ? "1" : ".4";
++      WA2.audio.enabled = !WA2.audio.enabled;
++      if (!WA2.audio.enabled) WA2.audio.pauseBgm(); else setBgm(WA2.audio.current || "calm", 300);
++      el.style.opacity = WA2.audio.enabled ? "1" : ".4";
+     }
+   });
+ });
+@@ -1590,7 +1512,7 @@ window.__applyVolumes = function () {
+   var bv = 0, vv = 0;
+   try { bv = bgmVolume(); } catch (e) {}
+   try { vv = voiceVolume(); } catch (e) {}
+-  try { bgmAudio.volume = bv; } catch (e) {}
++  try { WA2.audio.applyVolume(); } catch (e) {}
+   try { if (ttsAudio) ttsAudio.volume = vv; } catch (e) {}
+   window.__volBgm = bv;
+   window.__volVoice = vv;
 diff --git a/program/src/ui/index.html b/program/src/ui/index.html
-index 1c1a04c..0e94dfa 100644
+index 1c1a04c..0e5ff3a 100644
 --- a/program/src/ui/index.html
 +++ b/program/src/ui/index.html
-@@ -272,6 +272,7 @@
+@@ -272,6 +272,8 @@
  </div>
  
  <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
 +<script src="wt-core.js?v=202611040100"></script>
++<script src="wt-audio.js?v=202611040115"></script>
  <script src="config.js?v=11022135"></script>
  <script src="opt.js?v=202611031205"></script>
    <script src="savetabs4.js?v=11022135"></script>
+diff --git a/program/src/ui/wt-audio.js b/program/src/ui/wt-audio.js
+new file mode 100644
+index 0000000..11646b6
+--- /dev/null
++++ b/program/src/ui/wt-audio.js
+@@ -0,0 +1,133 @@
++/* wt-audio.js —— BGM / SE / 语音音量（从 game.js 搬出来的第一个功能模块）
++ *
++ * 对外（挂在 WA2.audio）：
++ *   bgmSrc(name)        名字 → 音频地址
++ *   bgmVolume()         当前 BGM 音量（0~1，已乘全体音量）
++ *   voiceVolume()       当前语音音量（0~1，已乘全体音量）
++ *   playSE(kind)        播放点击/翻页/取消等音效
++ *   setBgm(name, ms)    淡出换 BGM（ms 是淡入淡出时长）
++ *   pauseBgm()          暂停 BGM（静音开关用）
++ *   applyVolume()       按 prefs 立即应用音量，返回 {bgm, voice}
++ *   current / enabled   BGM 名字 / BGM 开关
++ */
++(function () {
++  var WA2 = window.WA2 = window.WA2 || {};
++
++  var BGM_KEY = { menu: "bgmMenu", calm: "bgmCalm", warm: "bgmWarm", sad: "bgmSad", tense: "bgmTense" };
++  var SE_BASE = "assets/snd/";
++  var seCache = {};
++
++  function prefs() { return (window.App && window.App.getPrefs) ? window.App.getPrefs() : {}; }
++  function catalog() { return (window.App && window.App.catalogGet) ? window.App.catalogGet() : { bgm: [], se: [] }; }
++
++  function bgmSrc(name) {
++    var P = prefs(), C = catalog();
++    var id = P[BGM_KEY[name] || "bgmCalm"];
++    var item = C.bgm && C.bgm[id === undefined ? 0 : id];
++    return item ? "assets/snd/" + item.file : "";
++  }
++
++  /* OPTION 2 的 BGM 滑块优先（volBgm），没有就退回旧的 bgmVol；两者都要乘全体音量 */
++  function bgmVolume() {
++    var P = prefs();
++    var b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 28 : P.bgmVol));
++    var m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
++    return (b / 100) * m;
++  }
++
++  /* 语音音量：VOICE 滑块 × 全体音量 */
++  function voiceVolume() {
++    var P = prefs();
++    var v = (P.volVoice === undefined ? 90 : P.volVoice);
++    var m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
++    return (v / 100) * m;
++  }
++
++  function playSE(kind) {
++    var P = prefs(), C = catalog();
++    var key = kind === "exit" ? (P.seExit || 58)
++      : kind === "page" ? (P.sePage || 57)
++        : (kind === "click" ? P.seClick : (kind === "cancel" ? P.seCancel : P.seHover));
++    var item = C.se && C.se[key || 0];
++    if (!item) return;
++    var master = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
++    var vol = ((P.seVol === undefined ? 35 : P.seVol) / 100) * master;
++    var a = seCache[item.file];
++    if (!a) { a = new Audio(SE_BASE + item.file); a.preload = "auto"; seCache[item.file] = a; }
++    a.volume = vol;
++    try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {}
++  }
++
++  var bgm = new Audio();
++  bgm.loop = true;
++  bgm.volume = 0;
++  bgm.preload = "auto";
++
++  var state = { current: null, enabled: true };
++
++  /* 设置界面改音量时立即生效 */
++  window.addEventListener("app:prefs", function (e) {
++    var P = e.detail || {};
++    if (bgm && !bgm.paused) {
++      var b = (P.volBgm !== undefined ? P.volBgm : (P.bgmVol === undefined ? 30 : P.bgmVol));
++      var m = (P.volMaster === undefined ? 100 : P.volMaster) / 100;
++      bgm.volume = (b / 100) * m;
++    }
++  });
++
++  function setBgm(name, fadeMs) {
++    if (!state.enabled) return;
++    fadeMs = (fadeMs === undefined) ? 1200 : fadeMs;
++    var src = bgmSrc(name);
++    if (state.current === name && !bgm.paused) return;
++    state.current = name;
++    var from = bgm.volume;
++    var fadeOut = setInterval(function () {
++      bgm.volume = Math.max(0, bgm.volume - from / 12);
++    }, fadeMs / 12);
++    setTimeout(function () {
++      clearInterval(fadeOut);
++      bgm.src = src;
++      bgm.volume = 0;
++      bgm.play().then(function () {
++        var to = bgmVolume();
++        var v = 0;
++        var fadeIn = setInterval(function () {
++          v += to / 14;
++          bgm.volume = Math.min(to, v);
++          if (v >= to) clearInterval(fadeIn);
++        }, fadeMs / 14);
++      }).catch(function () {});
++    }, fadeMs);
++  }
++
++  function pauseBgm() {
++    try { bgm.pause(); } catch (e) {}
++  }
++
++  /* 立即按 prefs 应用音量（给 __applyVolumes 用） */
++  function applyVolume() {
++    var bv = 0, vv = 0;
++    try { bv = bgmVolume(); } catch (e) {}
++    try { vv = voiceVolume(); } catch (e) {}
++    try { bgm.volume = bv; } catch (e) {}
++    window.__volBgm = bv;
++    window.__volVoice = vv;
++    return { bgm: bv, voice: vv };
++  }
++
++  WA2.audio = {
++    bgmSrc: bgmSrc,
++    bgmVolume: bgmVolume,
++    voiceVolume: voiceVolume,
++    playSE: playSE,
++    setBgm: setBgm,
++    pauseBgm: pauseBgm,
++    applyVolume: applyVolume,
++    get current() { return state.current; },
++    set current(v) { state.current = v; },
++    get enabled() { return state.enabled; },
++    set enabled(v) { state.enabled = !!v; }
++  };
++  WA2.register("audio", WA2.audio);
++})();
 diff --git a/program/src/ui/wt-core.js b/program/src/ui/wt-core.js
 new file mode 100644
 index 0000000..2f58e09
@@ -3845,10 +4159,10 @@ index 0000000..2f58e09
 +})();
 diff --git a/program/tools/arch_map.py b/program/tools/arch_map.py
 new file mode 100644
-index 0000000..347479c
+index 0000000..142d462
 --- /dev/null
 +++ b/program/tools/arch_map.py
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,181 @@
 +# -*- coding: utf-8 -*-
 +"""扫描源码，生成「架构映射表」——层级 / 文件 / 职责 / 导出 / 依赖 / 被谁调用。
 +
@@ -3902,6 +4216,7 @@ index 0000000..347479c
 +
 +UI_LEVELS = {
 +    "wt-core.js": ("二级 · 前端/核心", "window.WA2 命名空间、公共小函数、功能登记"),
++    "wt-audio.js": ("二级 · 前端/音频", "BGM / SE / 语音音量（WA2.audio）"),
 +    "game.js": ("一级 · 前端/对话", "对话演出：请求/解析/打字机/立绘/回想/音量"),
 +    "menubar.js": ("一级 · 前端/菜单", "顶部菜单：场景/服装/时期/窗口"),
 +    "special.js": ("一级 · 前端/特别模式", "参数滑条/角色/语音/世界书"),
