@@ -340,7 +340,7 @@
 }
 #specialScreen .spRoleBtn {
   position: relative;
-  width: 62px;
+  width: 46px;
   height: 15px;
   padding: 0;
   border: 0;
@@ -350,6 +350,12 @@
   align-items: center;
   justify-content: center;
   isolation: isolate;
+  /* 导出 / 导入是动态文字（走 /api/text 字模），字号直接就是字模高度：
+     8.5px 和「切换角色 / 新建角色」那两张烤好的标签一样高 */
+  font-size: 8.5px;
+  letter-spacing: 1px;
+  color: #f4fcff;
+  text-shadow: 0 1px 2px rgba(0, 18, 36, .95);
 }
 #specialScreen .spRoleBtn::before {
   content: "";
@@ -433,6 +439,14 @@
   display: block; height: 14px; width: auto;
   margin: 0 auto 6px;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
+}
+/* 导出模式下标题换成动态文字（「选择要导出的角色」），由 sp-char.js 用字模渲染。
+   字号 14px = 字模高度，和烤好的「切换角色」标题（14px）一样高 */
+#specialScreen .spcpTitleText {
+  font-size: 14px;
+}
+#specialScreen .spcpTitleText img {
+  height: 14px; width: auto; display: block; margin: 0 auto;
 }
 #specialScreen .spcpList {
   display: flex; flex-direction: column; gap: 4px; align-items: center;

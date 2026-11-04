@@ -25,10 +25,29 @@
 
     var charBusy = false;
 
-    function openCharPicker() {
+    /* 面板标题：切换模式用烤好的「切换角色」图；导出模式换成动态文字 */
+    function setPickerTitle(mode) {
+      var img = $("spcpTitleImg");
+      var txt = $("spcpTitleText");
+      var isExport = (mode === "export");
+      if (img) img.style.display = isExport ? "none" : "";
+      if (txt) {
+        txt.style.display = isExport ? "" : "none";
+        if (isExport) {
+          var s = "选择要导出的角色";
+          try { setGlyph(txt, s); } catch (e) { txt.textContent = s; }
+        }
+      }
+    }
+
+    /* opts.mode = "switch"（默认，点了就切过去）| "export"（点了交给 onPick） */
+    function openCharPicker(opts) {
+      var mode = (opts && opts.mode) || "switch";
+      var onPick = (opts && opts.onPick) || null;
       var panel = $("spCharPick");
       var list = $("spcpList");
       if (!panel || !list) return;
+      setPickerTitle(mode);
       list.innerHTML = "";
       var loading = document.createElement("div");
       loading.className = "spcpMsg";
@@ -58,6 +77,11 @@
             name.textContent = display;
             b.appendChild(name);
             b.addEventListener("click", function () {
+              if (mode === "export") {          // 导出：选中即打包，不切换
+                closeCharPicker();
+                if (onPick) onPick(c);
+                return;
+              }
               if (c.active) { closeCharPicker(); return; }
               doSwitchCharacter(c.id);
             });
@@ -169,7 +193,7 @@
 
     /* 平时：字模显示，输入框藏起来 */
   var _exp = {};
-  var _names = ["afterCharacter", "bindCharacters", "bindSave", "closeCharPicker", "doSwitchCharacter", "newCharacter", "openCharPicker", "postCharacter", "switchCharacter"];
+  var _names = ["afterCharacter", "bindCharacters", "bindSave", "closeCharPicker", "doSwitchCharacter", "newCharacter", "openCharPicker", "postCharacter", "setPickerTitle", "switchCharacter"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }

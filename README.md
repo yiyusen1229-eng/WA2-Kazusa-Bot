@@ -339,7 +339,8 @@ WA2-Kazusa-Bot/
 | [other/docs/创作手记.md](other/docs/创作手记.md) | 完整创作过程、失败的尝试、踩过的坑 |
 | [other/docs/架构与文件说明.md](other/docs/架构与文件说明.md) | 每个文件夹每个文件的作用 |
 | [other/docs/项目文档_字体机制.md](other/docs/项目文档_字体机制.md) | 字体图集机制说明 |
-| [other/docs/后续更新路线图.md](other/docs/后续更新路线图.md) | 后续更新路线图（P0/P1/P2 规划，非已实现） |
+| [other/docs/后续更新路线图.md](other/docs/后续更新路线图.md) | 后续更新路线图：**只含还没做的**，每条标「现在有什么 / 缺什么」 |
+| [other/docs/已完成与取舍记录.md](other/docs/已完成与取舍记录.md) | 已了结的条目：做完的、换做法解决的、明确不做的（含代价与依据） |
 | [other/docs/场景CG系统.md](other/docs/场景CG系统.md) | 场景背景 CG：文件名标签规则、导入工具、匹配算法、接口 |
 | [other/docs/设计_分层人格提示词.md](other/docs/设计_分层人格提示词.md) | 通用思路：base + 情境切片，按关系/场景/对象按需注入，省 token |
 | [other/docs/完结感言.md](other/docs/完结感言.md) | 完结感言：从立项到今天的磕磕绊绊 |

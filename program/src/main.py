@@ -358,6 +358,7 @@ from api_modelcfg import ModelCfgApi
 from api_tts import TtsApi
 from api_text import TextApi
 from api_chat import ChatApi
+from api_charpack import CharPackApi
 from api_update import UpdateApi
 from text_parse import (
     ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
@@ -729,7 +730,8 @@ def _repack_async(msgs, a, b):
 # ---------------- HTTP 服务 ----------------
 
 
-class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
+class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, ModelCfgApi,
+              TtsApi, TextApi, SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
 
@@ -1047,6 +1049,12 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextA
                 body = {}
             res = characters.create((body or {}).get("name") or "")
             return self._json(self._after_switch(res))
+        if self.path == "/api/charpack/export":
+            # 角色包导出：先弹「选目录」，再打包（都在这一个请求里做完）
+            return self._charpack_export()
+        if self.path == "/api/charpack/import":
+            # 角色包导入：弹「选文件」，解成 characters/ 下的新角色（不自动切换）
+            return self._charpack_import()
         if self.path.startswith("/api/special/upload"):
             # 特别模式的角色资源：原始字节流，文件名走 query（前端 encodeURIComponent）
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
