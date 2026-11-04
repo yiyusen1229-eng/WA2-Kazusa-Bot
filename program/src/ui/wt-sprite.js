@@ -109,7 +109,7 @@
   }
 
   function summary() {
-    var outfits = 0, files = 0;
+  var outfits = 0, files = 0;
     for (var k in SPRITE_INDEX) {
       outfits++;
       var vs = (SPRITE_INDEX[k] || {}).variants || [];

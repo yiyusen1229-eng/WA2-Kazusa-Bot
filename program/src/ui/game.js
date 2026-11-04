@@ -2,6 +2,7 @@
 const $ = (id) => document.getElementById(id);
 
 let history = [];
+window.__history = history;   // 同一引用：读档只改内容、不换数组
 let typing = false;
 let fullText = "";
 let turnCount = 0;

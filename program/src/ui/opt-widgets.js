@@ -6,7 +6,8 @@
   var $ = (WA2.util && WA2.util.$) || function (id) { return document.getElementById(id); };
 
     function bindContent() {
-      if (window.__ctBound) return;
+    if (window.__ctBound) return;
+      window.__ctBound = true;
       var box = byId("optContent");
       if (!box) return;
 
@@ -186,7 +187,8 @@
     };
 
     function bindContent2() {
-      if (window.__ct2Bound) return;
+    if (window.__ct2Bound) return;
+      window.__ct2Bound = true;
       ;
 
       var box = byId("optContent2");

@@ -59,7 +59,8 @@
     gdiRenderName(CHAR_NAME, $("namePlate"));
     setBgm("calm", 600);
     if (window.__wantRestore) {
-      sessionRestore().then(function (ok) {
+      window.__wantRestore = false;
+    sessionRestore().then(function (ok) {
         if (!ok) setTimeout(() => { var _o = openingLine(); typewriter(_o.zh); speakLineJa(_o.ja, _o.emo); }, 200);
       });
     } else {

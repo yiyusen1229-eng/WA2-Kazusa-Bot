@@ -188,6 +188,12 @@ var CT, CT2;
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && window.__optOpen) close();
   });
+
+  /* opt-widgets / opt-model 是从本文件拆出去的，它们要用这里的私有函数和变量 */
+  window.__optExported = true;
+  ["applyCt1", "applyCt2", "bindExit", "bindPager", "bindTabs", "byId", "close", "ct1Pct", "ct2Pct", "open", "refreshTabs", "restoreCt1", "restoreCt2", "safe", "setTab", "P", "a", "base", "c1", "c2", "c3", "cur", "current", "el", "hover", "img", "n", "nxt", "on", "pagerBound", "run", "s", "sp", "speed", "src", "st", "tabsBound"].forEach(function (n) {
+    try { var v = eval(n); if (v !== undefined) window[n] = v; } catch (e) {}
+  });
 })();
 
 /* ---------- OPTION 2 的取值真正生效 ----------

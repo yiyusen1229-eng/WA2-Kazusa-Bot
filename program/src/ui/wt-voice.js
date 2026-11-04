@@ -52,7 +52,8 @@
           done = true; clearTimeout(timer);
           /* 语音服务没起来时别静默失败：提示一次（同一局里不反复弹） */
           if (!window.__voiceWarned) {
-            if (window.__saveHint) window.__saveHint("语音暂时不可用，先显示文字");
+            window.__voiceWarned = true;
+          if (window.__saveHint) window.__saveHint("语音暂时不可用，先显示文字");
           }
           resolve(null);
         });
@@ -78,7 +79,8 @@
     if (!ttsOn) return;
     var clean = (ja || "").replace(/^[「『]|[」』]$/g, "").trim();
     if (!clean) return;
-    window.__lastEmo = emo || window.__lastEmo || "soft";
+    window.__speakJa = clean;
+  window.__lastEmo = emo || window.__lastEmo || "soft";
     waitTtsReady(function () { speakReply(clean); }, 60);
   }
 

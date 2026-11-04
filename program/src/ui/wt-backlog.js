@@ -111,7 +111,7 @@
     const list = $("historyList");
     if (!list) return;
     list.innerHTML = "";
-    (window.__history || []).forEach(function (m) {
+    (window.__history || history || []).forEach(function (m) {
       if (!m) return;
       const isHer = m.role === "assistant";
       const shown = isHer ? (m.zh || m.content || "") : (m.content || "");

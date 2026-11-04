@@ -86,7 +86,8 @@
   window.__setCharName = function (n) {
     if (!n) return;
     CHAR_NAME = n;
-    var el = document.getElementById("namePlate");
+    window.__charName = n;
+  var el = document.getElementById("namePlate");
     if (el && typeof gdiRenderName === "function") gdiRenderName(n, el);
     // 输入框占位符等跟着名字变（uitext.js 监听）
     try {

@@ -19,12 +19,19 @@
     } catch (e) {}
   }
 
+  /* 读档：保持 history 是同一个数组（别的模块持有引用），只换内容 */
+  function applyHistory(arr) {
+    history.length = 0;
+    (arr || []).forEach(function (m) { history.push(m); });
+    window.__history = history;
+  }
+
   function sessionRestore() {
     return fetch("/api/session/load?slot=auto", { cache: "no-store" })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.ok || !d.messages || !d.messages.length) return false;
-        history = d.messages;
+        applyHistory(d.messages);
         const meta = d.meta || {};
         if (meta.bg) { currentBg = null; setBg(meta.bg); }
         if (meta.outfit) { WA2.state.outfit = meta.outfit; }
@@ -54,7 +61,7 @@
   /* 读档：把存档恢复到当前对话并进入游戏 */
   window.__loadSession = function (data) {
     try {
-      history = data.messages || [];
+      applyHistory(data.messages);
       const meta = data.meta || {};
       showScreen("gameScreen");
       titleBgmStarted = true;
