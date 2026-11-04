@@ -1,0 +1,508 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index ff87787..0e3df1c 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -63,6 +63,8 @@ python program\tools\check_assets.py                  # 素材自检
+ - 新增的日志 / 补丁 / 快照：`名称_YYYY-MM-DD_HH-MM-SS.后缀`（例如 `更新日志_2026-11-04_01-55-30.md`）
+ - 已发布过的文件不改名（避免断链）
+ - 补丁放在 `other/docs/patches/`，日志放在 `other/docs/`
++- **每次发布都要 bump 版本号**：`version.json`（仓库根）与 `program/src/version.py` 的
++  `VERSION` 保持一致（格式 `YYYY-MM-DD.N`），否则客户端查不到更新
+ 
+ ## 不许动的东西
+ 
+diff --git a/README.md b/README.md
+index cc939db..c5dd4a7 100644
+--- a/README.md
++++ b/README.md
+@@ -37,6 +37,13 @@
+ 
+ → [完结感言](other/docs/完结感言.md)
+ 
++## 近期更新（2026-11-04 更新检查）
++
++> 启动时自动查 GitHub 上的新版本，有新版本就在标题栏弹一条可点击的通知，点开直达补丁页。
++
++- [更新日志 2026-11-04_02-00-15](other/docs/更新日志_2026-11-04_02-00-15.md)
++- [本版补丁](other/docs/patches/2026-11-04_02-00-15_更新补丁.patch)（基线 `8542abd`）
++
+ ## 近期更新（2026-11-04）
+ 
+ > 文档与规则更新：新增「文件名带时分秒」命名规则，补上拆包体检脚本与报告。
+@@ -316,6 +323,7 @@ WA2-Kazusa-Bot/
+ 
+ | 文档 | 内容 |
+ |---|---|
++| [other/docs/更新日志_2026-11-04_02-00-15.md](other/docs/更新日志_2026-11-04_02-00-15.md) | 最新：启动自动检查新版本 + 标题栏通知 |
+ | [other/docs/更新日志_2026-11-04_01-53-50.md](other/docs/更新日志_2026-11-04_01-53-50.md) | 最新：命名规则（时分秒）+ 拆包体检报告 |
+ | [other/docs/架构/00_总览.md](other/docs/架构/00_总览.md) | **架构地图**：总览 + 7 个层级文档，按任务只读一层 |
+ | [other/docs/交接速览.md](other/docs/交接速览.md) | **新会话先读这一页**（现状 / 目录 / 命令 / 坑 / 待办 / 省钱） |
+diff --git a/other/docs/更新日志_2026-11-04_02-00-15.md b/other/docs/更新日志_2026-11-04_02-00-15.md
+new file mode 100644
+index 0000000..f71c1f3
+--- /dev/null
++++ b/other/docs/更新日志_2026-11-04_02-00-15.md
+@@ -0,0 +1,44 @@
++# 更新日志 2026-11-04_02-00-15
++
++> 新功能：**启动自动检查新版本**，有新版本时在标题栏弹出可点击的通知。
++> 补丁：`other/docs/patches/2026-11-04_02-00-15_更新补丁.patch`（基线 `8542abd`）。
++
++## 一、怎么工作
++
++```
++启动 → 1.2 秒后 GET /api/update
++        └─ 后端拉 https://raw.githubusercontent.com/<repo>/master/version.json
++            └─ 比较版本号（YYYY-MM-DD.N）
++                ├─ 不新：什么都不显示
++                └─ 更新：标题栏右侧出现「发现新版本 x · 点此更新」
++                          └─ 点击 → GET /api/open_url?url=… → 系统浏览器打开补丁页
++```
++
++## 二、改动
++
++| 文件 | 内容 |
++|---|---|
++| `program/src/version.py` | **新增**：`VERSION = "2026-11-04.2"`、仓库地址、`ver_key()` |
++| `program/src/api_update.py` | **新增**：`/api/update`（6 秒超时，失败就当无更新）、`/api/open_url`（只放行 http/https） |
++| `program/src/main.py` | Handler 加 `UpdateApi` 基类 + 两条路由 |
++| `program/src/ui/wt-update.js` | **新增**：启动后查一次，有新版就把 chip 插进 `#menuBar`（窗口按钮左侧） |
++| `program/src/ui/menubar.css` | 新增 `#updateNoti` 样式（琥珀色胶囊 + 呼吸光晕） |
++| `program/src/ui/index.html` | 加载 `wt-update.js`（紧跟 `wt-core.js`），`?v=` 统一升级 |
++| `version.json`（仓库根） | **新增**：远端版本清单 `{version, url, notes}` |
++
++## 三、发布时必须同步的两个版本号
++
++- 仓库根 `version.json` 的 `version`
++- `program/src/version.py` 的 `VERSION`
++
++两处不一致 → 客户端要么永远不提示，要么把自己当成旧版。这条已写进 `AGENTS.md`。
++
++## 四、验证
++
++| 项 | 结果 |
++|---|---|
++| `/api/update`（假远端 2099-01-01.1） | `{"ok":true,"newer":true,"latest":"2099-01-01.1","url":"…"}` |
++| 标题栏 chip | 显示「发现新版本 2099-01-01.1 · 点此更新」✓ |
++| `WA2.update.state` | `checked=true / newer=true` ✓ |
++| `/api/open_url?url=javascript:…` | 被拒：`只允许 http/https` ✓ |
++| 模块顺序 | `wt-update.js` 必须在 `wt-core.js` 之后（否则 `WA2.register` 未定义） |
+diff --git a/other/docs/架构/06_工具自测与发布.md b/other/docs/架构/06_工具自测与发布.md
+index b150b32..6010ff9 100644
+--- a/other/docs/架构/06_工具自测与发布.md
++++ b/other/docs/架构/06_工具自测与发布.md
+@@ -38,6 +38,13 @@ test_scene_cg.py     场景 CG 匹配
+ 1. `python tools/arch_map.py --check`（映射表过期就 `--write` 后一起提交）
+ 2. `python tools/check_split.py`（改动过前端模块时必跑，它对照 `6f4955c` 的拆分基线）
+ 
++## 版本与更新提示
++
++- 客户端启动 1.2 秒后请求 `/api/update`，后端拉 `version.json` 比对
++- 有新版本 → 标题栏出现「发现新版本 x · 点此更新」→ 点击走 `/api/open_url` 打开浏览器
++- **发布时必须同时改**：仓库根 `version.json` 的 `version`、`program/src/version.py` 的 `VERSION`
++- 本地测试：设 `WA2_UPDATE_URL=http://127.0.0.1:8798/version.json` 指向假版本文件
++
+ ## 发布流程（约定第 12、13 条）
+ 
+ 1. `git tag v<日期>-old`（把当前状态锚住，方便回滚）
+diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
+index bdba474..9369d98 100644
+--- a/other/docs/架构/映射表.md
++++ b/other/docs/架构/映射表.md
+@@ -31,7 +31,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/main.py` | 1322 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | api_char, api_chat, api_modelcfg, api_text, api_tts, api_window | — |
++| `src/main.py` | 1327 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | api_char, api_chat, api_modelcfg, api_text, api_tts, api_update | — |
+ 
+ ## 二级 · 前端/回想
+ 
+@@ -206,6 +206,12 @@
+ |---|---|---|---|---|---|
+ | `src/api_chat.py` | 185 | /api/chat 对话入口 | ChatApi | char_res, characters, persona_ctx, scene_cg, tts_client | main |
+ 
++## 二级 · 接口/更新
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_update.py` | 59 | 版本检查 /api/update、打开链接 /api/open_url | UpdateApi | version | main |
++
+ ## 二级 · 接口/模型
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+@@ -237,6 +243,7 @@
+ | `src/applog.py` | 150 | 日志文件 | path, log, error, dump_stacks, start_heartbeat, stop | — | api_tts, api_window, main |
+ | `src/pricing.py` | 241 | 价格与用量估算 | table, currency, prices_for, is_peak, cost, estimate | — | main |
+ | `src/text_parse.py` | 94 | 回复标签解析、日文清理（纯函数） | split_scene, split_emotion, split_action, split_thinking, ja_clean, ja_ok | — | main |
++| `src/version.py` | 19 | 版本号与 GitHub 仓库地址 | ver_key | — | api_update |
+ | `src/winutil.py` | 76 | Windows 窗口 API | — | — | main |
+ 
+ ## 二级 · 角色
+@@ -258,11 +265,17 @@
+ | `src/persona_stage.py` | 188 | 关系阶段分类 | set_logger, set_llm, detect_local, classify_now, current, reset | memory | api_char, main, persona_ctx |
+ | `src/story_rag.py` | 223 | 原作检索（BM25） | tokenize, StoryIndex, enabled, active_index, get_index, preload | — | — |
+ 
++## 未登记
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/wt-update.js` | 68 | — | __checkUpdate, check, ensureChip, show | <script 全局> | — |
++
+ ## 待拆（行数最多的 8 个）
+ 
+ | 文件 | 行数 | 建议 |
+ |---|---|---|
+-| `src/main.py` | 1322 | 超过 800 行，必须拆 |
++| `src/main.py` | 1327 | 超过 800 行，必须拆 |
+ | `src/tts_client.py` | 624 | 超过 400 行，建议拆 |
+ | `src/characters.py` | 528 | 超过 400 行，建议拆 |
+ | `src/ui/menubar.js` | 523 | 超过 400 行，建议拆 |
+diff --git a/program/src/api_update.py b/program/src/api_update.py
+new file mode 100644
+index 0000000..df44ae1
+--- /dev/null
++++ b/program/src/api_update.py
+@@ -0,0 +1,58 @@
++# -*- coding: utf-8 -*-
++"""更新检查 / 打开链接（从 main.py 拆出的 mixin）。
++
++- GET /api/update        查 GitHub 上的 version.json，判断有没有比本机新的版本
++- GET /api/open_url?url= 用系统浏览器打开链接（只允许 http/https）
++"""
++
++import json
++import os
++import urllib.request
++import webbrowser
++
++import version as _ver
++
++
++class UpdateApi:
++    """见 main.Handler。"""
++
++    def _update_check(self):
++        """查远端版本；拿不到就当“无更新”，绝不影响启动。"""
++        info = {
++            "ok": True,
++            "current": _ver.VERSION,
++            "latest": _ver.VERSION,
++            "newer": False,
++            "url": _ver.PATCH_URL,
++            "notes": "",
++        }
++        url = os.environ.get("WA2_UPDATE_URL") or _ver.RAW_VERSION_URL
++        try:
++            req = urllib.request.Request(url, headers={"User-Agent": "WA2-Kazusa-Bot"})
++            with urllib.request.urlopen(req, timeout=6) as r:
++                d = json.loads(r.read().decode("utf-8"))
++            latest = str(d.get("version") or "").strip()
++            if latest:
++                info["latest"] = latest
++                info["newer"] = _ver.ver_key(latest) > _ver.ver_key(_ver.VERSION)
++                info["url"] = d.get("url") or _ver.PATCH_URL
++                info["notes"] = str(d.get("notes") or "")[:200]
++        except Exception as e:
++            info["ok"] = False
++            info["error"] = "%s: %s" % (type(e).__name__, e)
++        return self._json(info)
++
++    def _open_url(self):
++        """用系统默认浏览器打开（只放行 http/https，避免被当成执行器）。"""
++        from urllib.parse import urlparse, parse_qs
++        import main
++
++        q = parse_qs(urlparse(self.path).query)
++        url = (main.qs(q, ("url",)) or "").strip()
++        if not (url.startswith("http://") or url.startswith("https://")):
++            return self._json({"ok": False, "error": "只允许 http/https"})
++        try:
++            webbrowser.open(url)
++            return self._json({"ok": True, "url": url})
++        except Exception as e:
++            return self._json({"ok": False, "error": str(e)})
+diff --git a/program/src/main.py b/program/src/main.py
+index 4700a13..962e8e5 100644
+--- a/program/src/main.py
++++ b/program/src/main.py
+@@ -358,6 +358,7 @@ from api_modelcfg import ModelCfgApi
+ from api_tts import TtsApi
+ from api_text import TextApi
+ from api_chat import ChatApi
++from api_update import UpdateApi
+ from text_parse import (
+     ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
+     ja_clean as _ja_clean, ja_ok as _ja_ok,
+@@ -728,7 +729,7 @@ def _repack_async(msgs, a, b):
+ # ---------------- HTTP 服务 ----------------
+ 
+ 
+-class Handler(ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
++class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
+     def __init__(self, *a, **kw):
+         super().__init__(*a, directory=UI_DIR, **kw)
+ 
+@@ -872,6 +873,10 @@ class Handler(ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleH
+             return self._tts()
+         if self.path == "/api/ping":
+             return self._json({"ok": True, "app": APP_NAME})
++        if self.path.startswith("/api/update"):
++            return self._update_check()
++        if self.path.startswith("/api/open_url"):
++            return self._open_url()
+         if self.path == "/api/voice/ok":
+             try:
+                 import tts_client as _tc
+diff --git a/program/src/ui/index.html b/program/src/ui/index.html
+index 3dc8501..0fad560 100644
+--- a/program/src/ui/index.html
++++ b/program/src/ui/index.html
+@@ -4,14 +4,14 @@
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>WHITE ALBUM 2</title>
+-<link rel="stylesheet" href="screens-base.css?v=202611040330">
+-<link rel="stylesheet" href="opt-screen.css?v=202611040330">
+-<link rel="stylesheet" href="save-screen.css?v=202611040330">
+-<link rel="stylesheet" href="game450.css?v=202611040330">
+-<link rel="stylesheet" href="unifont.css?v=202611040330">
+-<link rel="stylesheet" href="opt.css?v=202611040330">
+-  <link rel="stylesheet" href="menubar.css?v=202611040330">
+-<link rel="stylesheet" href="special.css?v=202611040330">
++<link rel="stylesheet" href="screens-base.css?v=202611040400">
++<link rel="stylesheet" href="opt-screen.css?v=202611040400">
++<link rel="stylesheet" href="save-screen.css?v=202611040400">
++<link rel="stylesheet" href="game450.css?v=202611040400">
++<link rel="stylesheet" href="unifont.css?v=202611040400">
++<link rel="stylesheet" href="opt.css?v=202611040400">
++  <link rel="stylesheet" href="menubar.css?v=202611040400">
++<link rel="stylesheet" href="special.css?v=202611040400">
+ </head>
+ <body>
+ <div id="stage">
+@@ -272,37 +272,38 @@
+ </div>
+ 
+ <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
+-<script src="wt-core.js?v=202611040330"></script>
+-<script src="wt-audio.js?v=202611040330"></script>
+-<script src="wt-sprite.js?v=202611040330"></script>
+-<script src="wt-voice.js?v=202611040330"></script>
+-<script src="wt-text.js?v=202611040330"></script>
+-<script src="wt-backlog.js?v=202611040330"></script>
+-<script src="wt-choices.js?v=202611040330"></script>
+-<script src="wt-chat.js?v=202611040330"></script>
+-<script src="wt-session.js?v=202611040330"></script>
+-<script src="wt-cost.js?v=202611040330"></script>
+-<script src="wt-mood.js?v=202611040330"></script>
+-<script src="wt-gdi.js?v=202611040330"></script>
+-<script src="wt-nav.js?v=202611040330"></script>
+-<script src="config.js?v=202611040330"></script>
+-<script src="opt-widgets.js?v=202611040330"></script>
+-<script src="opt-model.js?v=202611040330"></script>
+-<script src="opt.js?v=202611040330"></script>
+-  <script src="savetabs4.js?v=202611040330"></script>
+-  <script src="savepages.js?v=202611040330"></script>
+-  <script src="screens.js?v=202611040330"></script>
+-  <script src="sp-sliders.js?v=202611040330"></script>
+-<script src="sp-char.js?v=202611040330"></script>
+-<script src="sp-panels.js?v=202611040330"></script>
+-<script src="special.js?v=202611040330"></script>
+-<script src="game.js?v=202611040330"></script>
+-<script src="sound.js?v=202611040330"></script>
+-<script src="zoom.js?v=202611040330"></script>
+-<script src="debug.js?v=202611040330"></script>
+-<script src="scale.js?v=202611040330"></script>
+-<script src="menubar.js?v=202611040330"></script>
+-<script src="uitext.js?v=202611040330"></script>
++<script src="wt-core.js?v=202611040400"></script>
++<script src="wt-update.js?v=202611040400"></script>
++<script src="wt-audio.js?v=202611040400"></script>
++<script src="wt-sprite.js?v=202611040400"></script>
++<script src="wt-voice.js?v=202611040400"></script>
++<script src="wt-text.js?v=202611040400"></script>
++<script src="wt-backlog.js?v=202611040400"></script>
++<script src="wt-choices.js?v=202611040400"></script>
++<script src="wt-chat.js?v=202611040400"></script>
++<script src="wt-session.js?v=202611040400"></script>
++<script src="wt-cost.js?v=202611040400"></script>
++<script src="wt-mood.js?v=202611040400"></script>
++<script src="wt-gdi.js?v=202611040400"></script>
++<script src="wt-nav.js?v=202611040400"></script>
++<script src="config.js?v=202611040400"></script>
++<script src="opt-widgets.js?v=202611040400"></script>
++<script src="opt-model.js?v=202611040400"></script>
++<script src="opt.js?v=202611040400"></script>
++  <script src="savetabs4.js?v=202611040400"></script>
++  <script src="savepages.js?v=202611040400"></script>
++  <script src="screens.js?v=202611040400"></script>
++  <script src="sp-sliders.js?v=202611040400"></script>
++<script src="sp-char.js?v=202611040400"></script>
++<script src="sp-panels.js?v=202611040400"></script>
++<script src="special.js?v=202611040400"></script>
++<script src="game.js?v=202611040400"></script>
++<script src="sound.js?v=202611040400"></script>
++<script src="zoom.js?v=202611040400"></script>
++<script src="debug.js?v=202611040400"></script>
++<script src="scale.js?v=202611040400"></script>
++<script src="menubar.js?v=202611040400"></script>
++<script src="uitext.js?v=202611040400"></script>
+ <script>
+ /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
+ window.addEventListener("load", function () {
+diff --git a/program/src/ui/menubar.css b/program/src/ui/menubar.css
+index e7ac03d..1ceed6a 100644
+--- a/program/src/ui/menubar.css
++++ b/program/src/ui/menubar.css
+@@ -158,3 +158,28 @@ body.mbDragging #stage { pointer-events: none; }
+ body.mbDragging * { transition: none !important; animation: none !important; }
+ 
+ .mbSub { max-height: 70vh; overflow-y: auto; }
++
++/* ============================================================
++   更新通知：贴在标题栏里，可点击
++   ============================================================ */
++#menuBar .upd {
++  -webkit-app-region: no-drag;
++  margin-right: 8px;
++  padding: 0 9px;
++  height: 16px;
++  line-height: 16px;
++  border-radius: 8px;
++  background: linear-gradient(180deg, #ffd66b, #f0a92e);
++  color: #3a2400;
++  font-size: 11px;
++  cursor: pointer;
++  white-space: nowrap;
++  box-shadow: 0 0 5px rgba(255, 190, 60, .45);
++  animation: updPulse 1.8s ease-in-out infinite;
++}
++#menuBar .upd:hover { filter: brightness(1.08); }
++#menuBar .upd.done { animation: none; opacity: .65; }
++@keyframes updPulse {
++  0%, 100% { box-shadow: 0 0 4px rgba(255, 190, 60, .30); }
++  50%      { box-shadow: 0 0 11px rgba(255, 210, 90, .85); }
++}
+diff --git a/program/src/ui/wt-update.js b/program/src/ui/wt-update.js
+new file mode 100644
+index 0000000..f2fc341
+--- /dev/null
++++ b/program/src/ui/wt-update.js
+@@ -0,0 +1,67 @@
++/* wt-update.js —— 启动时检查 GitHub 上的新版本，在标题栏里弹一条可点击的通知
++ *
++ * 流程：/api/update（后端去拉 version.json 比较）→ 有新版就插一条 chip 到 #menuBar
++ *      点击 → /api/open_url?url=… → 系统浏览器打开下载页
++ *
++ * 探针：window.__checkUpdate() 手动触发；window.WA2.update.state 看状态
++ */
++(function () {
++  var WA2 = window.WA2 = window.WA2 || {};
++  var state = { checked: false, newer: false, latest: "", url: "", error: "" };
++
++  function ensureChip() {
++    var bar = document.getElementById("menuBar");
++    if (!bar) return null;
++    var el = document.getElementById("updateNoti");
++    if (el) return el;
++    el = document.createElement("div");
++    el.id = "updateNoti";
++    el.className = "upd";
++    el.style.display = "none";
++    el.title = "发现新版本，点击打开下载页";
++    var firstBtn = bar.querySelector(".mbWinBtn");
++    if (firstBtn) bar.insertBefore(el, firstBtn); else bar.appendChild(el);
++    el.addEventListener("click", function (e) {
++      e.stopPropagation();
++      if (!state.url) return;
++      el.classList.add("done");
++      el.title = "已在浏览器打开下载页";
++      window.location.href = "/api/open_url?url=" + encodeURIComponent(state.url);
++    });
++    return el;
++  }
++
++  function show(info) {
++    var el = ensureChip();
++    if (!el) return;
++    state.newer = true;
++    state.latest = info.latest || "";
++    state.url = info.url || "";
++    el.textContent = "发现新版本 " + state.latest + " · 点此更新";
++    el.style.display = "";
++  }
++
++  function check() {
++    return fetch("/api/update", { cache: "no-store" })
++      .then(function (r) { return r.json(); })
++      .then(function (d) {
++        state.checked = true;
++        if (!d) return state;
++        if (d.error) state.error = d.error;
++        if (d.newer) show(d);
++        return state;
++      })
++      .catch(function (e) { state.checked = true; state.error = String(e); return state; });
++  }
++
++  WA2.update = { state: state, check: check, show: show, chip: ensureChip };
++  WA2.register("update", WA2.update);
++  window.__checkUpdate = check;
++
++  /* 启动 1.2 秒后再查（不跟首屏抢资源；查不到就算了） */
++  if (document.readyState === "loading") {
++    document.addEventListener("DOMContentLoaded", function () { setTimeout(check, 1200); });
++  } else {
++    setTimeout(check, 1200);
++  }
++})();
+diff --git a/program/src/version.py b/program/src/version.py
+new file mode 100644
+index 0000000..025edf6
+--- /dev/null
++++ b/program/src/version.py
+@@ -0,0 +1,18 @@
++# -*- coding: utf-8 -*-
++"""版本号与更新检查的常量（发布时改这里 + 仓库根目录 version.json）。"""
++
++VERSION = "2026-11-04.2"                     # 本机版本：YYYY-MM-DD.N
++REPO = "yiyusen1229-eng/ai-chat-ui-arch"     # GitHub 仓库
++RAW_VERSION_URL = "https://raw.githubusercontent.com/%s/master/version.json" % REPO
++REPO_URL = "https://github.com/%s" % REPO
++PATCH_URL = "https://github.com/%s/tree/master/other/docs/patches" % REPO
++
++
++def ver_key(v):
++    """'2026-11-04.2' -> (2026, 11, 4, 2)；解析失败返回 (0,0,0,0)"""
++    try:
++        date, _, n = str(v).partition(".")
++        y, m, d = (int(x) for x in date.split("-"))
++        return (y, m, int(d), int(n or 0))
++    except Exception:
++        return (0, 0, 0, 0)
+diff --git a/program/tools/arch_map.py b/program/tools/arch_map.py
+index da752cc..7dc8b61 100644
+--- a/program/tools/arch_map.py
++++ b/program/tools/arch_map.py
+@@ -46,6 +46,9 @@ LEVELS = {
+     "api_tts.py": ("二级 · 接口/语音", "/api/tts 语音合成"),
+     "api_text.py": ("二级 · 接口/字模", "/api/text 字模渲染"),
+     "api_chat.py": ("二级 · 接口/对话", "/api/chat 对话入口"),
++    "api_update.py": ("二级 · 接口/更新", "版本检查 /api/update、打开链接 /api/open_url"),
++    "version.py": ("二级 · 核心", "版本号与 GitHub 仓库地址"),
++    "wt-update.js": ("二级 · 前端/更新", "启动查新版本 + 标题栏通知（WA2.update）"),
+     "gdi_text.py": ("二级 · 字模", "GDI 兜底渲染"),
+ }
+ 
+diff --git a/version.json b/version.json
+new file mode 100644
+index 0000000..9bd02dc
+--- /dev/null
++++ b/version.json
+@@ -0,0 +1,5 @@
++{
++  "version": "2026-11-04.2",
++  "url": "https://github.com/yiyusen1229-eng/ai-chat-ui-arch/tree/master/other/docs/patches",
++  "notes": "拆包体检、成本显示与读档修复"
++}
