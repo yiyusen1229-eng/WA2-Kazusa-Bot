@@ -367,10 +367,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..edc6643
+index 0000000..3032821
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,255 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -582,6 +582,30 @@ index 0000000..edc6643
 +| 设置页 | 控件贴图 18 张、子节点 49 | ✓ |
 +| 特别模式 | 10 个面板、4 个滑条 | ✓ |
 +| 页面 errors | 空 | ✓ |
++
++
++### 12. 对话框右上角累计 token / 花费不显示
++
++现象：拆分后进入对话，右上角统计空白。
++
++排查结论：**渲染逻辑本身没坏**（探针注入用量后四个数字都正常出图：
++`1234` / `0.005600` / `56789` / `0.1234`，分别 4/8/5/6 张字模）。问题出在两点：
++
++1. `game.js` 的 `?v=` 还是拆分前的 `202611031500`，WebView2 很可能继续用**缓存里的旧 game.js**，
++   新旧代码混在一起 → 成本绑定没跑到新模块上；
++2. 成本容器的绑定只做了一次，元素没就绪就永远空白。
++
++修复：
++
++- `index.html` 里**所有** js/css 的 `?v=` 统一升到 `202611040330`（强制重新取文件）
++- `wt-cost.js`：
++  - 绑定逻辑抽成 `bindCostEls()`，每次刷新都检查，元素缺失就重试
++  - 补齐 `window.__renderCost`（拆分时被误删的那行）
++  - `DOMContentLoaded` 已过就立即执行（不再依赖事件）
++- 验证：注入用量后 `costNowT=1234`、`costNowC=0.005600`、`costTotalT=56789`、`costTotalC=0.1234`，
++  字模张数 4/8/5/6 全对
++
++> 升级后请**完全关掉程序再打开**（`启动程序.bat` 会重新同步），让 WebView2 拿新版本文件。
 +
 +## 四、变更文件
 +
@@ -5373,41 +5397,83 @@ index 1c95631..364d636 100644
    try {
      var P = (window.App && window.App.getPrefs) ? window.App.getPrefs() : {};
 diff --git a/program/src/ui/index.html b/program/src/ui/index.html
-index 1c1a04c..c6a33a8 100644
+index 1c1a04c..3dc8501 100644
 --- a/program/src/ui/index.html
 +++ b/program/src/ui/index.html
-@@ -272,12 +272,30 @@
+@@ -4,14 +4,14 @@
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>WHITE ALBUM 2</title>
+-<link rel="stylesheet" href="screens-base.css?v=11022135">
+-<link rel="stylesheet" href="opt-screen.css?v=11022135">
+-<link rel="stylesheet" href="save-screen.css?v=11022135">
+-<link rel="stylesheet" href="game450.css?v=202611031130">
+-<link rel="stylesheet" href="unifont.css?v=11022135">
+-<link rel="stylesheet" href="opt.css?v=202611031205">
+-  <link rel="stylesheet" href="menubar.css?v=202611031205">
+-<link rel="stylesheet" href="special.css?v=202611031730">
++<link rel="stylesheet" href="screens-base.css?v=202611040330">
++<link rel="stylesheet" href="opt-screen.css?v=202611040330">
++<link rel="stylesheet" href="save-screen.css?v=202611040330">
++<link rel="stylesheet" href="game450.css?v=202611040330">
++<link rel="stylesheet" href="unifont.css?v=202611040330">
++<link rel="stylesheet" href="opt.css?v=202611040330">
++  <link rel="stylesheet" href="menubar.css?v=202611040330">
++<link rel="stylesheet" href="special.css?v=202611040330">
+ </head>
+ <body>
+ <div id="stage">
+@@ -272,19 +272,37 @@
  </div>
  
  <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
-+<script src="wt-core.js?v=202611040100"></script>
-+<script src="wt-audio.js?v=202611040115"></script>
-+<script src="wt-sprite.js?v=202611040200"></script>
-+<script src="wt-voice.js?v=202611040200"></script>
-+<script src="wt-text.js?v=202611040200"></script>
-+<script src="wt-backlog.js?v=202611040200"></script>
-+<script src="wt-choices.js?v=202611040200"></script>
-+<script src="wt-chat.js?v=202611040200"></script>
-+<script src="wt-session.js?v=202611040230"></script>
-+<script src="wt-cost.js?v=202611040230"></script>
-+<script src="wt-mood.js?v=202611040230"></script>
-+<script src="wt-gdi.js?v=202611040230"></script>
-+<script src="wt-nav.js?v=202611040230"></script>
- <script src="config.js?v=11022135"></script>
-+<script src="opt-widgets.js?v=202611040245"></script>
-+<script src="opt-model.js?v=202611040245"></script>
- <script src="opt.js?v=202611031205"></script>
-   <script src="savetabs4.js?v=11022135"></script>
-   <script src="savepages.js?v=11022135"></script>
-   <script src="screens.js?v=11022135"></script>
+-<script src="config.js?v=11022135"></script>
+-<script src="opt.js?v=202611031205"></script>
+-  <script src="savetabs4.js?v=11022135"></script>
+-  <script src="savepages.js?v=11022135"></script>
+-  <script src="screens.js?v=11022135"></script>
 -  <script src="special.js?v=202611032030"></script>
-+  <script src="sp-sliders.js?v=202611040245"></script>
-+<script src="sp-char.js?v=202611040245"></script>
-+<script src="sp-panels.js?v=202611040245"></script>
-+<script src="special.js?v=202611032030"></script>
- <script src="game.js?v=202611031500"></script>
- <script src="sound.js?v=11022135"></script>
- <script src="zoom.js?v=11022135"></script>
+-<script src="game.js?v=202611031500"></script>
+-<script src="sound.js?v=11022135"></script>
+-<script src="zoom.js?v=11022135"></script>
+-<script src="debug.js?v=11022135"></script>
+-<script src="scale.js?v=11022135"></script>
+-<script src="menubar.js?v=202611031205"></script>
+-<script src="uitext.js?v=11022135"></script>
++<script src="wt-core.js?v=202611040330"></script>
++<script src="wt-audio.js?v=202611040330"></script>
++<script src="wt-sprite.js?v=202611040330"></script>
++<script src="wt-voice.js?v=202611040330"></script>
++<script src="wt-text.js?v=202611040330"></script>
++<script src="wt-backlog.js?v=202611040330"></script>
++<script src="wt-choices.js?v=202611040330"></script>
++<script src="wt-chat.js?v=202611040330"></script>
++<script src="wt-session.js?v=202611040330"></script>
++<script src="wt-cost.js?v=202611040330"></script>
++<script src="wt-mood.js?v=202611040330"></script>
++<script src="wt-gdi.js?v=202611040330"></script>
++<script src="wt-nav.js?v=202611040330"></script>
++<script src="config.js?v=202611040330"></script>
++<script src="opt-widgets.js?v=202611040330"></script>
++<script src="opt-model.js?v=202611040330"></script>
++<script src="opt.js?v=202611040330"></script>
++  <script src="savetabs4.js?v=202611040330"></script>
++  <script src="savepages.js?v=202611040330"></script>
++  <script src="screens.js?v=202611040330"></script>
++  <script src="sp-sliders.js?v=202611040330"></script>
++<script src="sp-char.js?v=202611040330"></script>
++<script src="sp-panels.js?v=202611040330"></script>
++<script src="special.js?v=202611040330"></script>
++<script src="game.js?v=202611040330"></script>
++<script src="sound.js?v=202611040330"></script>
++<script src="zoom.js?v=202611040330"></script>
++<script src="debug.js?v=202611040330"></script>
++<script src="scale.js?v=202611040330"></script>
++<script src="menubar.js?v=202611040330"></script>
++<script src="uitext.js?v=202611040330"></script>
+ <script>
+ /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
+ window.addEventListener("load", function () {
 diff --git a/program/src/ui/opt-model.js b/program/src/ui/opt-model.js
 new file mode 100644
 index 0000000..7b629ce
@@ -8715,10 +8781,10 @@ index 0000000..2f58e09
 +})();
 diff --git a/program/src/ui/wt-cost.js b/program/src/ui/wt-cost.js
 new file mode 100644
-index 0000000..e7ff380
+index 0000000..de41742
 --- /dev/null
 +++ b/program/src/ui/wt-cost.js
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,135 @@
 +/* cost.js —— 从 game.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.cost；同时同步到 window 以兼容旧调用。
 + */
@@ -8769,14 +8835,34 @@ index 0000000..e7ff380
 +    } catch (e) {}
 +  };
 +
-+  document.addEventListener("DOMContentLoaded", function () {
++  /* 绑定四个数字容器；元素还没出来就下次调用时再绑（拆分后这类时序更脆弱） */
++  function bindCostEls() {
++    if (COST_EL.totT && COST_EL.totC && COST_EL.nowT && COST_EL.nowC) return true;
 +    COST_EL.nowT = document.getElementById("costNowT");
 +    COST_EL.nowC = document.getElementById("costNowC");
 +    COST_EL.totT = document.getElementById("costTotalT");
 +    COST_EL.totC = document.getElementById("costTotalC");
-+    window.__refreshCost();
-+    setInterval(function () { window.__refreshCost(); }, 20000);
-+  });
++    return !!(COST_EL.totT && COST_EL.totC);
++  }
++
++  function refresh() {
++    bindCostEls();
++    try { window.__refreshCost(); } catch (e) {}
++  }
++
++  window.__renderCost = renderCost;
++  window.__bindCost = bindCostEls;
++  window.__refreshCostNow = refresh;
++
++  if (document.readyState === "loading") {
++    document.addEventListener("DOMContentLoaded", function () {
++      refresh();
++      setInterval(refresh, 20000);
++    });
++  } else {
++    refresh();
++    setInterval(refresh, 20000);
++  }
 +
 +  /* 隐藏窗口后，左键点一下画面就恢复 ——
 +     此时 UI 全是 pointer-events:none，点事件落在底层元素上，所以监听在 document 捕获阶段。
