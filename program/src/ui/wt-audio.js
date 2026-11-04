@@ -111,8 +111,6 @@
     try { bv = bgmVolume(); } catch (e) {}
     try { vv = voiceVolume(); } catch (e) {}
     try { bgm.volume = bv; } catch (e) {}
-    window.__volBgm = bv;
-    window.__volVoice = vv;
     return { bgm: bv, voice: vv };
   }
 
@@ -129,5 +127,15 @@
     get enabled() { return state.enabled; },
     set enabled(v) { state.enabled = !!v; }
   };
-  WA2.register("audio", WA2.audio);
+  var _exp = {};
+  var _names = ["applyVolume", "bgmSrc", "bgmVolume", "catalog", "pauseBgm", "playSE", "prefs", "setBgm", "voiceVolume"];
+  for (var _i = 0; _i < _names.length; _i++) {
+    try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
+  }
+  WA2.audio = _exp;
+  WA2.register("audio", _exp);
+  /* __export_all__ */
+  ["applyVolume", "bgmSrc", "bgmVolume", "catalog", "pauseBgm", "playSE", "prefs", "setBgm", "voiceVolume", "BGM_KEY", "P", "SE_BASE", "WA2", "_exp", "_names", "a", "b", "bgm", "bv", "fadeIn", "fadeOut", "from", "id", "item", "key", "m", "master", "seCache", "src", "state", "to", "v", "vol"].forEach(function (n) {
+    try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
+  });
 })();
