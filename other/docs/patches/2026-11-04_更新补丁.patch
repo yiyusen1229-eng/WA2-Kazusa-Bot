@@ -367,10 +367,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..3032821
+index 0000000..641324e
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,255 @@
+@@ -0,0 +1,285 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -606,6 +606,36 @@ index 0000000..3032821
 +  字模张数 4/8/5/6 全对
 +
 +> 升级后请**完全关掉程序再打开**（`启动程序.bat` 会重新同步），让 WebView2 拿新版本文件。
++
++
++### 13. 成本显示的真根因：同名函数被覆盖
++
++第 12 节只解决了「累计」能显示；本轮 token/花费仍然是空的。复现步骤：进对话 → 发一条消息 →
++右上角 `costNowT / costNowC` 的 `children=0`、`dataset.v=""`，而 `costTotalT/C` 有值。
++
++真因：`special.js` 里也有一个 `renderCost()`（特别模式的价格预估，**不接受参数**），
++它被导出到 `window.renderCost`，**覆盖了 wt-cost.js 的同名函数**。于是 `wt-chat` 里
++`renderCost(d.usage)` 实际调的是特别模式那个空函数 → 成本条自然不更新。
++
++修复：
++
++| 改动 | 说明 |
++|---|---|
++| `special.js`：`renderCost` → `renderPriceEstimate`（4 处） | 不再占用全局名 |
++| `wt-cost.js`：新增 `WA2.cost.render(usage)` | 名称明确，不受全局覆盖影响 |
++| `wt-chat.js`：改调 `WA2.cost.render(d.usage)` | 找不到时再退回 `window.renderCost` |
++| 顺手修 | `wt-chat` 里同一条 assistant 回复被 `history.push` 了两次，已删掉重复 |
++
++验证（真跑一次对话，假模型返回 total_tokens=940）：
++
++| 元素 | 结果 |
++|---|---|
++| 本轮 token `costNowT` | `2001`（4 张字模）✓ |
++| 本轮花费 `costNowC` | `0.000302`（8 张）✓ |
++| 累计 token `costTotalT` | `6003`（4 张）✓ |
++| 累计花费 `costTotalC` | `0.002285`（8 张）✓ |
++| 页面 errors | `[]` ✓ |
++| 特别模式 / 设置页 / 读档流程 | 均无回归 ✓ |
 +
 +## 四、变更文件
 +
@@ -7590,7 +7620,7 @@ index 0000000..19960fa
 +  });
 +})();
 diff --git a/program/src/ui/special.js b/program/src/ui/special.js
-index 7840fee..cd733ed 100644
+index 7840fee..488ba11 100644
 --- a/program/src/ui/special.js
 +++ b/program/src/ui/special.js
 @@ -19,13 +19,13 @@
@@ -7610,6 +7640,33 @@ index 7840fee..cd733ed 100644
    /* 每轮费用：不开本地估算，直接问后端要（和右下角花费同口径，随模型/高峰变） */
    var priceState = { cost: null, phase: "", model: "" };
  
+@@ -75,7 +75,7 @@
+       .then(function (d) {
+         if (seq !== priceSeq || !d || !d.ok) return;
+         priceState = { cost: d.cost, phase: d.phase, model: d.model };
+-        renderCost();
++        renderPriceEstimate();
+       })
+       .catch(function () { /* 后端没起来就保留上一次的数 */ });
+   }
+@@ -89,7 +89,7 @@
+     return c.toFixed(3);
+   }
+ 
+-  function renderCost() {
++  function renderPriceEstimate() {
+     var el = $("spv-cost");
+     if (!el) return;
+     var s = formatCost(priceState.cost);
+@@ -145,7 +145,7 @@
+     setNum($("spv-recent"), state.recent + "% = " + t.recent);
+     setNum($("spv-entries"), state.entries + "% = " + t.entries);
+     setNum($("spv-turn"), "≈ " + t.turn);
+-    renderCost();
++    renderPriceEstimate();
+   }
+ 
+   function scheduleReadouts() {
 @@ -157,590 +157,15 @@
    }
  
@@ -8223,7 +8280,7 @@ index 7840fee..cd733ed 100644
 +
 +  /* sp-* 模块（sliders/char/panels）是本文件拆出去的，它们要用这里的函数和状态 */
 +  window.__spExported = true;
-+  ["CTX_MAX", "DEF", "EST_OUT_TOKENS", "FIXED_OVERHEAD", "KNOB_PAD", "NUM_SRC", "a", "activeModel", "c", "ctx", "dirty", "el", "entries", "formatCost", "html", "m", "numHTML", "out", "priceState", "priceTimer", "rb", "readTimer", "recent", "refreshPrice", "renderCost", "renderReadouts", "s", "scheduleReadouts", "seq", "setGlyph", "setNum", "sl", "src", "state", "t", "tokens", "trigger", "turn", "url"].forEach(function (n) {
++  ["CTX_MAX", "DEF", "EST_OUT_TOKENS", "FIXED_OVERHEAD", "KNOB_PAD", "NUM_SRC", "a", "activeModel", "c", "ctx", "dirty", "el", "entries", "formatCost", "html", "m", "numHTML", "out", "priceState", "priceTimer", "rb", "readTimer", "recent", "refreshPrice", "renderPriceEstimate", "renderReadouts", "s", "scheduleReadouts", "seq", "setGlyph", "setNum", "sl", "src", "state", "t", "tokens", "trigger", "turn", "url"].forEach(function (n) {
 +    try { var v = eval(n); window[n] = v; } catch (e) {}
 +  });
  })();
@@ -8543,10 +8600,10 @@ index 0000000..b1df713
 +})();
 diff --git a/program/src/ui/wt-chat.js b/program/src/ui/wt-chat.js
 new file mode 100644
-index 0000000..b5a97cf
+index 0000000..c8bf924
 --- /dev/null
 +++ b/program/src/ui/wt-chat.js
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,101 @@
 +/* chat.js —— 从 game.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.chat；同时同步到 window 以兼容旧调用。
 + */
@@ -8595,7 +8652,7 @@ index 0000000..b5a97cf
 +    })()),
 +      });
 +      const d = await r.json();
-+      if (d && d.usage) { try { renderCost(d.usage); } catch (e) {} }
++      if (d && d.usage) { try { (WA2.cost && WA2.cost.render ? WA2.cost.render : window.renderCost)(d.usage); } catch (e) {} }
 +      if (d.error) { $("msgText").textContent = "[错误] " + d.error; return; }
 +      const reply = (d.reply || "").trim();
 +        const replyZh = (d.reply_zh || "").trim();
@@ -8608,7 +8665,6 @@ index 0000000..b5a97cf
 +    renderThinking();
 +      history.push({ role: "assistant", content: reply });
 +      window.__history = history;
-+      history.push({ role: "assistant", content: reply });
 +      window.__history = history;
 +      // 对话框显示中文（有译文用译文），历史记录也显示中文
 +      const shown = replyZh ? ("「" + replyZh.replace(/^「|」$/g, "") + "」") : reply;
@@ -8781,10 +8837,10 @@ index 0000000..2f58e09
 +})();
 diff --git a/program/src/ui/wt-cost.js b/program/src/ui/wt-cost.js
 new file mode 100644
-index 0000000..de41742
+index 0000000..02fa840
 --- /dev/null
 +++ b/program/src/ui/wt-cost.js
-@@ -0,0 +1,135 @@
+@@ -0,0 +1,153 @@
 +/* cost.js —— 从 game.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.cost；同时同步到 window 以兼容旧调用。
 + */
@@ -8794,15 +8850,30 @@ index 0000000..de41742
 +
 +  function costNum(el, str) {
 +    if (!el) return;
-+    if (el.dataset.v === str) return;
++    if (el.dataset.v === str && el.children.length) return;
 +    el.dataset.v = str;
 +    var html = "";
 +    for (var i = 0; i < str.length; i++) {
 +      var ch = str.charAt(i);
 +      var key = (ch === ".") ? "cost_dot" : ("cost_d" + ch);
-+      html += '<img src="assets/ui/text/' + key + '.png" alt="">';
++      html += '<img src="assets/ui/text/' + key + '.png" alt="' + ch + '">';
 +    }
 +    el.innerHTML = html;
++    /* 字模图缺失时退回文字，至少能看到数字 */
++    var imgs = el.querySelectorAll("img");
++    for (var j = 0; j < imgs.length; j++) {
++      (function (img, c) {
++        img.addEventListener("error", function () {
++          if (!el.dataset.plain) {
++            el.dataset.plain = "1";
++            el.style.fontSize = "11px";
++            el.style.color = "#cfe9f5";
++            el.style.lineHeight = "12px";
++            el.textContent = str;
++          }
++        });
++      })(imgs[j], str);
++    }
 +  }
 +
 +  /* 金额转成"纯数字串"（币种符号已经是一张固定的 ¥ 图） */
@@ -8816,6 +8887,8 @@ index 0000000..de41742
 +
 +  function renderCost(u) {
 +    if (!u) return;
++    /* 每次渲染前重新确认元素（拆分后元素可能比脚本晚出现） */
++    try { bindCostEls(); } catch (e) {}
 +    if (u.tokens !== undefined) {
 +      costNum(COST_EL.nowT, String(Math.round(u.tokens)));
 +      costNum(COST_EL.nowC, moneyStr(u.cost));
@@ -8915,6 +8988,7 @@ index 0000000..de41742
 +  }
 +  WA2.cost = _exp;
 +  WA2.register("cost", _exp);
++  if (WA2.cost) WA2.cost.render = renderCost;
 +  /* __export_all__ */
 +  ["costNum", "moneyStr", "renderCost", "WA2", "_exp", "_names", "ch", "css", "el", "html", "key"].forEach(function (n) {
 +    try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
