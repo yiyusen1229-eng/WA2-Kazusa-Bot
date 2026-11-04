@@ -367,10 +367,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..b065aa7
+index 0000000..edc6643
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,202 @@
+@@ -0,0 +1,231 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -553,6 +553,35 @@ index 0000000..b065aa7
 +| 设置页 | 打开正常，`bindContent / modelApi` 在 |
 +| 正文渲染 | `showReply` 后 `#msgText` 有内容，`errors: []` |
 +| JS 语法 | 17 个文件 `node --check` 全过 |
++
++
++### 11. 拆分后的回归与修复（读档后回想/语音错位）
++
++用户实测发现：读 6 号档→回想空的；再读 1 号档→第一句语音和回想还是 6 号档的内容（错位一格）；
++再读 6 号档→回想显示 1 号档的。
++
++根因三处，都是拆分时的机械性问题，不是业务逻辑：
++
++| 问题 | 根因 | 修复 |
++|---|---|---|
++| 读档后回想为空 / 落后一档 | `rebuildBacklog` 读 `window.__history`，而读档用的是 `history = 新数组`（换引用），
++镜像没同步 | 读档改成**清空再填同一个数组**（`applyHistory`），`window.__history` 始终是同一引用；
++`game.js` 声明处就绑定 |
++| 第一句语音是上一个档的内容 | 拆分时正则误删了 `window.__speakJa = clean;`（11 行 `window.x=…` 被删） | 按上下文原位补回（`__speakJa`、`__voiceWarned`、`__wantRestore`、`__charName`、`__ctBound`、`__ct2Bound` 等 7 行） |
++| 设置页内容区空白 | `opt-widgets` 里的 `bindContent` 调 `byId`，而 `byId` 是 `opt.js` IIFE 的私有函数 | `opt.js` 结尾统一导出顶层函数/变量（37 个）到 `window` |
++
++另外顺手修了 `bindContent` 的守卫顺序（`__ctBound` 被补到守卫之前，导致永远直接 return）。
++
++验证（模拟用户操作序列，探针无截图）：
++
++| 步骤 | 期望 | 实测 |
++|---|---|---|
++| `__loadSession(6 号档，2 条)` | 回想 2 行、`__speakJa` = 6 号档最后一句 | 2 行 ✓，`6-a` ✓ |
++| 再 `__loadSession(1 号档，4 条)` | 回想 4 行、`__speakJa` = 1 号档最后一句 | 4 行 ✓，`1-a2` ✓ |
++| `history` 长度 / 最后一条 | 4 / 1 号档最后一条 | 4 ✓，内容正确 ✓ |
++| 设置页 | 控件贴图 18 张、子节点 49 | ✓ |
++| 特别模式 | 10 个面板、4 个滑条 | ✓ |
++| 页面 errors | 空 | ✓ |
 +
 +## 四、变更文件
 +
@@ -3908,10 +3937,15 @@ index 0000000..b18514b
 +    """至少两个假名才算“像日语”，防止把中文塞给 TTS。"""
 +    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
 diff --git a/program/src/ui/game.js b/program/src/ui/game.js
-index 1c95631..41f953e 100644
+index 1c95631..364d636 100644
 --- a/program/src/ui/game.js
 +++ b/program/src/ui/game.js
-@@ -6,8 +6,6 @@ let typing = false;
+@@ -2,12 +2,11 @@
+ const $ = (id) => document.getElementById(id);
+ 
+ let history = [];
++window.__history = history;   // 同一引用：读档只改内容、不换数组
+ let typing = false;
  let fullText = "";
  let turnCount = 0;
  let backlogOpen = false;
@@ -3920,7 +3954,7 @@ index 1c95631..41f953e 100644
  /* 角色名：存在 char/name.txt，特别模式里改的就是它 */
  let CHAR_NAME = "角色";
  
-@@ -40,29 +38,9 @@ function bgSrc(name) {
+@@ -40,29 +39,9 @@ function bgSrc(name) {
  }
  
  
@@ -3953,7 +3987,7 @@ index 1c95631..41f953e 100644
  
  /* ---------- 开场动画 ---------- */
  (function intro() {
-@@ -183,124 +161,12 @@ function voiceVolume() {
+@@ -183,124 +162,12 @@ function voiceVolume() {
    }, 2000);
  })();
  
@@ -4082,7 +4116,7 @@ index 1c95631..41f953e 100644
  
  function loadOpeningLine() {
    return fetch("/api/character/opening", { cache: "no-store" })
-@@ -318,140 +184,8 @@ loadOpeningLine();
+@@ -318,140 +185,8 @@ loadOpeningLine();
  function openingLine() { return OPENING_LINE; }
  
  /* ---------- 会话存档 ---------- */
@@ -4224,7 +4258,7 @@ index 1c95631..41f953e 100644
  function setBg(name) {
    if (currentBg === name) return;
    currentBg = name;
-@@ -466,123 +200,12 @@ function setBg(name) {
+@@ -466,123 +201,12 @@ function setBg(name) {
    }, 260);
  }
  
@@ -4351,7 +4385,7 @@ index 1c95631..41f953e 100644
  /* ---------- 飘雪 ---------- */
  (function snow() {
    const box = $("snowLayer");
-@@ -606,47 +229,8 @@ function showScreen(id) {
+@@ -606,47 +230,8 @@ function showScreen(id) {
  
  /* ---------- GDI 字体渲染(复刻游戏原生方案) ---------- */
  const NAME_BOOST = 1.0;   // 人名比正文大一点点(按像素比对)
@@ -4400,7 +4434,7 @@ index 1c95631..41f953e 100644
  function emoOf(text) {
    const m = detectMood(text || "");
    if (m === "angry") return "angry";
-@@ -655,814 +239,17 @@ function emoOf(text) {
+@@ -655,814 +240,17 @@ function emoOf(text) {
    return "neutral";
  }
  
@@ -5221,7 +5255,7 @@ index 1c95631..41f953e 100644
  
  function syncHistThumb() {
    const list = $("historyList"), thumb = $("hsThumb"), track = $("hsTrack");
-@@ -1590,8 +377,8 @@ window.__applyVolumes = function () {
+@@ -1590,8 +378,8 @@ window.__applyVolumes = function () {
    var bv = 0, vv = 0;
    try { bv = bgmVolume(); } catch (e) {}
    try { vv = voiceVolume(); } catch (e) {}
@@ -5232,7 +5266,7 @@ index 1c95631..41f953e 100644
    window.__volBgm = bv;
    window.__volVoice = vv;
  };
-@@ -1716,104 +503,8 @@ document.addEventListener("wheel", function (e) {
+@@ -1716,104 +504,8 @@ document.addEventListener("wheel", function (e) {
     文案与 0~9 都是烤好的字模（tools/bake_cost_ui.py），这里只负责拼图，
     不再请求 /api/text —— 那个渲染器是中文网格，拉丁字母会被撑开。 */
  var COST_EL = {};
@@ -5721,10 +5755,10 @@ index 0000000..7b629ce
 +})();
 diff --git a/program/src/ui/opt-widgets.js b/program/src/ui/opt-widgets.js
 new file mode 100644
-index 0000000..70dd9fc
+index 0000000..578abf5
 --- /dev/null
 +++ b/program/src/ui/opt-widgets.js
-@@ -0,0 +1,387 @@
+@@ -0,0 +1,389 @@
 +/* optWidgets.js —— 从 opt.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.optWidgets；同时同步到 window 以兼容旧调用。
 + */
@@ -5733,7 +5767,8 @@ index 0000000..70dd9fc
 +  var $ = (WA2.util && WA2.util.$) || function (id) { return document.getElementById(id); };
 +
 +    function bindContent() {
-+      if (window.__ctBound) return;
++    if (window.__ctBound) return;
++      window.__ctBound = true;
 +      var box = byId("optContent");
 +      if (!box) return;
 +
@@ -5913,7 +5948,8 @@ index 0000000..70dd9fc
 +    };
 +
 +    function bindContent2() {
-+      if (window.__ct2Bound) return;
++    if (window.__ct2Bound) return;
++      window.__ct2Bound = true;
 +      ;
 +
 +      var box = byId("optContent2");
@@ -6113,7 +6149,7 @@ index 0000000..70dd9fc
 +  });
 +})();
 diff --git a/program/src/ui/opt.js b/program/src/ui/opt.js
-index fd7fd1e..b5e7549 100644
+index fd7fd1e..df97dbc 100644
 --- a/program/src/ui/opt.js
 +++ b/program/src/ui/opt.js
 @@ -158,697 +158,10 @@ var CT, CT2;
@@ -6816,6 +6852,19 @@ index fd7fd1e..b5e7549 100644
    function bindExit() {
      if (exitBound) return;
      exitBound = true;
+@@ -875,6 +188,12 @@ var CT, CT2;
+   document.addEventListener("keydown", function (e) {
+     if (e.key === "Escape" && window.__optOpen) close();
+   });
++
++  /* opt-widgets / opt-model 是从本文件拆出去的，它们要用这里的私有函数和变量 */
++  window.__optExported = true;
++  ["applyCt1", "applyCt2", "bindExit", "bindPager", "bindTabs", "byId", "close", "ct1Pct", "ct2Pct", "open", "refreshTabs", "restoreCt1", "restoreCt2", "safe", "setTab", "P", "a", "base", "c1", "c2", "c3", "cur", "current", "el", "hover", "img", "n", "nxt", "on", "pagerBound", "run", "s", "sp", "speed", "src", "st", "tabsBound"].forEach(function (n) {
++    try { var v = eval(n); if (v !== undefined) window[n] = v; } catch (e) {}
++  });
+ })();
+ 
+ /* ---------- OPTION 2 的取值真正生效 ----------
 diff --git a/program/src/ui/sp-char.js b/program/src/ui/sp-char.js
 new file mode 100644
 index 0000000..47a720b
@@ -8261,7 +8310,7 @@ index 0000000..10673ad
 +})();
 diff --git a/program/src/ui/wt-backlog.js b/program/src/ui/wt-backlog.js
 new file mode 100644
-index 0000000..3a7d1dc
+index 0000000..b1df713
 --- /dev/null
 +++ b/program/src/ui/wt-backlog.js
 @@ -0,0 +1,161 @@
@@ -8378,7 +8427,7 @@ index 0000000..3a7d1dc
 +    const list = $("historyList");
 +    if (!list) return;
 +    list.innerHTML = "";
-+    (window.__history || []).forEach(function (m) {
++    (window.__history || history || []).forEach(function (m) {
 +      if (!m) return;
 +      const isHer = m.role === "assistant";
 +      const shown = isHer ? (m.zh || m.content || "") : (m.content || "");
@@ -8666,10 +8715,10 @@ index 0000000..2f58e09
 +})();
 diff --git a/program/src/ui/wt-cost.js b/program/src/ui/wt-cost.js
 new file mode 100644
-index 0000000..a1a1555
+index 0000000..e7ff380
 --- /dev/null
 +++ b/program/src/ui/wt-cost.js
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,115 @@
 +/* cost.js —— 从 game.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.cost；同时同步到 window 以兼容旧调用。
 + */
@@ -8758,7 +8807,8 @@ index 0000000..a1a1555
 +  window.__setCharName = function (n) {
 +    if (!n) return;
 +    CHAR_NAME = n;
-+    var el = document.getElementById("namePlate");
++    window.__charName = n;
++  var el = document.getElementById("namePlate");
 +    if (el && typeof gdiRenderName === "function") gdiRenderName(n, el);
 +    // 输入框占位符等跟着名字变（uitext.js 监听）
 +    try {
@@ -8933,10 +8983,10 @@ index 0000000..ad4fd0e
 +})();
 diff --git a/program/src/ui/wt-nav.js b/program/src/ui/wt-nav.js
 new file mode 100644
-index 0000000..ae4498f
+index 0000000..a920fed
 --- /dev/null
 +++ b/program/src/ui/wt-nav.js
-@@ -0,0 +1,254 @@
+@@ -0,0 +1,255 @@
 +/* nav.js —— 从 game.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.nav；同时同步到 window 以兼容旧调用。
 + */
@@ -8998,7 +9048,8 @@ index 0000000..ae4498f
 +    gdiRenderName(CHAR_NAME, $("namePlate"));
 +    setBgm("calm", 600);
 +    if (window.__wantRestore) {
-+      sessionRestore().then(function (ok) {
++      window.__wantRestore = false;
++    sessionRestore().then(function (ok) {
 +        if (!ok) setTimeout(() => { var _o = openingLine(); typewriter(_o.zh); speakLineJa(_o.ja, _o.emo); }, 200);
 +      });
 +    } else {
@@ -9193,10 +9244,10 @@ index 0000000..ae4498f
 +})();
 diff --git a/program/src/ui/wt-session.js b/program/src/ui/wt-session.js
 new file mode 100644
-index 0000000..c4ade2b
+index 0000000..824c218
 --- /dev/null
 +++ b/program/src/ui/wt-session.js
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,158 @@
 +/* session.js —— 从 game.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.session；同时同步到 window 以兼容旧调用。
 + */
@@ -9218,12 +9269,19 @@ index 0000000..c4ade2b
 +    } catch (e) {}
 +  }
 +
++  /* 读档：保持 history 是同一个数组（别的模块持有引用），只换内容 */
++  function applyHistory(arr) {
++    history.length = 0;
++    (arr || []).forEach(function (m) { history.push(m); });
++    window.__history = history;
++  }
++
 +  function sessionRestore() {
 +    return fetch("/api/session/load?slot=auto", { cache: "no-store" })
 +      .then(function (r) { return r.json(); })
 +      .then(function (d) {
 +        if (!d || !d.ok || !d.messages || !d.messages.length) return false;
-+        history = d.messages;
++        applyHistory(d.messages);
 +        const meta = d.meta || {};
 +        if (meta.bg) { currentBg = null; setBg(meta.bg); }
 +        if (meta.outfit) { WA2.state.outfit = meta.outfit; }
@@ -9253,7 +9311,7 @@ index 0000000..c4ade2b
 +  /* 读档：把存档恢复到当前对话并进入游戏 */
 +  window.__loadSession = function (data) {
 +    try {
-+      history = data.messages || [];
++      applyHistory(data.messages);
 +      const meta = data.meta || {};
 +      showScreen("gameScreen");
 +      titleBgmStarted = true;
@@ -9350,7 +9408,7 @@ index 0000000..c4ade2b
 +})();
 diff --git a/program/src/ui/wt-sprite.js b/program/src/ui/wt-sprite.js
 new file mode 100644
-index 0000000..07438b9
+index 0000000..6db3c23
 --- /dev/null
 +++ b/program/src/ui/wt-sprite.js
 @@ -0,0 +1,152 @@
@@ -9465,7 +9523,7 @@ index 0000000..07438b9
 +  }
 +
 +  function summary() {
-+    var outfits = 0, files = 0;
++  var outfits = 0, files = 0;
 +    for (var k in SPRITE_INDEX) {
 +      outfits++;
 +      var vs = (SPRITE_INDEX[k] || {}).variants || [];
@@ -9757,10 +9815,10 @@ index 0000000..12e5e58
 +})();
 diff --git a/program/src/ui/wt-voice.js b/program/src/ui/wt-voice.js
 new file mode 100644
-index 0000000..c458824
+index 0000000..adf7603
 --- /dev/null
 +++ b/program/src/ui/wt-voice.js
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,107 @@
 +/* voice.js —— 从 game.js 搬出的功能块（逻辑未改）
 + * 挂载：WA2.voice；同时同步到 window 以兼容旧调用。
 + */
@@ -9815,7 +9873,8 @@ index 0000000..c458824
 +          done = true; clearTimeout(timer);
 +          /* 语音服务没起来时别静默失败：提示一次（同一局里不反复弹） */
 +          if (!window.__voiceWarned) {
-+            if (window.__saveHint) window.__saveHint("语音暂时不可用，先显示文字");
++            window.__voiceWarned = true;
++          if (window.__saveHint) window.__saveHint("语音暂时不可用，先显示文字");
 +          }
 +          resolve(null);
 +        });
@@ -9841,7 +9900,8 @@ index 0000000..c458824
 +    if (!ttsOn) return;
 +    var clean = (ja || "").replace(/^[「『]|[」』]$/g, "").trim();
 +    if (!clean) return;
-+    window.__lastEmo = emo || window.__lastEmo || "soft";
++    window.__speakJa = clean;
++  window.__lastEmo = emo || window.__lastEmo || "soft";
 +    waitTtsReady(function () { speakReply(clean); }, 60);
 +  }
 +
