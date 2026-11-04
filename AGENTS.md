@@ -58,6 +58,12 @@ python program\tools\check_assets.py                  # 素材自检
    未定义引用、重复语句、漏搬函数，五类坑一次扫出来。
 6. **只读一层**：先看 `other/docs/架构/映射表.md` 的「层级 / 被谁调用」两列，再决定读哪个文件。
 
+## 文件命名（硬性）
+
+- 新增的日志 / 补丁 / 快照：`名称_YYYY-MM-DD_HH-MM-SS.后缀`（例如 `更新日志_2026-11-04_01-55-30.md`）
+- 已发布过的文件不改名（避免断链）
+- 补丁放在 `other/docs/patches/`，日志放在 `other/docs/`
+
 ## 不许动的东西
 
 - `characters/`、`res/assets/`、`persona/`、`worldbook/`、`sessions/`、`release/` 是本地数据，**不入库、不上传**。
