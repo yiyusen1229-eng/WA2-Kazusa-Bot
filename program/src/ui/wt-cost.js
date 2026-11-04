@@ -48,14 +48,34 @@
     } catch (e) {}
   };
 
-  document.addEventListener("DOMContentLoaded", function () {
+  /* 绑定四个数字容器；元素还没出来就下次调用时再绑（拆分后这类时序更脆弱） */
+  function bindCostEls() {
+    if (COST_EL.totT && COST_EL.totC && COST_EL.nowT && COST_EL.nowC) return true;
     COST_EL.nowT = document.getElementById("costNowT");
     COST_EL.nowC = document.getElementById("costNowC");
     COST_EL.totT = document.getElementById("costTotalT");
     COST_EL.totC = document.getElementById("costTotalC");
-    window.__refreshCost();
-    setInterval(function () { window.__refreshCost(); }, 20000);
-  });
+    return !!(COST_EL.totT && COST_EL.totC);
+  }
+
+  function refresh() {
+    bindCostEls();
+    try { window.__refreshCost(); } catch (e) {}
+  }
+
+  window.__renderCost = renderCost;
+  window.__bindCost = bindCostEls;
+  window.__refreshCostNow = refresh;
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      refresh();
+      setInterval(refresh, 20000);
+    });
+  } else {
+    refresh();
+    setInterval(refresh, 20000);
+  }
 
   /* 隐藏窗口后，左键点一下画面就恢复 ——
      此时 UI 全是 pointer-events:none，点事件落在底层元素上，所以监听在 document 捕获阶段。
