@@ -367,10 +367,10 @@ index 7a0e29d..0000000
 -5. 页签切换翻页
 diff --git a/other/docs/更新日志_2026-11-04.md b/other/docs/更新日志_2026-11-04.md
 new file mode 100644
-index 0000000..ce114e1
+index 0000000..7605e63
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-04.md
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,129 @@
 +# 更新日志 2026-11-04 · 省 token 与模块化
 +
 +> 这一轮不加功能，只降成本：**不输出截图**、**按架构分层索引只读一层**、**清掉废弃文档**。
@@ -458,6 +458,28 @@ index 0000000..ce114e1
 +  5. 只读一层：先看映射表的「层级 / 被谁调用」再决定读哪个文件
 +
 +> 当前待拆前三：main.py 1879 行、game.js 1830 行、opt.js 1022 行。
++
++
++### 7. 代码拆分第 2 步：Handler 拆成 6 个 mixin
++
++| 新文件 | 内容 | 行数 |
++|---|---|---|
++| `api_window.py` | `_window_ctl`（窗口关闭/最小化/移动/拖拽） | 147 |
++| `api_char.py` | `_character_get`、`_after_switch` | 59 |
++| `api_modelcfg.py` | `_modelcfg`（模型配置读写/探测） | 74 |
++| `api_tts.py` | `_tts`（语音合成） | 65 |
++| `api_text.py` | `_text_img`（字模渲染） | 99 |
++| `api_chat.py` | `_chat`（对话入口，184 行，最大的一块） | 184 |
++
++- `main.py`：**1879 → 1322 行**
++- `Handler` 现在由 6 个 mixin + `SimpleHTTPRequestHandler` 组成；方法体**一字未改**，
++  只在方法开头注入 `from main import (...)` 拿运行时全局（`_WINDOW` / `STORY` / `_TEXT_CACHE` 等）
++- 验证：6 个自测全过；`/api/ping`、`/api/text`(2231B)、`/api/window`、`/api/character/list`、
++  `/api/scene/list`、`/api/modelcfg`、`/api/tts`(63KB wav) 全部 200；
++  假模型注入对比：记忆书 + 世界书 + 剧情检索都在，system **2445 字**与拆分前一致
++
++> 踩到的坑（已修）：`globals().get("_WINDOW")` 搬到新模块后会查错命名空间，改成 `main._WINDOW`；
++> 拆分脚本替换 `import pricing as _pricing` 时把别名弄丢，已还原。
 +
 +## 四、变更文件
 +
@@ -1974,10 +1996,10 @@ index 0000000..a02c5cc
 +- 所有“本地数据”都在 `.gitignore`，别手滑 `git add -f`。
 diff --git a/other/docs/架构/08_代码拆分计划.md b/other/docs/架构/08_代码拆分计划.md
 new file mode 100644
-index 0000000..d440c67
+index 0000000..dd5990d
 --- /dev/null
 +++ b/other/docs/架构/08_代码拆分计划.md
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,72 @@
 +# 08 · 代码拆分计划（进行中）
 +
 +> 目标：把「一个大文件」拆成「一个功能一个文件」，让代理只读需要的那一只。
@@ -1987,7 +2009,7 @@ index 0000000..d440c67
 +
 +| 文件 | 体积 | 问题 |
 +|---|---|---|
-+| `program/src/main.py` | 1875 行（原 1955） | HTTP + 配置 + 对话管线 + 记忆胶水 + 窗口控制全在一起 |
++| `program/src/main.py` | **1322 行**（原 1955） | 只剩路由分发 + 静态文件 + 启动；业务已拆到 api_*.py |
 +| `program/src/ui/game.js` | 68 KB | 演出 + 请求 + 立绘 + 回想 + 音频 + 滚轮/右键 |
 +| `program/src/ui/opt.js` | 37 KB | 设置页全部逻辑 |
 +| `program/src/ui/special.js` | 28 KB | 参数滑条 + 角色 + 语音 + 世界书 |
@@ -2037,7 +2059,8 @@ index 0000000..d440c67
 +| 步 | 内容 | 风险 | 验证 |
 +|---|---|---|---|
 +| 1 ✅ | `text_parse.py`（纯函数 7 个） | 极低 | 6 个自测 |
-+| 2 | `rt_cfg.py`（路径/prefs/云配置/模型配置） | 低 | 自测 + `/api/ping` + 设置页 |
++| 2 ⏳ | `rt_cfg.py`（路径/prefs/云配置/模型配置） | 低 | 自测 + `/api/ping` + 设置页 |
++| 2b ✅ | `api_window / api_char / api_modelcfg / api_tts / api_text / api_chat`（6 个 mixin，666 行搬出） | 中 | 6 自测 + 6 个接口 200 + 注入对比 2445 字一致 |
 +| 3 | `api/base.py`（静态服务 + send_head） | 中 | 素材 200、音频 Range |
 +| 4 | `api/window.py`、`api/text.py`、`api/tts.py` | 中 | 探针：窗口/字模/语音 |
 +| 5 | `chat_llm.py` + `api/chat.py` | **高** | 假模型注入 system 对比、6 自测 |
@@ -2051,10 +2074,10 @@ index 0000000..d440c67
 +- 每次拆完更新本文件「现状」表，标 ✅。
 diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
 new file mode 100644
-index 0000000..ca74d43
+index 0000000..00940ed
 --- /dev/null
 +++ b/other/docs/架构/映射表.md
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,174 @@
 +# 架构映射表（自动生成，不要手改）
 +
 +> 由 `program/tools/arch_map.py --write` 生成。改了代码就重跑，表会跟着变。
@@ -2088,7 +2111,7 @@ index 0000000..ca74d43
 +
 +| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
 +|---|---|---|---|---|---|
-+| `src/main.py` | 1879 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | applog, char_res, characters, memory, persona_ctx, persona_stage | — |
++| `src/main.py` | 1322 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | api_char, api_chat, api_modelcfg, api_text, api_tts, api_window | — |
 +
 +## 二级 · 前端/壳
 +
@@ -2138,7 +2161,7 @@ index 0000000..ca74d43
 +
 +| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
 +|---|---|---|---|---|---|
-+| `src/scene_cg.py` | 374 | 场景 CG 标签与匹配 | set_assets_dir, index_path, parse_name, catalog, match, prompt_hint | — | main |
++| `src/scene_cg.py` | 374 | 场景 CG 标签与匹配 | set_assets_dir, index_path, parse_name, catalog, match, prompt_hint | — | api_chat, main |
 +
 +## 二级 · 字模
 +
@@ -2153,11 +2176,47 @@ index 0000000..ca74d43
 +|---|---|---|---|---|---|
 +| `src/sessions.py` | 126 | 存读档读写 | session_save, session_load, session_list, session_thumb | — | main |
 +
++## 二级 · 接口/字模
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_text.py` | 100 | /api/text 字模渲染 | TextApi | — | main |
++
++## 二级 · 接口/对话
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_chat.py` | 185 | /api/chat 对话入口 | ChatApi | char_res, characters, persona_ctx, scene_cg, tts_client | main |
++
++## 二级 · 接口/模型
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_modelcfg.py` | 75 | /api/modelcfg | ModelCfgApi | tts_client | main |
++
++## 二级 · 接口/窗口
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_window.py` | 149 | 窗口控制 /api/window | WindowApi | applog | main |
++
++## 二级 · 接口/角色
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_char.py` | 60 | 角色查询与切换后处理 | CharApi | characters, persona_stage, special_cfg | main |
++
++## 二级 · 接口/语音
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_tts.py` | 66 | /api/tts 语音合成 | TtsApi | applog, tts_client | main |
++
 +## 二级 · 核心
 +
 +| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
 +|---|---|---|---|---|---|
-+| `src/applog.py` | 150 | 日志文件 | path, log, error, dump_stacks, start_heartbeat, stop | — | main |
++| `src/applog.py` | 150 | 日志文件 | path, log, error, dump_stacks, start_heartbeat, stop | — | api_tts, api_window, main |
 +| `src/pricing.py` | 241 | 价格与用量估算 | table, currency, prices_for, is_peak, cost, estimate | — | main |
 +| `src/text_parse.py` | 94 | 回复标签解析、日文清理（纯函数） | split_scene, split_emotion, split_action, split_thinking, ja_clean, ja_ok | — | main |
 +| `src/winutil.py` | 76 | Windows 窗口 API | — | — | main |
@@ -2166,35 +2225,700 @@ index 0000000..ca74d43
 +
 +| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
 +|---|---|---|---|---|---|
-+| `src/char_res.py` | 234 | 角色资源定位与状态 | char_file, prompt_path, prompt_text, worldbook, worldbook_text, memory_path | special_files | main, persona_ctx, tts_client |
-+| `src/characters.py` | 528 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | main, persona_ctx, special_cfg, special_files |
-+| `src/special_cfg.py` | 132 | 角色名读写 | name_file, defaults, current, ensure, save, get_name | characters, memory | main |
++| `src/char_res.py` | 234 | 角色资源定位与状态 | char_file, prompt_path, prompt_text, worldbook, worldbook_text, memory_path | special_files | api_chat, main, persona_ctx, tts_client |
++| `src/characters.py` | 528 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | api_char, api_chat, main, persona_ctx, special_cfg, special_files |
++| `src/special_cfg.py` | 132 | 角色名读写 | name_file, defaults, current, ensure, save, get_name | characters, memory | api_char, main |
 +| `src/special_files.py` | 404 | 特别模式导入/打开/立绘落盘 | char_dir, set_assets_dir, save_upload, set_default_paths, kind_dir, portrait_dir | characters | char_res, main |
-+| `src/tts_client.py` | 624 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | char_res | main |
++| `src/tts_client.py` | 624 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | char_res | api_chat, api_modelcfg, api_tts, main |
 +
 +## 二级 · 记忆
 +
 +| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
 +|---|---|---|---|---|---|
 +| `src/memory.py` | 405 | 对话记忆书：阈值/打包/条目 | cfg, ctx_for, budget, est_text, est_msg, est_messages | — | main, persona_stage, special_cfg |
-+| `src/persona_ctx.py` | 282 | 人设正文、世界书命中、时期 | set_logger, prompt_dir, worldbook_file, default_paths, period_of, persona_text | char_res, characters, persona_stage | main |
-+| `src/persona_stage.py` | 188 | 关系阶段分类 | set_logger, set_llm, detect_local, classify_now, current, reset | memory | main, persona_ctx |
++| `src/persona_ctx.py` | 282 | 人设正文、世界书命中、时期 | set_logger, prompt_dir, worldbook_file, default_paths, period_of, persona_text | char_res, characters, persona_stage | api_chat, main |
++| `src/persona_stage.py` | 188 | 关系阶段分类 | set_logger, set_llm, detect_local, classify_now, current, reset | memory | api_char, main, persona_ctx |
 +| `src/story_rag.py` | 223 | 原作检索（BM25） | tokenize, StoryIndex, enabled, active_index, get_index, preload | — | — |
 +
 +## 待拆（行数最多的 8 个）
 +
 +| 文件 | 行数 | 建议 |
 +|---|---|---|
-+| `src/main.py` | 1879 | 超过 800 行，必须拆 |
 +| `src/ui/game.js` | 1830 | 超过 800 行，必须拆 |
++| `src/main.py` | 1322 | 超过 800 行，必须拆 |
 +| `src/ui/opt.js` | 1022 | 超过 800 行，必须拆 |
 +| `src/ui/special.js` | 774 | 超过 400 行，建议拆 |
 +| `src/tts_client.py` | 624 | 超过 400 行，建议拆 |
 +| `src/characters.py` | 528 | 超过 400 行，建议拆 |
 +| `src/ui/menubar.js` | 523 | 超过 400 行，建议拆 |
 +| `src/memory.py` | 405 | 超过 400 行，建议拆 |
+diff --git a/program/src/api_char.py b/program/src/api_char.py
+new file mode 100644
+index 0000000..b6e33fa
+--- /dev/null
++++ b/program/src/api_char.py
+@@ -0,0 +1,59 @@
++# -*- coding: utf-8 -*-
++"CharApi 的 mixin：从 main.py 拆出，方法体未改动。"
++
++import json, os
++import characters
++import persona_stage
++import special_cfg
++
++
++class CharApi:
++    """见 main.Handler；从 main 注入运行时全局。"""
++
++    def _character_get(self):
++        from main import (ASSETS_DIR)
++        """GET /api/character/…：角色列表 / 立绘索引。
++
++        立绘图片本身不走这里（返回 None，交给 translate_path 的静态分支）——
++        这样 Range / 缓存 / Content-Type 都复用现成的那套。
++        """
++        if self.path.startswith("/api/character/sprite/index.json"):
++            return self._json(characters.sprite_index(os.path.join(ASSETS_DIR, "sprites")))
++        if self.path == "/api/character/opening":
++            try:
++                p = os.path.join(characters.active_dir(), "opening.json")
++                if os.path.isfile(p):
++                    with open(p, encoding="utf-8") as f:
++                        d = json.load(f)
++                    if isinstance(d, dict):
++                        return self._json({"ok": True, "zh": d.get("zh", ""),
++                                           "ja": d.get("ja", ""),
++                                           "emotion": d.get("emotion", "calm")})
++            except Exception:
++                pass
++            return self._json({"ok": False})
++        if self.path.startswith("/api/character/list"):
++            return self._json({"ok": True,
++                               "active": characters.active_id(),
++                               "dir": characters.root(),
++                               "characters": characters.list_characters()})
++        return None
++
++    def _after_switch(self, res):
++        from main import (_set_character_sessions)
++        """切换 / 新建角色之后：关系阶段跟着换人重置，并把新名字带回去"""
++        if isinstance(res, dict) and res.get("ok"):
++            try:
++                persona_stage.reset()
++            except Exception:
++                pass
++            try:
++                _set_character_sessions()
++            except Exception:
++                pass
++            try:
++                res["name"] = special_cfg.get_name()
++                res["dir"] = characters.active_dir()
++            except Exception:
++                pass
++        return res
+diff --git a/program/src/api_chat.py b/program/src/api_chat.py
+new file mode 100644
+index 0000000..73e0841
+--- /dev/null
++++ b/program/src/api_chat.py
+@@ -0,0 +1,184 @@
++# -*- coding: utf-8 -*-
++"""/api/chat 的实现，从 main.py 拆出；逻辑未改动。"""
++
++import json, os, time
++import char_res
++import characters
++import persona_ctx
++import scene_cg
++import tts_client
++
++
++class ChatApi:
++    """见 main.Handler。"""
++
++    def _chat(self):
++        from main import (ASSETS_DIR, DEFAULT_MODEL, FALLBACK_MODEL, NO_MODELS, OLLAMA, STORY, _memory_context, _record_usage, cloud_cfg, fewshot_msgs, log, ollama_models, split_action, split_emotion, split_scene, split_thinking, urllib)
++        try:
++            req = self._body()
++        except Exception as e:
++            return self._json({"error": "bad request: %s" % e}, 400)
++
++        if NO_MODELS and not cloud_cfg():
++            return self._json({"reply": "（安全模式：模型未加载）", "thinking": ""})
++
++        emo = "calm"
++        scene_now = ""
++        outfit_now = ""
++        cc = cloud_cfg()
++        base_url = (req.get("base_url") or (cc.get("base_url") if cc else "") or OLLAMA).strip()
++        if not (base_url.startswith("http://") or base_url.startswith("https://")):
++            base_url = OLLAMA
++        model = req.get("model") or (cc.get("model") if cc else "") or DEFAULT_MODEL
++        if not cc and model not in ollama_models():
++            model = FALLBACK_MODEL if FALLBACK_MODEL in ollama_models() else model
++        msgs = req.get("messages") or []
++        raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
++        # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
++        prev_bg = (req.get("bg") or "").strip()
++        # 当前衣服 / 手动时期：决定这一轮用哪套人设和世界书
++        outfit_now = (req.get("outfit") or "").strip()
++        period_req = (req.get("period") or "").strip().lower()
++        period = period_req if period_req in ("ic", "cc", "coda") else persona_ctx.period_of(outfit_now)
++        log("时期: %s (outfit=%s, 手动=%s)" % (persona_ctx.PERIOD_LABELS.get(period, period),
++                                              outfit_now[:20], period_req or "auto"))
++
++        # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
++        msgs, mem_note = _memory_context(msgs, bool(cc))
++
++        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs, period=period)
++        system = persona_ctx.persona_text(raw_msgs, period=period)
++
++        # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
++        #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
++        #   后面还有：剧本检索（原作片段）
++        try:
++            mem_extra = char_res.memory_text()
++            if mem_extra:
++                system = system + (
++                    "\n\n【你记得的旧事（角色设定的一部分，事先记好的，不是这轮对话里发生的事；"
++                    "用你自己的口气提起，不要照抄原文）】\n" + mem_extra)
++            wb_extra = char_res.worldbook_text()
++            if wb_extra:
++                system = system + (
++                    "\n\n【设定补充（用户整理好的资料，只作参考，不要整段复述）】\n"
++                    + wb_extra)
++        except Exception as e:
++            log("角色资源读取失败: %s" % e)
++
++        if wb_ctx:
++            system = system + "\n\n" + wb_ctx
++        if mem_note:
++            system = system + "\n\n" + mem_note
++
++        # 剧本检索: 找出和这句话相关的原作片段, 作为"想起来的事"而不是台词。
++        # 和世界书分开写：世界书是「设定」，这里是「原作里真的发生过什么」。
++        try:
++            if STORY is not None and req.get("memory") and STORY.enabled():
++                last_user = ""
++                for m in reversed(msgs):
++                    if m.get("role") == "user":
++                        last_user = m.get("content") or ""
++                        break
++                mem = STORY.memory_context(last_user, k=2, max_chars=900)
++                if mem:
++                    system = system + (
++                        "\n\n【原作里发生过的片段（资料，不是这轮对话的内容，也不是你的台词）】\n"
++                        + mem
++                        + "\n（这些是以前真实发生过的事。只在聊天自然提及时，用你自己的口气带一句；"
++                          "不要照抄原文，不要整段复述，不要把它说成刚刚发生的事。）")
++                    log("story_rag 命中 %d 字（问：%s）" % (len(mem), last_user[:20]))
++        except Exception as e:
++            log("story_rag 失败: %s" % e)
++
++        try:
++            _sp = characters.sprite_index(os.path.join(ASSETS_DIR, "sprites"))
++            _outfit_names = list((_sp.get("outfits") or {}).keys())
++            outfit_hint = "、".join(_outfit_names) if _outfit_names else "（按当前角色立绘）"
++        except Exception:
++            outfit_hint = "（按当前角色立绘）"
++        if cc:
++            # 云端：人设末尾补语言/格式约束，前面插 few-shot
++            # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
++            system = system + (
++                "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
++                + scene_cg.prompt_hint() +
++                "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
++                + outfit_hint +
++                "平时绝对不要输出。"
++                "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
++                "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
++                "标记只能是开头那一个，正文里不要再出现。"
++                "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
++                "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
++        payload = {
++            "model": model,
++            "messages": ([{"role": "system", "content": system}]
++                         + (fewshot_msgs() if cc else []) + msgs),
++            "stream": False,
++            "max_tokens": 400 if cc else 260,
++        }
++        if not cc:
++            payload["reasoning_effort"] = "none"
++        if cc and ("pro" in model or "deepseek" in (base_url or "").lower() or "deepseek" in (model or "").lower()):
++            payload["thinking"] = {"type": "disabled"}
++            payload["reasoning_effort"] = "none"
++        t0 = time.time()
++        try:
++            rq = urllib.request.Request(
++                base_url.rstrip("/") + "/v1/chat/completions",
++                data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
++                headers=({"Content-Type": "application/json",
++                          "Authorization": "Bearer " + cc["api_key"]} if cc
++                         else {"Content-Type": "application/json"}))
++            with urllib.request.urlopen(rq, timeout=300) as r:
++                d = json.loads(r.read().decode("utf-8"))
++            raw = (d["choices"][0]["message"].get("content") or "").strip()
++            _uinfo = _record_usage(model, d.get("usage") or {})
++            raw, emo = split_emotion(raw)
++            raw, scene_now, outfit_now = split_scene(raw)
++            acts, raw = split_action(raw)
++            reply, think = split_thinking(raw)
++            action = " ".join(a for a in acts if a).strip()
++            # 游戏里角色台词一律用「」包起来，由程序统一处理，不让模型自己加
++            _r = (reply or "").strip()
++            if _r:
++                _r = _r.strip("「」『』")
++                reply = "「" + _r + "」"
++
++            # v7 用日文回答: 日文原文留给语音, 中文译文给对话框
++            reply_zh = ""
++            action_zh = ""
++            try:
++                if any("\u3040" <= c <= "\u30ff" for c in reply):
++                    tts_client.start_translate()
++                    reply_zh = tts_client.translate_via_service(_r, "zh")
++                    if action:
++                        action_zh = tts_client.translate_via_service(action, "zh")
++            except Exception as e:
++                log("日译中失败: %s" % e)
++
++            # 场景：把 <scene> 的地点/时间对上素材里的背景图（匹配逻辑在 scene_cg.py）
++            bg_hit = {}
++            if scene_now:
++                try:
++                    bg_hit = scene_cg.match(scene_now, prev_bg)
++                except Exception as e:
++                    log("场景匹配失败: %s" % e)
++                if not bg_hit:
++                    log("场景没匹配上：%r（当前背景 %r）" % (scene_now, prev_bg))
++
++            self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
++                        "action": action, "action_zh": action_zh,
++                        "emotion": emo,
++                        "scene": scene_now, "outfit": outfit_now,
++                        "bg": bg_hit.get("id", ""),
++                        "period": period,
++                        "usage": _uinfo,
++                        "model": model,
++                        "ms": int((time.time() - t0) * 1000),
++                        "worldbook": wb_names})
++        except urllib.error.HTTPError as e:
++            self._json({"error": "HTTP %s %s" % (e.code, e.read().decode("utf-8", "replace")[:200])})
++        except Exception as e:
++            self._json({"error": "连不上 Ollama（%s），请先启动 Ollama" % e})
+diff --git a/program/src/api_modelcfg.py b/program/src/api_modelcfg.py
+new file mode 100644
+index 0000000..3970f31
+--- /dev/null
++++ b/program/src/api_modelcfg.py
+@@ -0,0 +1,74 @@
++# -*- coding: utf-8 -*-
++"ModelCfgApi 的 mixin：从 main.py 拆出，方法体未改动。"
++
++import json
++import tts_client
++
++
++class ModelCfgApi:
++    """见 main.Handler；从 main 注入运行时全局。"""
++
++    def _modelcfg(self):
++        from main import (MODEL_SECTIONS, apply_model_cfg, log, model_cfg_all, model_cfg_save, probe_endpoint)
++        """POST /api/modelcfg  body: {section, endpoint, key, model, probe}"""
++        try:
++            n = int(self.headers.get("Content-Length") or 0)
++            body = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
++        except Exception as e:
++            return self._json({"ok": False, "error": "bad json: %s" % e})
++
++        sec = body.get("section")
++        if sec not in MODEL_SECTIONS:
++            return self._json({"ok": False, "error": "bad section"})
++
++        if body.get("disconnect"):
++            cur = (model_cfg_all().get(sec) or {})
++            model_cfg_save(sec, cur.get("endpoint") or "", cur.get("key") or "",
++                           cur.get("model") or "", False)
++            return self._json({"ok": False, "saved": True, "disconnected": True,
++                               "cfg": model_cfg_all()})
++
++        endpoint = (body.get("endpoint") or "").strip()
++        key = (body.get("key") or "").strip()
++        model = (body.get("model") or "").strip()
++
++        if body.get("probe"):
++            ok, latency, models = probe_endpoint(sec, endpoint, key, model)
++            # 语音板块：端点没起来就顺手把本地 GPT-SoVITS 拉起来再探一次
++            if (not ok) and sec == "voice":
++                ep = (endpoint or "").lower()
++                if "127.0.0.1" in ep or "localhost" in ep:
++                    try:
++                        log("voice: starting local GPT-SoVITS ...")
++                        tts_client.start()
++                        ok, latency, models = probe_endpoint(sec, endpoint, key, model)
++                    except Exception as e:
++                        log("voice start failed: %s" % e)
++        else:
++            ok = False
++            latency, models = 0, []
++
++        # 模型名以探测结果为准：填的不在列表里就按板块偏好挑一个
++        if models:
++            if model not in models:
++                pref = {
++                    "mt": ["hy-mt", "mt", "qwen"],
++                    "chat": ["deepseek", "chat"],
++                    "voice": ["sovits", "gpt"],
++                }.get(sec, [])
++                model = None
++                for token in pref:
++                    for mm in models:
++                        if token in mm.lower():
++                            model = mm
++                            break
++                    if model:
++                        break
++                if not model:
++                    model = models[0]
++
++        saved = model_cfg_save(sec, endpoint, key, model, ok)
++        if saved:
++            apply_model_cfg()
++        return self._json({"ok": ok, "saved": saved, "latency_ms": latency,
++                           "models": models, "cfg": model_cfg_all()})
+diff --git a/program/src/api_text.py b/program/src/api_text.py
+new file mode 100644
+index 0000000..40db421
+--- /dev/null
++++ b/program/src/api_text.py
+@@ -0,0 +1,99 @@
++# -*- coding: utf-8 -*-
++"TextApi 的 mixin：从 main.py 拆出，方法体未改动。"
++
++import os
++
++
++class TextApi:
++    """见 main.Handler；从 main 注入运行时全局。"""
++
++    def _text_img(self):
++        from main import (GLIB, _RENDER_LOCK, _TEXT_CACHE, _TEXT_CACHE_MAX, _text_disk_path, qs)
++        """把文字渲染成 PNG（和对话框走同一套字模流程）
++
++        参数（正式名 / 兼容旧名）：
++            text            / t            要渲染的文字
++            plain           / p            1 = 无描边、无边距
++            max_width       / w            单行最大像素宽
++            chars_per_line  / per_line     单行最多几个全角字（不传用默认 20）
++            size            / s            兼容旧参数的兜底字号（仅 GLIB 回退用）
++            embolden        / e            兼容旧参数的加粗（仅 GLIB 回退用）
++            color           / c            染色，RRGGBB
++            tight           /              1 = 半角字符（数字/字母/符号）走紧凑步进
++        """
++        from urllib.parse import urlparse, parse_qs
++        try:
++            q = parse_qs(urlparse(self.path).query)
++            text = qs(q, ("text", "t")).strip()
++            plain = qs(q, ("plain", "p"), "0") == "1"
++            try:
++                max_width = int(qs(q, ("max_width", "w"), "1200"))
++            except ValueError:
++                max_width = 1200
++            try:
++                chars_per_line = int(qs(q, ("chars_per_line", "per_line"), "0")) or None
++            except ValueError:
++                chars_per_line = None
++            color = qs(q, ("color", "c")).strip().lstrip("#") or None
++            tight = qs(q, ("tight",), "0") == "1"
++            size = int(qs(q, ("size", "s"), "56") or 56)
++            embolden = int(qs(q, ("embolden", "e"), "0") or 0)
++            if not text:
++                text = " "
++            _key = (text, plain, max_width, chars_per_line, color, tight)
++            _disk = _text_disk_path(_key)
++            _TEXT_DISK = _disk
++            if os.path.exists(_disk):
++                data = open(_disk, "rb").read()
++                self.send_response(200)
++                self.send_header("Content-Type", "image/png")
++                self.send_header("Content-Length", str(len(data)))
++                self.send_header("Cache-Control", "public, max-age=86400")
++                self.end_headers()
++                self.wfile.write(data)
++                return
++            if _key in _TEXT_CACHE:
++                data = _TEXT_CACHE[_key]
++            else:
++                try:
++                    import io as _io
++                    import sub_render
++                    with _RENDER_LOCK:
++                        img = sub_render.render_block(
++                            text, maxw=max_width, stroke=not plain,
++                            margin=(None if not plain else 0), per_line=chars_per_line,
++                            color=color, tight=tight)
++                        _buf = _io.BytesIO()
++                        img.save(_buf, "PNG")
++                        data = _buf.getvalue()
++                        # 缓存上限：超过 400 条就丢掉最早的，避免内存一直涨
++                        if len(_TEXT_CACHE) >= 400:
++                            try:
++                                _TEXT_CACHE.pop(next(iter(_TEXT_CACHE)))
++                            except Exception:
++                                _TEXT_CACHE.clear()
++                except Exception:
++                    if not GLIB:
++                        raise
++                    data = GLIB.render_cached(text, maxw=max_width, size=size, embolden=embolden)
++                if len(_TEXT_CACHE) < _TEXT_CACHE_MAX:
++                    _TEXT_CACHE[_key] = data
++                try:
++                    if not os.path.exists(_disk):
++                        with open(_disk, "wb") as _f:
++                            _f.write(data)
++                except Exception:
++                    pass
++        except Exception as e:
++            import traceback
++            try:
++                open(os.path.join(os.environ.get("TEMP", "."), "wa2_text_error.log"), "a", encoding="utf-8").write(
++                    traceback.format_exc() + "\n----\n")
++            except Exception:
++                pass
++            return self._json({"error": str(e)}, 500)
++        self.send_response(200)
++        self.send_header("Content-Type", "image/png")
++        self.send_header("Content-Length", str(len(data)))
++        self.end_headers()
++        self.wfile.write(data)
+diff --git a/program/src/api_tts.py b/program/src/api_tts.py
+new file mode 100644
+index 0000000..8ceab8c
+--- /dev/null
++++ b/program/src/api_tts.py
+@@ -0,0 +1,65 @@
++# -*- coding: utf-8 -*-
++"TtsApi 的 mixin：从 main.py 拆出，方法体未改动。"
++
++import time
++import applog
++import tts_client
++
++
++class TtsApi:
++    """见 main.Handler；从 main 注入运行时全局。"""
++
++    def _tts(self):
++        from main import (NO_MODELS, log, qs, translate_ja)
++        """合成语音，返回 wav
++
++        参数（正式名 / 兼容旧名）：
++            text      / t       要念的文字
++            lang                 zh | ja
++            emotion   / emo      情绪标签，影响语气
++            speak_ja  / sp       日文原文；给了就直接念它（不再过翻译）
++        """
++        from urllib.parse import urlparse, parse_qs
++        try:
++            q = parse_qs(urlparse(self.path).query)
++            text = qs(q, ("text", "t")).strip()
++            lang = qs(q, ("lang",), "zh").strip() or "zh"
++            emotion = qs(q, ("emotion", "emo"), "neutral").strip() or "neutral"
++            speak_ja = qs(q, ("speak_ja", "sp")).strip()
++            if not text:
++                return self._json({"error": "empty"}, 400)
++            if NO_MODELS:
++                return self._json({"error": "安全模式: 未加载语音模型"}, 503)
++            if not tts_client.start():
++                # 语音还在预热: 立刻返回, 前端只显示文字
++                applog.log("语音未就绪: %s" % tts_client.status(), "WARN")
++                return self._json({"error": "语音未就绪"}, 503)
++            speak_text = text
++            t_t0 = time.time()
++            if speak_ja:
++                speak_text = speak_ja
++                lang = "ja"
++            elif lang == "ja":
++                ja = translate_ja(text)
++                if ja:
++                    speak_text = ja
++                    log("日文配音: %s" % ja)
++                else:
++                    lang = "zh"          # 翻译失败就退回中文
++            if lang == "ja":
++                speak_text = tts_client.normalize_ja_names(speak_text)
++            applog.log("TTS 准备: lang=%s emo=%s 文本=%s (翻译耗时 %.1fs)"
++                       % (lang, emotion, speak_text[:24], time.time() - t_t0), "TTS")
++            t_s0 = time.time()
++            data = tts_client.synthesize(speak_text, lang, emo=emotion)
++            applog.log("TTS 合成: %s 字节, 耗时 %.1fs"
++                       % (len(data or b""), time.time() - t_s0), "TTS")
++            if not data:
++                return self._json({"error": tts_client.status()}, 500)
++            self.send_response(200)
++            self.send_header("Content-Type", "audio/wav")
++            self.send_header("Content-Length", str(len(data)))
++            self.end_headers()
++            self.wfile.write(data)
++        except Exception as e:
++            return self._json({"error": str(e)}, 500)
+diff --git a/program/src/api_window.py b/program/src/api_window.py
+new file mode 100644
+index 0000000..5fb4542
+--- /dev/null
++++ b/program/src/api_window.py
+@@ -0,0 +1,148 @@
++# -*- coding: utf-8 -*-
++"WindowApi 的 mixin：从 main.py 拆出，方法体未改动。"
++
++import applog
++
++
++class WindowApi:
++    """见 main.Handler；从 main 注入运行时全局。"""
++
++    def _window_ctl(self):
++        import main
++        from main import (WINDOWED_SIZE, WINDOW_TITLE, _dpi_scale, _screen_size, _user32, _win_hwnd, qs)
++        """无边框窗口的关闭 / 最小化 / 最大化（走 HTTP，避免依赖 js_api）"""
++        from urllib.parse import urlparse, parse_qs
++        try:
++            q = parse_qs(urlparse(self.path).query)
++            action = qs(q, ("action", "act")).strip()
++            w = main._WINDOW
++            try:
++                applog.log("窗口控制: action=%s window=%s" % (action, "有" if w else "无"), "WIN")
++            except Exception:
++                pass
++            if w is None:
++                return self._json({"ok": False, "error": "窗口未就绪"})
++            if action == "close":
++                w.destroy()
++            elif action == "min":
++                w.minimize()
++            elif action == "max":
++                try:
++                    w.maximize()
++                except Exception:
++                    w.toggle_fullscreen()
++            elif action == "move":
++                import ctypes
++                from ctypes import wintypes
++                u = ctypes.WinDLL("user32", use_last_error=True)
++                u.FindWindowW.restype = wintypes.HWND
++                u.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
++                u.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
++                u.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int,
++                                           ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
++                dx = int(q.get("dx", ["0"])[0]); dy = int(q.get("dy", ["0"])[0])
++                hw = u.FindWindowW(None, WINDOW_TITLE)
++                r = wintypes.RECT(); u.GetWindowRect(hw, ctypes.byref(r))
++                u.SetWindowPos(hw, None, r.left + dx, r.top + dy, 0, 0, 0x0001 | 0x0004)
++            elif action == "dragbegin":
++                try:
++                    _api_ref = main._API
++                    if _api_ref is not None:
++                        return self._json(_api_ref.drag_begin())
++                except Exception as e:
++                    return self._json({"ok": False, "error": str(e)})
++                return self._json({"ok": False})
++            elif action == "togglemax":
++                u = _user32()
++                hw = _win_hwnd()
++                if hw:
++                    maxed = bool(u.IsZoomed(hw))
++                    u.ShowWindow(hw, 9 if maxed else 3)      # SW_RESTORE / SW_MAXIMIZE
++                    return self._json({"ok": True, "maxed": bool(u.IsZoomed(hw))})
++                # 拿不到 hwnd 时退回 pywebview（和最小化/关闭同一条路）
++                try:
++                    if getattr(w, "_wa2_maxed", False):
++                        w.restore(); w._wa2_maxed = False
++                    else:
++                        w.maximize(); w._wa2_maxed = True
++                    return self._json({"ok": True, "maxed": w._wa2_maxed})
++                except Exception as e:
++                    return self._json({"ok": False, "error": str(e)})
++            elif action == "togglefull":
++                # 浏览器 Fullscreen API 在无边框 WebView2 上会让窗口变成
++                # “铺满屏幕但点不动”的透明层，所以改走 pywebview 自己的全屏开关
++                try:
++                    w.toggle_fullscreen()
++                    w._wa2_full = not bool(getattr(w, "_wa2_full", False))
++                    return self._json({"ok": True, "fullscreen": w._wa2_full})
++                except Exception as e:
++                    try:
++                        w.maximize()
++                        return self._json({"ok": True, "fallback": "maximize"})
++                    except Exception:
++                        return self._json({"ok": False, "error": str(e)})
++            elif action == "fullscreen":
++                # OPTION 1 的「窗口模式 / 全屏模式」：按目标状态切，不是盲目 toggle。
++                # 退出全屏时必须回到一个**明显小于全屏**的窗口 —— 不然在 4K/高 DPI 上
++                # 全屏与"最大化"看起来一样大（用户实测反馈过）。
++                want = qs(q, ("on",), "1")
++                target = (want != "0")
++                try:
++                    cur = bool(getattr(w, "_wa2_full", False))
++                    if target != cur:
++                        w.toggle_fullscreen()
++                    w._wa2_full = target
++                    if not target:
++                        try:
++                            w.restore()                      # 先解除最大化
++                        except Exception:
++                            pass
++                        try:
++                            w.resize(*WINDOWED_SIZE)
++                        except Exception:
++                            pass
++                        try:
++                            # move() 收的是 DIP，GetSystemMetrics 给的是物理像素，先换算
++                            sw, sh = _screen_size()
++                            dp = _dpi_scale()
++                            if sw and sh and dp > 0:
++                                w.move(int((sw / dp - WINDOWED_SIZE[0]) / 2),
++                                       int((sh / dp - WINDOWED_SIZE[1]) / 2))
++                        except Exception:
++                            pass
++                    return self._json({"ok": True, "fullscreen": target})
++                except Exception as e:
++                    # 全屏 API 不可用时退回最大化，至少不是"点了没反应"
++                    try:
++                        w.maximize()
++                        w._wa2_full = target
++                        return self._json({"ok": True, "fullscreen": target, "fallback": "maximize"})
++                    except Exception:
++                        return self._json({"ok": False, "error": str(e)})
++            elif action == "state":
++                u = _user32()
++                hw = _win_hwnd()
++                return self._json({"ok": bool(hw), "maxed": bool(u.IsZoomed(hw)) if hw else False,
++                                   "fullscreen": bool(getattr(w, "_wa2_full", False))})
++            elif action == "resize":
++                try:
++                    nw = int(q.get("w", ["0"])[0])
++                    nh = int(q.get("h", ["0"])[0])
++                except Exception:
++                    return self._json({"ok": False, "error": "bad size"})
++                if nw < 640 or nh < 360:
++                    return self._json({"ok": False, "error": "too small"})
++                w = main._WINDOW
++                try:
++                    w.resize(nw, nh)
++                    return self._json({"ok": True, "w": nw, "h": nh})
++                except Exception as e:
++                    return self._json({"ok": False, "error": str(e)})
++            elif action == "restore":
++                try:
++                    w.restore()
++                except Exception:
++                    w.toggle_fullscreen()
++            return self._json({"ok": True, "action": action})
++        except Exception as e:
++            return self._json({"ok": False, "error": str(e)})
 diff --git a/program/src/main.py b/program/src/main.py
-index ab7f706..bcac1cc 100644
+index ab7f706..4700a13 100644
 --- a/program/src/main.py
 +++ b/program/src/main.py
 @@ -343,52 +343,7 @@ def fewshot_msgs():
@@ -2250,10 +2974,16 @@ index ab7f706..bcac1cc 100644
  
  # ---------------- 人设 / 世界书（见 persona_ctx.py） ----------------
  import threading as _th
-@@ -397,6 +352,10 @@ from sessions import session_save, session_load, session_list, session_thumb
+@@ -397,6 +352,16 @@ from sessions import session_save, session_load, session_list, session_thumb
  import sessions as _sessions
  import memory as _memory
  import pricing as _pricing
++from api_window import WindowApi
++from api_char import CharApi
++from api_modelcfg import ModelCfgApi
++from api_tts import TtsApi
++from api_text import TextApi
++from api_chat import ChatApi
 +from text_parse import (
 +    ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
 +    ja_clean as _ja_clean, ja_ok as _ja_ok,
@@ -2261,7 +2991,7 @@ index ab7f706..bcac1cc 100644
  
  # 特别模式「查看文件」：没导入时要指到程序真正读的默认位置，而不是空的 char/ 目录
  _defaults = persona_ctx.default_paths()
-@@ -490,16 +449,6 @@ persona_ctx.set_logger(log)      # 人设/世界书的日志也走这里
+@@ -490,16 +455,6 @@ persona_ctx.set_logger(log)      # 人设/世界书的日志也走这里
  persona_stage.set_logger(log)    # 关系阶段的日志
  
  
@@ -2278,7 +3008,7 @@ index ab7f706..bcac1cc 100644
  
  _JA_CACHE = {}
  TRANSLATE_MODEL = 'qwen2.5:14b-instruct-q4_K_M'
-@@ -511,32 +460,6 @@ _JA_SHOTS = [
+@@ -511,32 +466,6 @@ _JA_SHOTS = [
  ]
  
  
@@ -2311,6 +3041,595 @@ index ab7f706..bcac1cc 100644
  
  
  def translate_ja(text):
+@@ -799,7 +728,7 @@ def _repack_async(msgs, a, b):
+ # ---------------- HTTP 服务 ----------------
+ 
+ 
+-class Handler(SimpleHTTPRequestHandler):
++class Handler(ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
+     def __init__(self, *a, **kw):
+         super().__init__(*a, directory=UI_DIR, **kw)
+ 
+@@ -1157,572 +1086,10 @@ class Handler(SimpleHTTPRequestHandler):
+             return self._chat()
+         self.send_error(404)
+ 
+-    def _window_ctl(self):
+-        """无边框窗口的关闭 / 最小化 / 最大化（走 HTTP，避免依赖 js_api）"""
+-        from urllib.parse import urlparse, parse_qs
+-        try:
+-            q = parse_qs(urlparse(self.path).query)
+-            action = qs(q, ("action", "act")).strip()
+-            w = globals().get("_WINDOW")
+-            try:
+-                applog.log("窗口控制: action=%s window=%s" % (action, "有" if w else "无"), "WIN")
+-            except Exception:
+-                pass
+-            if w is None:
+-                return self._json({"ok": False, "error": "窗口未就绪"})
+-            if action == "close":
+-                w.destroy()
+-            elif action == "min":
+-                w.minimize()
+-            elif action == "max":
+-                try:
+-                    w.maximize()
+-                except Exception:
+-                    w.toggle_fullscreen()
+-            elif action == "move":
+-                import ctypes
+-                from ctypes import wintypes
+-                u = ctypes.WinDLL("user32", use_last_error=True)
+-                u.FindWindowW.restype = wintypes.HWND
+-                u.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
+-                u.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+-                u.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int,
+-                                           ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+-                dx = int(q.get("dx", ["0"])[0]); dy = int(q.get("dy", ["0"])[0])
+-                hw = u.FindWindowW(None, WINDOW_TITLE)
+-                r = wintypes.RECT(); u.GetWindowRect(hw, ctypes.byref(r))
+-                u.SetWindowPos(hw, None, r.left + dx, r.top + dy, 0, 0, 0x0001 | 0x0004)
+-            elif action == "dragbegin":
+-                try:
+-                    _api_ref = globals().get("_API")
+-                    if _api_ref is not None:
+-                        return self._json(_api_ref.drag_begin())
+-                except Exception as e:
+-                    return self._json({"ok": False, "error": str(e)})
+-                return self._json({"ok": False})
+-            elif action == "togglemax":
+-                u = _user32()
+-                hw = _win_hwnd()
+-                if hw:
+-                    maxed = bool(u.IsZoomed(hw))
+-                    u.ShowWindow(hw, 9 if maxed else 3)      # SW_RESTORE / SW_MAXIMIZE
+-                    return self._json({"ok": True, "maxed": bool(u.IsZoomed(hw))})
+-                # 拿不到 hwnd 时退回 pywebview（和最小化/关闭同一条路）
+-                try:
+-                    if getattr(w, "_wa2_maxed", False):
+-                        w.restore(); w._wa2_maxed = False
+-                    else:
+-                        w.maximize(); w._wa2_maxed = True
+-                    return self._json({"ok": True, "maxed": w._wa2_maxed})
+-                except Exception as e:
+-                    return self._json({"ok": False, "error": str(e)})
+-            elif action == "togglefull":
+-                # 浏览器 Fullscreen API 在无边框 WebView2 上会让窗口变成
+-                # “铺满屏幕但点不动”的透明层，所以改走 pywebview 自己的全屏开关
+-                try:
+-                    w.toggle_fullscreen()
+-                    w._wa2_full = not bool(getattr(w, "_wa2_full", False))
+-                    return self._json({"ok": True, "fullscreen": w._wa2_full})
+-                except Exception as e:
+-                    try:
+-                        w.maximize()
+-                        return self._json({"ok": True, "fallback": "maximize"})
+-                    except Exception:
+-                        return self._json({"ok": False, "error": str(e)})
+-            elif action == "fullscreen":
+-                # OPTION 1 的「窗口模式 / 全屏模式」：按目标状态切，不是盲目 toggle。
+-                # 退出全屏时必须回到一个**明显小于全屏**的窗口 —— 不然在 4K/高 DPI 上
+-                # 全屏与"最大化"看起来一样大（用户实测反馈过）。
+-                want = qs(q, ("on",), "1")
+-                target = (want != "0")
+-                try:
+-                    cur = bool(getattr(w, "_wa2_full", False))
+-                    if target != cur:
+-                        w.toggle_fullscreen()
+-                    w._wa2_full = target
+-                    if not target:
+-                        try:
+-                            w.restore()                      # 先解除最大化
+-                        except Exception:
+-                            pass
+-                        try:
+-                            w.resize(*WINDOWED_SIZE)
+-                        except Exception:
+-                            pass
+-                        try:
+-                            # move() 收的是 DIP，GetSystemMetrics 给的是物理像素，先换算
+-                            sw, sh = _screen_size()
+-                            dp = _dpi_scale()
+-                            if sw and sh and dp > 0:
+-                                w.move(int((sw / dp - WINDOWED_SIZE[0]) / 2),
+-                                       int((sh / dp - WINDOWED_SIZE[1]) / 2))
+-                        except Exception:
+-                            pass
+-                    return self._json({"ok": True, "fullscreen": target})
+-                except Exception as e:
+-                    # 全屏 API 不可用时退回最大化，至少不是"点了没反应"
+-                    try:
+-                        w.maximize()
+-                        w._wa2_full = target
+-                        return self._json({"ok": True, "fullscreen": target, "fallback": "maximize"})
+-                    except Exception:
+-                        return self._json({"ok": False, "error": str(e)})
+-            elif action == "state":
+-                u = _user32()
+-                hw = _win_hwnd()
+-                return self._json({"ok": bool(hw), "maxed": bool(u.IsZoomed(hw)) if hw else False,
+-                                   "fullscreen": bool(getattr(w, "_wa2_full", False))})
+-            elif action == "resize":
+-                try:
+-                    nw = int(q.get("w", ["0"])[0])
+-                    nh = int(q.get("h", ["0"])[0])
+-                except Exception:
+-                    return self._json({"ok": False, "error": "bad size"})
+-                if nw < 640 or nh < 360:
+-                    return self._json({"ok": False, "error": "too small"})
+-                w = globals().get("_WINDOW")
+-                try:
+-                    w.resize(nw, nh)
+-                    return self._json({"ok": True, "w": nw, "h": nh})
+-                except Exception as e:
+-                    return self._json({"ok": False, "error": str(e)})
+-            elif action == "restore":
+-                try:
+-                    w.restore()
+-                except Exception:
+-                    w.toggle_fullscreen()
+-            return self._json({"ok": True, "action": action})
+-        except Exception as e:
+-            return self._json({"ok": False, "error": str(e)})
+-
+-    def _character_get(self):
+-        """GET /api/character/…：角色列表 / 立绘索引。
+-
+-        立绘图片本身不走这里（返回 None，交给 translate_path 的静态分支）——
+-        这样 Range / 缓存 / Content-Type 都复用现成的那套。
+-        """
+-        if self.path.startswith("/api/character/sprite/index.json"):
+-            return self._json(characters.sprite_index(os.path.join(ASSETS_DIR, "sprites")))
+-        if self.path == "/api/character/opening":
+-            try:
+-                p = os.path.join(characters.active_dir(), "opening.json")
+-                if os.path.isfile(p):
+-                    with open(p, encoding="utf-8") as f:
+-                        d = json.load(f)
+-                    if isinstance(d, dict):
+-                        return self._json({"ok": True, "zh": d.get("zh", ""),
+-                                           "ja": d.get("ja", ""),
+-                                           "emotion": d.get("emotion", "calm")})
+-            except Exception:
+-                pass
+-            return self._json({"ok": False})
+-        if self.path.startswith("/api/character/list"):
+-            return self._json({"ok": True,
+-                               "active": characters.active_id(),
+-                               "dir": characters.root(),
+-                               "characters": characters.list_characters()})
+-        return None
+-
+-    def _after_switch(self, res):
+-        """切换 / 新建角色之后：关系阶段跟着换人重置，并把新名字带回去"""
+-        if isinstance(res, dict) and res.get("ok"):
+-            try:
+-                persona_stage.reset()
+-            except Exception:
+-                pass
+-            try:
+-                _set_character_sessions()
+-            except Exception:
+-                pass
+-            try:
+-                res["name"] = special_cfg.get_name()
+-                res["dir"] = characters.active_dir()
+-            except Exception:
+-                pass
+-        return res
+-
+-    def _tts(self):
+-        """合成语音，返回 wav
+-
+-        参数（正式名 / 兼容旧名）：
+-            text      / t       要念的文字
+-            lang                 zh | ja
+-            emotion   / emo      情绪标签，影响语气
+-            speak_ja  / sp       日文原文；给了就直接念它（不再过翻译）
+-        """
+-        from urllib.parse import urlparse, parse_qs
+-        try:
+-            q = parse_qs(urlparse(self.path).query)
+-            text = qs(q, ("text", "t")).strip()
+-            lang = qs(q, ("lang",), "zh").strip() or "zh"
+-            emotion = qs(q, ("emotion", "emo"), "neutral").strip() or "neutral"
+-            speak_ja = qs(q, ("speak_ja", "sp")).strip()
+-            if not text:
+-                return self._json({"error": "empty"}, 400)
+-            if NO_MODELS:
+-                return self._json({"error": "安全模式: 未加载语音模型"}, 503)
+-            if not tts_client.start():
+-                # 语音还在预热: 立刻返回, 前端只显示文字
+-                applog.log("语音未就绪: %s" % tts_client.status(), "WARN")
+-                return self._json({"error": "语音未就绪"}, 503)
+-            speak_text = text
+-            t_t0 = time.time()
+-            if speak_ja:
+-                speak_text = speak_ja
+-                lang = "ja"
+-            elif lang == "ja":
+-                ja = translate_ja(text)
+-                if ja:
+-                    speak_text = ja
+-                    log("日文配音: %s" % ja)
+-                else:
+-                    lang = "zh"          # 翻译失败就退回中文
+-            if lang == "ja":
+-                speak_text = tts_client.normalize_ja_names(speak_text)
+-            applog.log("TTS 准备: lang=%s emo=%s 文本=%s (翻译耗时 %.1fs)"
+-                       % (lang, emotion, speak_text[:24], time.time() - t_t0), "TTS")
+-            t_s0 = time.time()
+-            data = tts_client.synthesize(speak_text, lang, emo=emotion)
+-            applog.log("TTS 合成: %s 字节, 耗时 %.1fs"
+-                       % (len(data or b""), time.time() - t_s0), "TTS")
+-            if not data:
+-                return self._json({"error": tts_client.status()}, 500)
+-            self.send_response(200)
+-            self.send_header("Content-Type", "audio/wav")
+-            self.send_header("Content-Length", str(len(data)))
+-            self.end_headers()
+-            self.wfile.write(data)
+-        except Exception as e:
+-            return self._json({"error": str(e)}, 500)
+-
+-    def _modelcfg(self):
+-        """POST /api/modelcfg  body: {section, endpoint, key, model, probe}"""
+-        try:
+-            n = int(self.headers.get("Content-Length") or 0)
+-            body = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
+-        except Exception as e:
+-            return self._json({"ok": False, "error": "bad json: %s" % e})
+-
+-        sec = body.get("section")
+-        if sec not in MODEL_SECTIONS:
+-            return self._json({"ok": False, "error": "bad section"})
+-
+-        if body.get("disconnect"):
+-            cur = (model_cfg_all().get(sec) or {})
+-            model_cfg_save(sec, cur.get("endpoint") or "", cur.get("key") or "",
+-                           cur.get("model") or "", False)
+-            return self._json({"ok": False, "saved": True, "disconnected": True,
+-                               "cfg": model_cfg_all()})
+-
+-        endpoint = (body.get("endpoint") or "").strip()
+-        key = (body.get("key") or "").strip()
+-        model = (body.get("model") or "").strip()
+-
+-        if body.get("probe"):
+-            ok, latency, models = probe_endpoint(sec, endpoint, key, model)
+-            # 语音板块：端点没起来就顺手把本地 GPT-SoVITS 拉起来再探一次
+-            if (not ok) and sec == "voice":
+-                ep = (endpoint or "").lower()
+-                if "127.0.0.1" in ep or "localhost" in ep:
+-                    try:
+-                        log("voice: starting local GPT-SoVITS ...")
+-                        tts_client.start()
+-                        ok, latency, models = probe_endpoint(sec, endpoint, key, model)
+-                    except Exception as e:
+-                        log("voice start failed: %s" % e)
+-        else:
+-            ok = False
+-            latency, models = 0, []
+-
+-        # 模型名以探测结果为准：填的不在列表里就按板块偏好挑一个
+-        if models:
+-            if model not in models:
+-                pref = {
+-                    "mt": ["hy-mt", "mt", "qwen"],
+-                    "chat": ["deepseek", "chat"],
+-                    "voice": ["sovits", "gpt"],
+-                }.get(sec, [])
+-                model = None
+-                for token in pref:
+-                    for mm in models:
+-                        if token in mm.lower():
+-                            model = mm
+-                            break
+-                    if model:
+-                        break
+-                if not model:
+-                    model = models[0]
+-
+-        saved = model_cfg_save(sec, endpoint, key, model, ok)
+-        if saved:
+-            apply_model_cfg()
+-        return self._json({"ok": ok, "saved": saved, "latency_ms": latency,
+-                           "models": models, "cfg": model_cfg_all()})
+-
+-    def _text_img(self):
+-        """把文字渲染成 PNG（和对话框走同一套字模流程）
+-
+-        参数（正式名 / 兼容旧名）：
+-            text            / t            要渲染的文字
+-            plain           / p            1 = 无描边、无边距
+-            max_width       / w            单行最大像素宽
+-            chars_per_line  / per_line     单行最多几个全角字（不传用默认 20）
+-            size            / s            兼容旧参数的兜底字号（仅 GLIB 回退用）
+-            embolden        / e            兼容旧参数的加粗（仅 GLIB 回退用）
+-            color           / c            染色，RRGGBB
+-            tight           /              1 = 半角字符（数字/字母/符号）走紧凑步进
+-        """
+-        from urllib.parse import urlparse, parse_qs
+-        try:
+-            q = parse_qs(urlparse(self.path).query)
+-            text = qs(q, ("text", "t")).strip()
+-            plain = qs(q, ("plain", "p"), "0") == "1"
+-            try:
+-                max_width = int(qs(q, ("max_width", "w"), "1200"))
+-            except ValueError:
+-                max_width = 1200
+-            try:
+-                chars_per_line = int(qs(q, ("chars_per_line", "per_line"), "0")) or None
+-            except ValueError:
+-                chars_per_line = None
+-            color = qs(q, ("color", "c")).strip().lstrip("#") or None
+-            tight = qs(q, ("tight",), "0") == "1"
+-            size = int(qs(q, ("size", "s"), "56") or 56)
+-            embolden = int(qs(q, ("embolden", "e"), "0") or 0)
+-            if not text:
+-                text = " "
+-            _key = (text, plain, max_width, chars_per_line, color, tight)
+-            _disk = _text_disk_path(_key)
+-            _TEXT_DISK = _disk
+-            if os.path.exists(_disk):
+-                data = open(_disk, "rb").read()
+-                self.send_response(200)
+-                self.send_header("Content-Type", "image/png")
+-                self.send_header("Content-Length", str(len(data)))
+-                self.send_header("Cache-Control", "public, max-age=86400")
+-                self.end_headers()
+-                self.wfile.write(data)
+-                return
+-            if _key in _TEXT_CACHE:
+-                data = _TEXT_CACHE[_key]
+-            else:
+-                try:
+-                    import io as _io
+-                    import sub_render
+-                    with _RENDER_LOCK:
+-                        img = sub_render.render_block(
+-                            text, maxw=max_width, stroke=not plain,
+-                            margin=(None if not plain else 0), per_line=chars_per_line,
+-                            color=color, tight=tight)
+-                        _buf = _io.BytesIO()
+-                        img.save(_buf, "PNG")
+-                        data = _buf.getvalue()
+-                        # 缓存上限：超过 400 条就丢掉最早的，避免内存一直涨
+-                        if len(_TEXT_CACHE) >= 400:
+-                            try:
+-                                _TEXT_CACHE.pop(next(iter(_TEXT_CACHE)))
+-                            except Exception:
+-                                _TEXT_CACHE.clear()
+-                except Exception:
+-                    if not GLIB:
+-                        raise
+-                    data = GLIB.render_cached(text, maxw=max_width, size=size, embolden=embolden)
+-                if len(_TEXT_CACHE) < _TEXT_CACHE_MAX:
+-                    _TEXT_CACHE[_key] = data
+-                try:
+-                    if not os.path.exists(_disk):
+-                        with open(_disk, "wb") as _f:
+-                            _f.write(data)
+-                except Exception:
+-                    pass
+-        except Exception as e:
+-            import traceback
+-            try:
+-                open(os.path.join(os.environ.get("TEMP", "."), "wa2_text_error.log"), "a", encoding="utf-8").write(
+-                    traceback.format_exc() + "\n----\n")
+-            except Exception:
+-                pass
+-            return self._json({"error": str(e)}, 500)
+-        self.send_response(200)
+-        self.send_header("Content-Type", "image/png")
+-        self.send_header("Content-Length", str(len(data)))
+-        self.end_headers()
+-        self.wfile.write(data)
+-
+     def _body(self):
+         n = int(self.headers.get("Content-Length", 0))
+         return json.loads(self.rfile.read(n).decode("utf-8"))
+ 
+-    def _chat(self):
+-        try:
+-            req = self._body()
+-        except Exception as e:
+-            return self._json({"error": "bad request: %s" % e}, 400)
+-
+-        if NO_MODELS and not cloud_cfg():
+-            return self._json({"reply": "（安全模式：模型未加载）", "thinking": ""})
+-
+-        emo = "calm"
+-        scene_now = ""
+-        outfit_now = ""
+-        cc = cloud_cfg()
+-        base_url = (req.get("base_url") or (cc.get("base_url") if cc else "") or OLLAMA).strip()
+-        if not (base_url.startswith("http://") or base_url.startswith("https://")):
+-            base_url = OLLAMA
+-        model = req.get("model") or (cc.get("model") if cc else "") or DEFAULT_MODEL
+-        if not cc and model not in ollama_models():
+-            model = FALLBACK_MODEL if FALLBACK_MODEL in ollama_models() else model
+-        msgs = req.get("messages") or []
+-        raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
+-        # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
+-        prev_bg = (req.get("bg") or "").strip()
+-        # 当前衣服 / 手动时期：决定这一轮用哪套人设和世界书
+-        outfit_now = (req.get("outfit") or "").strip()
+-        period_req = (req.get("period") or "").strip().lower()
+-        period = period_req if period_req in ("ic", "cc", "coda") else persona_ctx.period_of(outfit_now)
+-        log("时期: %s (outfit=%s, 手动=%s)" % (persona_ctx.PERIOD_LABELS.get(period, period),
+-                                              outfit_now[:20], period_req or "auto"))
+-
+-        # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
+-        msgs, mem_note = _memory_context(msgs, bool(cc))
+-
+-        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs, period=period)
+-        system = persona_ctx.persona_text(raw_msgs, period=period)
+-
+-        # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
+-        #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
+-        #   后面还有：剧本检索（原作片段）
+-        try:
+-            mem_extra = char_res.memory_text()
+-            if mem_extra:
+-                system = system + (
+-                    "\n\n【你记得的旧事（角色设定的一部分，事先记好的，不是这轮对话里发生的事；"
+-                    "用你自己的口气提起，不要照抄原文）】\n" + mem_extra)
+-            wb_extra = char_res.worldbook_text()
+-            if wb_extra:
+-                system = system + (
+-                    "\n\n【设定补充（用户整理好的资料，只作参考，不要整段复述）】\n"
+-                    + wb_extra)
+-        except Exception as e:
+-            log("角色资源读取失败: %s" % e)
+-
+-        if wb_ctx:
+-            system = system + "\n\n" + wb_ctx
+-        if mem_note:
+-            system = system + "\n\n" + mem_note
+-
+-        # 剧本检索: 找出和这句话相关的原作片段, 作为"想起来的事"而不是台词。
+-        # 和世界书分开写：世界书是「设定」，这里是「原作里真的发生过什么」。
+-        try:
+-            if STORY is not None and req.get("memory") and STORY.enabled():
+-                last_user = ""
+-                for m in reversed(msgs):
+-                    if m.get("role") == "user":
+-                        last_user = m.get("content") or ""
+-                        break
+-                mem = STORY.memory_context(last_user, k=2, max_chars=900)
+-                if mem:
+-                    system = system + (
+-                        "\n\n【原作里发生过的片段（资料，不是这轮对话的内容，也不是你的台词）】\n"
+-                        + mem
+-                        + "\n（这些是以前真实发生过的事。只在聊天自然提及时，用你自己的口气带一句；"
+-                          "不要照抄原文，不要整段复述，不要把它说成刚刚发生的事。）")
+-                    log("story_rag 命中 %d 字（问：%s）" % (len(mem), last_user[:20]))
+-        except Exception as e:
+-            log("story_rag 失败: %s" % e)
+-
+-        try:
+-            _sp = characters.sprite_index(os.path.join(ASSETS_DIR, "sprites"))
+-            _outfit_names = list((_sp.get("outfits") or {}).keys())
+-            outfit_hint = "、".join(_outfit_names) if _outfit_names else "（按当前角色立绘）"
+-        except Exception:
+-            outfit_hint = "（按当前角色立绘）"
+-        if cc:
+-            # 云端：人设末尾补语言/格式约束，前面插 few-shot
+-            # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
+-            system = system + (
+-                "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
+-                + scene_cg.prompt_hint() +
+-                "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
+-                + outfit_hint +
+-                "平时绝对不要输出。"
+-                "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
+-                "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
+-                "标记只能是开头那一个，正文里不要再出现。"
+-                "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
+-                "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
+-        payload = {
+-            "model": model,
+-            "messages": ([{"role": "system", "content": system}]
+-                         + (fewshot_msgs() if cc else []) + msgs),
+-            "stream": False,
+-            "max_tokens": 400 if cc else 260,
+-        }
+-        if not cc:
+-            payload["reasoning_effort"] = "none"
+-        if cc and ("pro" in model or "deepseek" in (base_url or "").lower() or "deepseek" in (model or "").lower()):
+-            payload["thinking"] = {"type": "disabled"}
+-            payload["reasoning_effort"] = "none"
+-        t0 = time.time()
+-        try:
+-            rq = urllib.request.Request(
+-                base_url.rstrip("/") + "/v1/chat/completions",
+-                data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+-                headers=({"Content-Type": "application/json",
+-                          "Authorization": "Bearer " + cc["api_key"]} if cc
+-                         else {"Content-Type": "application/json"}))
+-            with urllib.request.urlopen(rq, timeout=300) as r:
+-                d = json.loads(r.read().decode("utf-8"))
+-            raw = (d["choices"][0]["message"].get("content") or "").strip()
+-            _uinfo = _record_usage(model, d.get("usage") or {})
+-            raw, emo = split_emotion(raw)
+-            raw, scene_now, outfit_now = split_scene(raw)
+-            acts, raw = split_action(raw)
+-            reply, think = split_thinking(raw)
+-            action = " ".join(a for a in acts if a).strip()
+-            # 游戏里角色台词一律用「」包起来，由程序统一处理，不让模型自己加
+-            _r = (reply or "").strip()
+-            if _r:
+-                _r = _r.strip("「」『』")
+-                reply = "「" + _r + "」"
+-
+-            # v7 用日文回答: 日文原文留给语音, 中文译文给对话框
+-            reply_zh = ""
+-            action_zh = ""
+-            try:
+-                if any("\u3040" <= c <= "\u30ff" for c in reply):
+-                    tts_client.start_translate()
+-                    reply_zh = tts_client.translate_via_service(_r, "zh")
+-                    if action:
+-                        action_zh = tts_client.translate_via_service(action, "zh")
+-            except Exception as e:
+-                log("日译中失败: %s" % e)
+-
+-            # 场景：把 <scene> 的地点/时间对上素材里的背景图（匹配逻辑在 scene_cg.py）
+-            bg_hit = {}
+-            if scene_now:
+-                try:
+-                    bg_hit = scene_cg.match(scene_now, prev_bg)
+-                except Exception as e:
+-                    log("场景匹配失败: %s" % e)
+-                if not bg_hit:
+-                    log("场景没匹配上：%r（当前背景 %r）" % (scene_now, prev_bg))
+-
+-            self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
+-                        "action": action, "action_zh": action_zh,
+-                        "emotion": emo,
+-                        "scene": scene_now, "outfit": outfit_now,
+-                        "bg": bg_hit.get("id", ""),
+-                        "period": period,
+-                        "usage": _uinfo,
+-                        "model": model,
+-                        "ms": int((time.time() - t0) * 1000),
+-                        "worldbook": wb_names})
+-        except urllib.error.HTTPError as e:
+-            self._json({"error": "HTTP %s %s" % (e.code, e.read().decode("utf-8", "replace")[:200])})
+-        except Exception as e:
+-            self._json({"error": "连不上 Ollama（%s），请先启动 Ollama" % e})
+-
+ 
+ _models_cache = {"t": 0, "v": []}
+ 
+@@ -1952,4 +1319,4 @@ if __name__ == "__main__":
+     if args.serve_only:
+         serve_only(args.port)
+     else:
+-        main()
++        main()
+\ No newline at end of file
 diff --git a/program/src/text_parse.py b/program/src/text_parse.py
 new file mode 100644
 index 0000000..b18514b
@@ -2412,10 +3731,10 @@ index 0000000..b18514b
 +    return sum(1 for c in x if 0x3040 <= ord(c) <= 0x30FF) >= 2
 diff --git a/program/tools/arch_map.py b/program/tools/arch_map.py
 new file mode 100644
-index 0000000..39cbe6b
+index 0000000..b4cc5a8
 --- /dev/null
 +++ b/program/tools/arch_map.py
-@@ -0,0 +1,173 @@
+@@ -0,0 +1,179 @@
 +# -*- coding: utf-8 -*-
 +"""扫描源码，生成「架构映射表」——层级 / 文件 / 职责 / 导出 / 依赖 / 被谁调用。
 +
@@ -2458,6 +3777,12 @@ index 0000000..39cbe6b
 +    "tts_client.py": ("二级 · 角色", "语音合成与参考音频"),
 +    "scene_cg.py": ("二级 · 场景", "场景 CG 标签与匹配"),
 +    "sub_render.py": ("二级 · 字模", "中文→字体图集渲染"),
++    "api_window.py": ("二级 · 接口/窗口", "窗口控制 /api/window"),
++    "api_char.py": ("二级 · 接口/角色", "角色查询与切换后处理"),
++    "api_modelcfg.py": ("二级 · 接口/模型", "/api/modelcfg"),
++    "api_tts.py": ("二级 · 接口/语音", "/api/tts 语音合成"),
++    "api_text.py": ("二级 · 接口/字模", "/api/text 字模渲染"),
++    "api_chat.py": ("二级 · 接口/对话", "/api/chat 对话入口"),
 +    "gdi_text.py": ("二级 · 字模", "GDI 兜底渲染"),
 +}
 +
