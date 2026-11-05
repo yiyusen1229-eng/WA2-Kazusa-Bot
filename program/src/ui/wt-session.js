@@ -46,6 +46,18 @@
     window.__history = history;
   }
 
+  /* 最后一句和纱的话（读档后要显示并重播）。
+     原来两处各抄了一遍同样的 for 循环，合成一个。 */
+  function lastAssistant() {
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (history[i] && history[i].role === "assistant") {
+        return { zh: history[i].zh || history[i].content || "",
+                 ja: history[i].content || "" };
+      }
+    }
+    return { zh: "", ja: "" };
+  }
+
   function sessionRestore() {
     return fetch("/api/session/load?slot=auto", { cache: "no-store" })
       .then(function (r) { return r.json(); })
@@ -63,18 +75,10 @@
         const meta = d.meta || {};
         if (meta.bg) { currentBg = null; setBg(meta.bg); }
         if (meta.outfit) { WA2.state.outfit = meta.outfit; }
-        // 把最后一句和纱的话显示出来
-        let last = "";
-        for (let i = history.length - 1; i >= 0; i--) {
-          if (history[i].role === "assistant") { last = history[i].zh || history[i].content || ""; break; }
-        }
-        if (last) {
-          try { showReply(last); } catch (e) { $("msgText").textContent = last; }
-          var _lastJa = "";
-          for (var _i = history.length - 1; _i >= 0; _i--) {
-            if (history[_i].role === "assistant") { _lastJa = history[_i].content || ""; break; }
-          }
-          if (_lastJa) speakLineJa(_lastJa, "calm");
+        var line = lastAssistant();
+        if (line.zh) {
+          try { showReply(line.zh); } catch (e) { $("msgText").textContent = line.zh; }
+          if (line.ja) speakLineJa(line.ja, "calm");
         }
         if (meta.outfit) {
           try { setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit); } catch (e) {}
@@ -118,17 +122,10 @@
       setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit || "");
       gdiRenderName(CHAR_NAME, $("namePlate"));
       setBgm("calm", 600);
-      let last = "";
-      for (let i = history.length - 1; i >= 0; i--) {
-        if (history[i].role === "assistant") { last = history[i].zh || history[i].content || ""; break; }
-      }
-      if (last) {
-        try { showReply(last); } catch (e) { $("msgText").textContent = last; }
-        var _lastJa = "";
-        for (var _i = history.length - 1; _i >= 0; _i--) {
-          if (history[_i].role === "assistant") { _lastJa = history[_i].content || ""; break; }
-        }
-        if (_lastJa) speakLineJa(_lastJa, "calm");
+      var line = lastAssistant();
+      if (line.zh) {
+        try { showReply(line.zh); } catch (e) { $("msgText").textContent = line.zh; }
+        if (line.ja) speakLineJa(line.ja, "calm");
       }
       try { rebuildBacklog(); } catch (e) {}
       /* 存档里存着「还没选的分支」：摆回来，并且不要抢输入框焦点 */
@@ -209,7 +206,7 @@
   WA2.session = _exp;
   WA2.register("session", _exp);
   /* __export_all__ */
-  ["sessionRestore", "sessionSave", "W", "WA2", "_exp", "_lastJa", "_names", "bg", "currentBg", "cv", "g", "h", "last", "meta", "r", "s", "sp", "sr", "stage", "w"].forEach(function (n) {
+  ["sessionRestore", "sessionSave", "W", "WA2", "_exp", "_names", "bg", "currentBg", "cv", "g", "h", "meta", "r", "s", "sp", "sr", "stage", "w"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();

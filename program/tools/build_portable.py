@@ -19,7 +19,7 @@ import sys
 import time
 import zipfile
 
-BASE = r"E:\IDM下载目录\DSH工作产生文件\WA2-Kazusa-Bot\program"
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # program/
 SRC = os.path.join(BASE, "src")
 RES = os.path.join(BASE, "res")
 APP = os.path.join(BASE, "build_env")
