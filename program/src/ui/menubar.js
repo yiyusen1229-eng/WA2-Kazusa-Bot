@@ -344,6 +344,23 @@
     return item;
   }
 
+
+  /* 选择分支数量：写进 prefs（后端落盘 prefs.json），选项条下次打开就用新值 */
+  function setChoiceCount(n) {
+    n = Math.max(2, Math.min(5, n | 0));
+    try {
+      if (window.WA2 && WA2.prefs && WA2.prefs.setPref) WA2.prefs.setPref("choiceCount", n);
+      else {
+        var raw = localStorage.getItem("app_prefs");
+        var p = raw ? JSON.parse(raw) : {};
+        p.choiceCount = n;
+        localStorage.setItem("app_prefs", JSON.stringify(p));
+        fetch("/api/prefs", { method: "POST", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify(p) }).catch(function () {});
+      }
+    } catch (e) {}
+    try { if (window.__toast) window.__toast("选择分支：" + n + " 个选项", 1600); } catch (e) {}
+  }
   function build() {
     if (document.getElementById("menuBar")) return;
     var bar = el("div", "");
@@ -382,6 +399,10 @@
       { label: "记忆书", action: function () {
           if (window.__openMemory) window.__openMemory();
       } },
+      /* 选择分支：一次给几个选项（2~5）。OPTION 界面是烤死的图，放这里最省事也找得到 */
+      { label: "选择分支数量", sub: [2, 3, 4, 5].map(function (n) {
+          return { label: n + " 个", run: function () { setChoiceCount(n); } };
+        }) },
       { label: "返回标题", action: function () { location.reload(); } }
     ]));
 

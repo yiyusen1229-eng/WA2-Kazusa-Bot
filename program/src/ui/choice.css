@@ -27,22 +27,24 @@
 #choiceList {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  width: 520px;
+  gap: 16px;
+  /* 几何量自原版整帧截图（2730×1536，系数 800/2730 = 0.29304）：
+     条宽 1320 → 387 舞台px；条高 62 → 18.2；行距 118 → 34.6（减去条高 = 16 的缝） */
+  width: 390px;
 }
 
 .choiceRow {
   position: relative;
-  height: 34px;
+  height: 18px;
   border: 0;
   margin: 0;
-  padding: 0 0 0 52px;
+  padding: 0 0 0 44px;
   width: 100%;
   text-align: left;
   cursor: pointer;
   color: #d8ecff;                     /* 常态：浅蓝白 */
   font-family: inherit;
-  font-size: 13px;
+  font-size: 10px;
   letter-spacing: .5px;
   background: none;
   border-radius: 0;
@@ -60,10 +62,11 @@
   background-image:
     linear-gradient(180deg, rgba(26, 78, 124, .92) 0%, rgba(12, 40, 72, .90) 55%,
                     rgba(8, 26, 48, .94) 100%),
+    url("assets/ui/choice/plate.png"),
     url("assets/ui/choice/bar.png");
-  background-size: 100% 100%, 100% 300%;
-  background-position: 0 0, 0 0;
-  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 100%, 100% 100%, 100% 300%;
+  background-position: 0 0, 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat;
   border-top: 1px solid rgba(150, 230, 255, .55);
   border-bottom: 1px solid rgba(110, 190, 250, .32);
   box-shadow: inset 0 0 18px rgba(60, 160, 220, .22);
@@ -78,7 +81,7 @@
   content: "";
   position: absolute;
   top: 50%;
-  width: 22px; height: 22px;
+  width: 14px; height: 14px;
   transform: translateY(-50%);
   background-image: url("assets/snowflake_right.png");
   background-size: contain;
@@ -112,26 +115,20 @@
   filter: brightness(1.15) saturate(1.6);
 }
 
-/* 左边那个小白标签（sys_00011 里没有单独一张，用 CSS 画） */
+/* 左边那个小白牌：真素材（sys_00011 图集里抠出来的 17×36 → CSS 9×19）
+   原图自带一点蓝色小火苗和一个挂孔，别再用 CSS 画假的。 */
 .choiceTag {
   position: absolute;
-  left: 24px;
+  left: 22px;
   top: 50%;
-  width: 13px; height: 16px;
-  transform: translateY(-50%) rotate(-6deg);
-  background: linear-gradient(180deg, #ffffff 0%, #d8ecf7 100%);
-  border-radius: 2px;
-  box-shadow: 0 0 4px rgba(150, 230, 255, .9), 0 1px 2px rgba(0, 20, 40, .6);
+  width: 9px;
+  height: 19px;
+  transform: translateY(-50%);
+  background-image: url("assets/ui/choice/tag.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   pointer-events: none;
   z-index: 1;
-}
-.choiceTag::after {
-  content: "";
-  position: absolute;
-  left: 2px; top: 2px;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: #2b6f96;
 }
 
 /* 编号：烤好的数字字模 + 一个「.」 */
@@ -139,11 +136,11 @@
   display: inline-flex;
   align-items: center;
   margin-right: 12px;
-  height: 12px;
+  height: 9px;
   z-index: 1;
 }
 .choiceNum img {
-  height: 12px; width: auto; display: block;
+  height: 9px; width: auto; display: block;
   filter: drop-shadow(0 1px 2px rgba(0, 10, 24, .9));
 }
 .choiceNum .dot {
