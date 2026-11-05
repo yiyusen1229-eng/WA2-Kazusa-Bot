@@ -73,7 +73,6 @@
   background-size: 100% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
-  transition: filter .16s ease;
 }
 
 /* 悬停高亮层：段2（sys_00200 第 2 帧）**不是**替换贴图，而是叠加上去的一层。
@@ -96,11 +95,11 @@
 .choiceRow:hover .choiceHl,
 .choiceRow.hover .choiceHl { opacity: 1; }
 
-/* 悬停时条子外还带一圈青色辉光（原版截图里青色是溢出条外一截的） */
-.choiceRow:hover .choiceBg,
-.choiceRow.hover .choiceBg {
-  filter: drop-shadow(0 0 6px rgba(96, 208, 255, .5));
-}
+/* 悬停时**不要**再给条身加 filter: drop-shadow 做辉光。
+   实测（开/关 filter 各截一张、同一场景逐像素差）：加 drop-shadow 之后，条子soft边外面
+   那几行会**变暗** 5~10 级（R 掉得最多），也就是用户看到的「亮起来的时候有明显黑边」；
+   不加就干净。原版本来也没有额外辉光——它的边缘衰减就是贴图自己的 alpha 坡
+   （原版实测 50% 点外侧 5px 内回到背景值），所以这里什么都不用叠。 */
 
 /* 两端雪花：和条子同画布同原点，整张叠上去。
    **也是加法**：雪花贴图芯色 (149,193,227)，原版常态那条的雪花最亮处实测 R = 159，
