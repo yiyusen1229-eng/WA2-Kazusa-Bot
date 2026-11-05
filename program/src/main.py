@@ -481,10 +481,16 @@ _TEXT_CACHE_EVICT = 400
 
 
 def log(msg):
-    """轻量日志: 打包后没有控制台, 写文件方便排查（写之前先脱敏）"""
+    """轻量日志: 打包后没有控制台, 写 logs/wa2_app.log 方便排查（写之前先脱敏）
+
+    不写系统 %TEMP%：用户不希望 C 盘里出现程序的临时文件；
+    真的写不进 logs/ 时 applog._log_dir() 自己会退到 %TEMP%/wa2_logs。
+    """
     try:
         import datetime
-        p = os.path.join(os.environ.get("TEMP", "."), "wa2_app.log")
+        d = applog._log_dir()
+        os.makedirs(d, exist_ok=True)
+        p = os.path.join(d, "wa2_app.log")
         with open(p, "a", encoding="utf-8") as f:
             f.write("[%s] %s\n" % (datetime.datetime.now().strftime("%H:%M:%S"),
                                    secret.redact(msg)))
