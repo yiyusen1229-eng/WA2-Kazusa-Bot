@@ -85,7 +85,7 @@ STEPS = [
     ("核心", "一键更新 30 项", "py", ["tools/test_update.py"], 120),
     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),
     ("核心", "翻译层 21 项", "py", ["tools/test_translate.py"], 60),
-    ("核心", "素材热重载 27 项", "py", ["tools/test_hotreload.py"], 120),
+    ("核心", "素材热重载 30 项", "py", ["tools/test_hotreload.py"], 120),
     ("核心", "素材向导 19 项", "py", ["tools/test_wizard.py"], 120),
     ("核心", "日志保留 + 诊断包 40 项", "py", ["tools/test_logpack.py"], 180),
     ("核心", "性能采样 59 项", "py", ["tools/test_perf_sample.py"], 120),

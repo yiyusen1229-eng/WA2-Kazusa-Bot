@@ -40,7 +40,7 @@
 | K22 | 演出/切片配置 | 没配置文件 → 默认值（且等于代码常量）；正常覆盖生效；超范围夹边界、类型不对回默认、未知键忽略、坏 JSON 全默认，每种都带 warning；切角色读对应文件 | `test_perfcfg.py`（+ `test_perfcfg.js` 验前端 `/api/performance` 拉取与 toast） |
 | K25 | 剧情检索 | df 按文档去重（idf 不为负）；闲聊（今天好冷/我饿了）不检索；带剧情锚点才检索；常见词组成的问句能退档命中；k / max_chars 生效；只看账不含正文 | `test_story_rag.py` |
 | K26 | 回复标签解析 | `<emotion>` 正常拆；拼错的 `</emomotion>` 不漏进台词；**没有标签时按台词形态猜情绪（毒舌/撒娇/哭腔/soft/问句），没线索才 calm，来源记在 `LAST_EMO_SOURCE`**；**明显难过的句子被标成 calm/毒舌时纠成哭腔（别的标签一律尊重模型）**；**双语块 `<ja>/<zh>` 拆得开、标签不漏进台词、单语/写坏也不炸，`looks_zh` 能分辨中文与日语**；scene/outfit/action/thinking 都能拆；`ja_clean` 只留第一行、**不按句号截断（两句台词不会被砍成一句半）**、句中逗号不截断、去尾巴、人称改「あたし」 | `test_text_parse.py`（44 项） |
-| K23 | 素材热重载 | 第一次只记基线；文件变了等签名稳定才触发；gen +1、勾子都调；某个勾子失败别的照跑；关掉不动作；角色目录变化 kinds=character；线程可停 | `test_hotreload.py`（+ `test_hotreload.js` 验前端轮询与重画） |
+| K23 | 素材热重载 | 第一次只记基线；文件变了等签名稳定才触发；gen +1、勾子都调；某个勾子失败别的照跑；关掉不动作；角色目录变化 kinds=character；**`sessions/` 自动存档与 `memory/standing.json` 不算素材变化（写它们不触发，写立绘/提示词才触发）**；线程可停 | `test_hotreload.py`（30 项，+ `test_hotreload.js` 验前端轮询与重画） |
 | K24 | 素材向导 | 缺立绘按衣服聚合、缺场景按 id、语音 0 字节/没参考音频、文本三件套未导入；补齐后各步 ok；每步可跳过 | `test_wizard.py`（+ 真机探针看 `data-uitxt`） |
 | K27 | 窗口接口归属 | `python main.py` 起时真身是 `__main__`：`main.py` 顶部把 "main" 别名指过去；`api_window.py` 经 `winutil._main_module()` 取窗口，不直接 `import main`；`_main_module()` 在有窗口/没窗口两种情况下都挑得对。**防「全屏 / 最大化点了没反应」——接口回 200 但 error 里写着 `module 'main' has no attribute '_WINDOW'`** | `test_window_api.py`（真机验证另见 `other/docs/踩坑记录` 第十条） |
 | K28 | 数据清理入口 | 概览 8 个清理项体积算得对（运行时缓存只算三份、日志只算 app-*.log）；清缓存保留今天正在写的日志、不碰存档与角色内容、未知 key 不算失败；导出 zip 有 manifest / README、跳过 `.bak`、不带素材、默认不带对话、`sk-` 已脱敏、turns>0 才带 sessions；删角色四种拒绝（确认名不对 / 当前角色 / id 带 `..` / 不存在），成功时整目录挪进 `characters/_deleted/` 且清掉 `cache/<角色>/` | `test_cleanup.py`（59 项） |

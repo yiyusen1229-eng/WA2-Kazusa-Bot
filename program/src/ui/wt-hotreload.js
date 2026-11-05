@@ -15,9 +15,12 @@
   var WA2 = window.WA2 = window.WA2 || {};
 
   var POLL_MS = 4000;
+  var TOAST_EVERY_MS = 15000;     /* 同一种变化最多 15 秒提示一次；换了一种就立刻提示 */
   var timer = null;
   var lastGen = -1;
   var version = 0;
+  var lastToastAt = 0;
+  var lastToastKind = "";
 
   function toast(msg) {
     try { (window.__toast || function () {}) (msg, 2200); } catch (e) {}
@@ -36,8 +39,14 @@
       }
     } catch (e) {}
     try { if (window.__reapplyBg) window.__reapplyBg(); } catch (e) {}
-    var what = (kinds || []).indexOf("character") >= 0 ? "角色素材" : "素材";
-    toast(what + "已更新" + (didSprite ? "" : "（下次切换时生效）"));
+    var now = Date.now();
+    var kind = (kinds || []).join("/");
+    if (kind !== lastToastKind || now - lastToastAt >= TOAST_EVERY_MS) {
+      lastToastAt = now;
+      lastToastKind = kind;
+      var what = (kinds || []).indexOf("character") >= 0 ? "角色素材" : "素材";
+      toast(what + "已更新" + (didSprite ? "" : "（下次切换时生效）"));
+    }
     try { if (window.__dbg) window.__dbg("ASSET", "hot reload v" + version + " " + (kinds || []).join("/")); } catch (e) {}
     return version;
   }

@@ -29,6 +29,13 @@ INTERVAL = max(0.5, float(os.environ.get("WA2_HOTRELOAD_S") or 2.0))
 SETTLE = 0.8                     # 签名要保持这么久不变才动作
 MAX_ENTRIES = 6000               # 单次扫描上限（超大素材目录不至于卡）
 
+# 不参与签名的目录：这些是**运行时数据**，聊天时每轮都在变（自动存档、缩略图、缓存）。
+# 盯着它们会让「素材已更新」提示每几秒弹一次（2026-11-05 用户反馈的实际问题）。
+SKIP_DIRS = {"sessions", "cache", "_deleted", "logs", "work_scratch", "tmp",
+             "__pycache__", ".git"}
+# 单个文件级的排除：常驻记忆书的关系摘要会随阶段刷新，但那不是「素材」
+SKIP_FILES = {"standing.json"}
+
 _LOCK = threading.Lock()
 _THREAD = None
 _STOP = threading.Event()
@@ -67,7 +74,11 @@ def set_enabled(on):
 
 
 def _sig_dir(root):
-    """(文件数, 最大 mtime_ns, 总字节)；扫不到返回 (0, 0, 0)"""
+    """(文件数, 最大 mtime_ns, 总字节)；扫不到返回 (0, 0, 0)
+
+    跳过 SKIP_DIRS / SKIP_FILES：存档、缓存、日志这些聊天时一直在变，
+    算进签名就会「素材已更新」狂弹。
+    """
     if not root or not os.path.isdir(root):
         return (0, 0, 0)
     n = 0
@@ -81,8 +92,12 @@ def _sig_dir(root):
                 for e in it:
                     try:
                         if e.is_dir(follow_symlinks=False):
+                            if e.name in SKIP_DIRS:
+                                continue
                             if len(stack) < 64:
                                 stack.append(e.path)
+                            continue
+                        if e.name in SKIP_FILES:
                             continue
                         st = e.stat(follow_symlinks=False)
                         n += 1

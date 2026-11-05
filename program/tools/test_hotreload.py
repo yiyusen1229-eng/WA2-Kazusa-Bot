@@ -140,6 +140,30 @@ def main():
     hotreload.tick(now=t0 + 51 + hotreload.SETTLE + 0.01)
     check("角色目录变了 → kinds 是 character", called and called[-1][1] == ["character"], called)
 
+    # ---------------- 6.5 运行时数据不参与签名（2026-11-05「素材已更新」狂弹的根因）
+    hotreload.reset()
+    hotreload.watch(assets, char)
+    os.makedirs(os.path.join(char, "sessions"), exist_ok=True)
+    os.makedirs(os.path.join(char, "memory"), exist_ok=True)
+    hotreload.tick(now=t0 + 60)
+    before_gen = hotreload.state()["gen"]
+    for rel in (("sessions", "auto.json"), ("sessions", "2.json"), ("memory", "standing.json")):
+        p = os.path.join(char, *rel)
+        with open(p, "a", encoding="utf-8") as f:
+            f.write("{}")
+    hotreload.tick(now=t0 + 61)
+    hotreload.tick(now=t0 + 61 + hotreload.SETTLE + 0.01)
+    check("写自动存档 / 关系摘要 → 不算素材变了", hotreload.state()["gen"] == before_gen,
+          hotreload.state()["gen"])
+    with open(os.path.join(char, "portrait", "y.png"), "wb") as f:
+        f.write(b"q" * 10)
+    hotreload.tick(now=t0 + 62)
+    hotreload.tick(now=t0 + 62 + hotreload.SETTLE + 0.01)
+    check("写立绘 → 仍然算素材变了", hotreload.state()["gen"] > before_gen,
+          hotreload.state()["gen"])
+    check("跳过名单里有 sessions / cache", {"sessions", "cache"} <= set(hotreload.SKIP_DIRS),
+          sorted(hotreload.SKIP_DIRS))
+
     # ---------------- 7 线程
     hotreload.set_enabled(True)
     check("start() 返回 True", hotreload.start() is True)
