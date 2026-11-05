@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-05.1",
+  "version": "2026-11-05.2",
   "url": "https://github.com/yiyusen1229-eng/ai-chat-ui-arch/tree/master/other/docs/patches",
-  "notes": "角色包导出/导入、密钥脱敏、记忆书界面、改名"
+  "notes": "演出状态机 / 剧情检索 v3（时期·线路·情境）/ 双语对话 / 数据清理面板 / 参数与指标表 / 日志诊断包"
 }

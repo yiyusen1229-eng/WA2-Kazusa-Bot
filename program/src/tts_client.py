@@ -116,12 +116,6 @@ EMOTION_PARAMS = {
     "问句":     {"speed_factor": 1.00, "temperature": 0.60, "top_k": 5,  "top_p": 0.90},
 }
 
-# 别名：前端按关键字判断出来的是 sad / warm，映射到新情绪
-EMOTION_ALIAS = {
-    "sad": "soft", "warm": "soft", "smile": "soft",
-    "happy": "soft", "default": "neutral", "": "neutral",
-}
-
 # 情绪分组：条数少的合并到主情绪（只影响读取，不移动文件）
 REF_GROUPS = {
     "calm":  ["calm"],
