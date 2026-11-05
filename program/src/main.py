@@ -59,6 +59,15 @@ import urllib.request
 import urllib.error
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
+# 用 `python main.py` 起的时候，本文件在 sys.modules 里叫 "__main__"，
+# 别的模块里写的 `from main import ...` / `import main` 会**把这个文件再执行一遍**，
+# 拿到的是另一份空壳：没有 _WINDOW、没有 _API，改它也不影响真身。
+# 症状就是窗口接口一律回 {"ok": false, "error": "module 'main' has no attribute '_WINDOW'"}，
+# 表现为「全屏 / 最大化点了没反应」（2026-11-05 用户报「全屏失效」就是这个）。
+# 提前把 "main" 这个名字指到真身上：之后再 import main 拿到的都是同一份全局。
+if __name__ == "__main__":
+    sys.modules.setdefault("main", sys.modules["__main__"])
+
 BUILD_TAG = time.strftime("%H%M%S")
 APP_NAME = "WHITE ALBUM2 Extension~ どこまでも続く道~"
 WINDOW_TITLE = APP_NAME

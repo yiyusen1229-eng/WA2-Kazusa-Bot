@@ -42,6 +42,7 @@
 | K26 | 回复标签解析 | `<emotion>` 正常拆；拼错的 `</emomotion>` 不漏进台词；scene/outfit/action/thinking 都能拆；`ja_clean` 只留第一行、去尾巴、人称改「あたし」 | `test_text_parse.py` |
 | K23 | 素材热重载 | 第一次只记基线；文件变了等签名稳定才触发；gen +1、勾子都调；某个勾子失败别的照跑；关掉不动作；角色目录变化 kinds=character；线程可停 | `test_hotreload.py`（+ `test_hotreload.js` 验前端轮询与重画） |
 | K24 | 素材向导 | 缺立绘按衣服聚合、缺场景按 id、语音 0 字节/没参考音频、文本三件套未导入；补齐后各步 ok；每步可跳过 | `test_wizard.py`（+ 真机探针看 `data-uitxt`） |
+| K27 | 窗口接口归属 | `python main.py` 起时真身是 `__main__`：`main.py` 顶部把 "main" 别名指过去；`api_window.py` 经 `winutil._main_module()` 取窗口，不直接 `import main`；`_main_module()` 在有窗口/没窗口两种情况下都挑得对。**防「全屏 / 最大化点了没反应」——接口回 200 但 error 里写着 `module 'main' has no attribute '_WINDOW'`** | `test_window_api.py`（真机验证另见 `other/docs/踩坑记录` 第十条） |
 
 ## 边界（极端输入不炸，行为仍可预期）
 

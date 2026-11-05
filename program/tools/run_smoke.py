@@ -87,6 +87,7 @@ STEPS = [
     ("核心", "素材向导 19 项", "py", ["tools/test_wizard.py"], 120),
     ("核心", "日志保留 + 诊断包 40 项", "py", ["tools/test_logpack.py"], 180),
     ("核心", "性能采样 59 项", "py", ["tools/test_perf_sample.py"], 120),
+    ("核心", "窗口接口归属 8 项", "py", ["tools/test_window_api.py"], 60),
     ("核心", "演出状态机 23 项", "node", ["tools/test_perf.js"], 120),
     ("核心", "交叉淡化 31 项", "node", ["tools/test_fade.js"], 120),
     ("核心", "演出配置前端 16 项", "node", ["tools/test_perfcfg.js"], 120),

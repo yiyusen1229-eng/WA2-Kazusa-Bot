@@ -8,14 +8,20 @@ class WindowApi:
     """见 main.Handler；从 main 注入运行时全局。"""
 
     def _window_ctl(self):
-        import main
+        """无边框窗口的关闭 / 最小化 / 最大化（走 HTTP，避免依赖 js_api）
+
+        窗口对象挂在 main 的全局里，而用 `python main.py` 起时那份模块叫 __main__：
+        这里必须经 winutil._main_module() 取真身，不能指望 `import main` 拿到同一份
+        （拿错了就是 "module 'main' has no attribute '_WINDOW'"，窗口点了没反应）。
+        """
         from main import (WINDOWED_SIZE, WINDOW_TITLE, _dpi_scale, _screen_size, _user32, _win_hwnd, qs)
-        """无边框窗口的关闭 / 最小化 / 最大化（走 HTTP，避免依赖 js_api）"""
+        from winutil import _main_module
         from urllib.parse import urlparse, parse_qs
         try:
             q = parse_qs(urlparse(self.path).query)
             action = qs(q, ("action", "act")).strip()
-            w = main._WINDOW
+            _m = _main_module()
+            w = getattr(_m, "_WINDOW", None)
             try:
                 applog.log("窗口控制: action=%s window=%s" % (action, "有" if w else "无"), "WIN")
             except Exception:
@@ -46,7 +52,7 @@ class WindowApi:
                 u.SetWindowPos(hw, None, r.left + dx, r.top + dy, 0, 0, 0x0001 | 0x0004)
             elif action == "dragbegin":
                 try:
-                    _api_ref = main._API
+                    _api_ref = getattr(_m, "_API", None)
                     if _api_ref is not None:
                         return self._json(_api_ref.drag_begin())
                 except Exception as e:
@@ -132,7 +138,6 @@ class WindowApi:
                     return self._json({"ok": False, "error": "bad size"})
                 if nw < 640 or nh < 360:
                     return self._json({"ok": False, "error": "too small"})
-                w = main._WINDOW
                 try:
                     w.resize(nw, nh)
                     return self._json({"ok": True, "w": nw, "h": nh})
