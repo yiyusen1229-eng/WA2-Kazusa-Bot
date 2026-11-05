@@ -46,9 +46,12 @@ def make_docs(n=200):
         # 每篇用固定的填充字（二元组高度重复 → idf 很低），保证不含目标词
         body = (FILLER * 8)[:200]
         docs.append({"src": "填充%d" % i, "text": body})
-    docs[0] = {"src": "11/2 星期二", "text": "〔学园祭的演出〕\n礼堂里坐满了人，演出非常成功。"}
-    docs[1] = {"src": "2/14 星期四", "text": "〔雪菜的车祸〕\n那天的车祸在冬天，所幸并无大碍。"}
-    docs[2] = {"src": "11/1 星期四", "text": "〔第二音乐室〕\n第二音乐室的门锁着，钢琴还在。"}
+    docs[0] = {"src": "11/2 星期二", "text": "〔学园祭的演出〕\n礼堂里坐满了人，演出非常成功。",
+               "period": "ic", "tags": ["校园"]}
+    docs[1] = {"src": "2/14 星期四", "text": "〔雪菜的车祸〕\n那天的车祸在冬天，所幸并无大碍。",
+               "period": "coda", "tags": ["离别"]}
+    docs[2] = {"src": "11/1 星期四", "text": "〔第二音乐室〕\n第二音乐室的门锁着，钢琴还在。",
+               "period": "ic", "tags": ["校园"]}
     # 一篇里重复很多次，但仍只是一篇（测 df 去重）
     docs[3] = {"src": "重复", "text": "车祸" * 20 + FILLER}
     return docs
@@ -95,6 +98,24 @@ def main():
     check("k=1 只回一条", len(idx.search("学园祭的演出", k=1)) <= 1)
     check("没有命中词时返回空", idx.search("记得那件事吗") == [])
 
+    # 6.5) v3 情境：识别 + 加权（索引没有 tags 字段时只测识别）
+    sit_dense = S.situation_of("那天晚上你抱着我，还亲了我一下", loose=True)
+    check("情境识别·亲密", "亲密" in sit_dense, sit_dense)
+    sit_school = S.situation_of("学园祭演出那天", loose=True)
+    check("情境识别·校园", "校园" in sit_school, sit_school)
+    check("情境识别·闲聊为空", S.situation_of("今天天气不错", loose=True) == [],
+          S.situation_of("今天天气不错", loose=True))
+    docs_now = getattr(idx, "docs", [])
+    if docs_now and "tags" in docs_now[0]:
+        h_sit = idx.search("回忆一下第二音乐室的门", k=2, tags=["校园"])
+        check("情境加权：命中带同一情境的块",
+              bool(h_sit) and any("校园" in (h.get("tags") or []) for h in h_sit),
+              [(h.get("tags")) for h in h_sit])
+        h_per = idx.search("学园祭的演出", k=2, period="ic")
+        check("时期加权：命中同时期的块",
+              bool(h_per) and all(h.get("period") == "ic" for h in h_per),
+              [(h.get("period")) for h in h_per])
+
     # 7) memory_context：截断 + 只看账
     old = S.get_index
     try:
@@ -102,7 +123,7 @@ def main():
         text = S.memory_context("学园祭的演出", k=2, max_chars=120)
         check("max_chars 生效（不超上限太多）", 0 < len(text) <= 400, len(text))
         st = S.last_hits()
-        check("last_hits 有 hits/chars/at", set(st) == {"hits", "chars", "at"}, list(st))
+        check("last_hits 有 hits/chars/at", {"hits", "chars", "at"} <= set(st), list(st))
         check("last_hits 不含正文", all("text" not in h for h in st["hits"]), st["hits"][:1])
         check("last_hits 记了出处", st["hits"] and st["hits"][0]["src"], st["hits"][:1])
     finally:

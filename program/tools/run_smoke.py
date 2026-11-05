@@ -81,7 +81,7 @@ STEPS = [
     ("核心", "参数表 51 项", "py", ["tools/test_params.py"], 180),
     ("核心", "常驻记忆书两段化 45 项", "py", ["tools/test_standing.py"], 120),
     ("核心", "演出/切片配置 44 项", "py", ["tools/test_perfcfg.py"], 120),
-    ("核心", "剧情检索 22 项", "py", ["tools/test_story_rag.py"], 120),
+    ("核心", "剧情检索 27 项", "py", ["tools/test_story_rag.py"], 120),
     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),
     ("核心", "翻译层 21 项", "py", ["tools/test_translate.py"], 60),
     ("核心", "素材热重载 27 项", "py", ["tools/test_hotreload.py"], 120),

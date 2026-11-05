@@ -220,6 +220,16 @@ def persona_text(messages=None, period=None):
             _note_persona_src("内置默认")
             base = "你是示例角色，说话简短，只用简体中文。"
 
+    # 说话风格摘句（可选）：prompt/style.txt。从原作按情境摘出来的句子，
+    # 只学语气不照抄；有就拼在阶段之后，没有就当不存在。
+    try:
+        _style = _read(os.path.join(prompt_dir(), "style.txt"))
+    except Exception:
+        _style = ""
+    if _style and _style not in base:
+        _note_persona_src("%s + 风格摘句" % _PERSONA_SRC["v"])
+        base = base + "\n\n" + _style
+
     p = (period or "").strip().lower()
     ov = _period_overlay(p)
     if ov:

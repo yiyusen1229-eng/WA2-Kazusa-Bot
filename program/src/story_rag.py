@@ -28,14 +28,49 @@ STORY_HINTS = ('记得', '以前', '当时', '那时', '后来', '最后', '结�
                '温泉', '车站', '音乐会', '告白', '分手', '结婚', '去世', '生病')
 
 
+# 情境（和 build_index_v3.py 里那套一致；改了要两边一起改，自测会比对数量级）
+SIT_RX = {
+    "亲密": r"裸|乳|胸|舌|喘|湿|插入|绝顶|爱抚|性器|下腹|湿透|进去了|做了|抱着|抱紧|吻|睡衣|床上",
+    "调情": r"挑逗|勾引|调情|暧昧|撩|脸红|心跳|耳语|低语|靠过来|撒娇|凑近|想你了",
+    "崩坏": r"哭|泪|呜咽|吼|喊叫|泣|崩溃|对不起|原谅",
+    "拌嘴": r"笨蛋|毒舌|顶嘴|吵架|不耐烦|哼|烦人|吵死",
+    "校园": r"学园祭|演出|同好会|舞台|放学|教室|社团",
+    "工作": r"开樱|编辑部|采访|杂志|加班|会议|工作",
+    "离别": r"告白|分手|离开|机场|毕业|再见|别走",
+}
+_SIT_COMPILED = {k: re.compile(v) for k, v in SIT_RX.items()}
+
+
+def situation_of(text, loose=False):
+    """这句话大概是什么情境（可多个）。命中数够门槛才算，宁缺不滥。
+
+    `loose=True` 给「用户这句话」用：用户一句话很短，门槛必须放低，
+    否则「学园祭演出那天」这种明显提示也会被判成没情境（实测就是这样）。
+    就算放宽也只是**加分**，不会把不对的片段硬塞进来。
+    """
+    hits = []
+    for name, rx in _SIT_COMPILED.items():
+        n = len(rx.findall(text or ""))
+        need = 1 if loose else (2 if name in ("亲密", "调情", "崩坏") else 3)
+        if n >= need:
+            hits.append(name)
+    return hits[:3]
+
+
 def _load_docs(path):
     """读取剧本索引：优先 .json.gz（体积约为 json 的 1/6，启动更快）
 
+    两种格式都认：老版是 `[{src, text}]`，v3 是 `{"v": 3, "blocks": [...]}`
+    （v3 每块多带 period / route / tags / title）。
     坏索引（0 字节 / 半截 gz）当没有：cache_io 会删掉它，调用方按"没索引"处理。
     """
     if path.endswith(".gz"):
-        return cache_io.read_gz_json(path) or []
-    return cache_io.read_json(path) or []
+        data = cache_io.read_gz_json(path) or []
+    else:
+        data = cache_io.read_json(path) or []
+    if isinstance(data, dict):
+        return data.get("blocks") or []
+    return data
 
 
 
@@ -99,7 +134,7 @@ class StoryIndex:
                 n += 1
         return n
 
-    def search(self, query, k=2, min_score=5.0):
+    def search(self, query, k=2, min_score=5.0, period=None, tags=None):
         CHITCHAT = ('你好', '您好', '早安', '晚安', '天气', '吃了吗', '在吗', '在不在',
                     '嗨', '早上好', '中午好', '拜拜', '再见')
         if any(w in (query or '') for w in CHITCHAT):
@@ -129,23 +164,48 @@ class StoryIndex:
                     s = idf * (cnt * 2.2) / (cnt + 1.2 * (0.25 + 0.75 * dl / self.avgdl))
                     scores[last] = scores.get(last, 0.0) + s
                 last, cnt = doc_id, 1
+        # 时期 / 情境加权：同一句话，优先取「同样时期」和「同样情境」的片段。
+        # （H 场景与调情短篇的语感完全不同；现在是 coda 就别拿 IC 的教室段子。）
+        # 做法：先给命中的块加权（保证它们排在前面），再按分数排；没有命中的退回原顺序。
+        prefer_ids = set()
+        if period or tags:
+            want_tags = set(tags or [])
+            for i, sc in list(scores.items()):
+                d = self.docs[i]
+                mult = 1.0
+                hit_period = bool(period) and d.get("period") == period
+                hit_tag = bool(want_tags) and bool(want_tags & set(d.get("tags") or []))
+                if hit_period:
+                    mult *= 1.3
+                if hit_tag:
+                    mult *= 1.5
+                if hit_period or hit_tag:
+                    prefer_ids.add(i)
+                if mult != 1.0:
+                    scores[i] = sc * mult
         # 只保留「至少命中 2 个查询词」且分数够高的文档
         need = 2 if len(q) >= 2 else 1
-        top = [(i, sc) for i, sc in sorted(scores.items(), key=lambda x: -x[1])
-               if self._hit_terms(i, q, 3.0) >= need][:k]
-        if not top:
+        ok = [(i, sc) for i, sc in scores.items() if self._hit_terms(i, q, 3.0) >= need]
+        if not ok:
             # 退一步：整句都是常见字（「学园祭的演出」「雪菜的车祸」）时，
             # 上面那道 idf≥3 的门会一条都不给过。放宽到 1 个词、idf≥1.2，宁可多给一点
             # 也别让「问剧情」变成空手（调用方只有拿到内容才注入）。
-            top = [(i, sc) for i, sc in sorted(scores.items(), key=lambda x: -x[1])
-                   if self._hit_terms(i, q, 1.2) >= 1][:k]
+            ok = [(i, sc) for i, sc in scores.items() if self._hit_terms(i, q, 1.2) >= 1]
             min_score = min_score * 0.7
+        if prefer_ids:
+            # 同情境/同时期的优先占位，剩下的按分数补
+            ok.sort(key=lambda x: (0 if x[0] in prefer_ids else 1, -x[1]))
+        else:
+            ok.sort(key=lambda x: -x[1])
+        top = ok[:k]
         out = []
         for i, s in top:
             if s < min_score:
                 break
-            out.append({"score": round(s, 2), "src": self.docs[i].get("src", ""),
-                        "text": self.docs[i]["text"]})
+            d = self.docs[i]
+            out.append({"score": round(s, 2), "src": d.get("src", ""),
+                        "text": d["text"], "period": d.get("period", ""),
+                        "tags": d.get("tags") or []})
         return out
 
 
@@ -153,6 +213,9 @@ _CACHE = {}
 _BUILD_LOCK = threading.Lock()
 
 GLOBAL_INDEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story_index.json")
+# v3：同一份剧本、每块多带 period / route / tags（有就用它，没有回落 v2）
+GLOBAL_INDEX_V3 = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "story_index_v3.json.gz")
 
 
 def _char_dir():
@@ -203,6 +266,8 @@ def active_index():
         own = os.path.join(d, "story_index.json.gz")
         if os.path.exists(own):
             return own
+    if os.path.exists(GLOBAL_INDEX_V3):
+        return GLOBAL_INDEX_V3
     return GLOBAL_INDEX
 
 
@@ -234,12 +299,12 @@ def preload():
         return False
 
 
-def memory_context(query, k=2, max_chars=900):
+def memory_context(query, k=2, max_chars=900, period=None, tags=None):
     idx = get_index()
     if idx is None:
         _LAST.update({"hits": [], "chars": 0, "at": int(time.time())})
         return ""
-    hits = idx.search(query, k=k)
+    hits = idx.search(query, k=k, period=period, tags=tags)
     if not hits:
         _LAST.update({"hits": [], "chars": 0, "at": int(time.time())})
         return ""
@@ -252,10 +317,14 @@ def memory_context(query, k=2, max_chars=900):
         used += len(t)
         if used >= max_chars:
             break
-    # 调试面板（#13）：只留出处 / 分数 / 字数，不返回正文
+    # 调试面板（#13）：只留出处 / 分数 / 字数 / 时期与情境标签，不返回正文
     _LAST.update({
         "hits": [{"src": str(h.get("src") or "")[:20], "score": h.get("score"),
-                  "chars": len(h.get("text") or "")} for h in hits],
+                  "chars": len(h.get("text") or ""),
+                  "period": h.get("period") or "",
+                  "tags": h.get("tags") or []} for h in hits],
+        "want_period": period or "",
+        "want_tags": list(tags or []),
         "chars": used,
         "at": int(time.time()),
     })

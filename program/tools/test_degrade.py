@@ -74,6 +74,8 @@ def main():
     # ------------------------------------------------ 4 原作检索不可用
     story_rag._CACHE = {}
     story_rag.GLOBAL_INDEX = os.path.join(_TMP, "没有这个索引.json.gz")
+    # v3 也一起藏起来：否则 active_index 会回落到真实存在的 story_index_v3.json.gz
+    story_rag.GLOBAL_INDEX_V3 = os.path.join(_TMP, "没有这个索引v3.json.gz")
     check("没有索引：memory_context 返回空串",
           story_rag.memory_context("今天天气不错") == "")
     check("没有索引：last_hits 是合法空值",

@@ -115,12 +115,23 @@ class ChatApi:
         try:
             if STORY is not None and req.get("memory") and STORY.enabled():
                 last_user = ""
+                _prev_users = []
                 for m in reversed(msgs):
                     if m.get("role") == "user":
-                        last_user = m.get("content") or ""
-                        break
+                        _u = m.get("content") or ""
+                        if not last_user:
+                            last_user = _u
+                        elif len(_prev_users) < 2:
+                            _prev_users.append(_u)
+                        if len(_prev_users) >= 2:
+                            break
+                # 情境/时期加权：现在是 coda 就别拿 IC 的教室段子；
+                # 这句像亲密/调情/拌嘴，就优先取同情境的片段（语气才对）。
+                _sit = STORY.situation_of(last_user + " " + " ".join(_prev_users), loose=True)
+                _per = (period or "").lower() or None
                 mem = STORY.memory_context(last_user, k=_sl["story_k"],
-                                           max_chars=_sl["story_max_chars"])
+                                           max_chars=_sl["story_max_chars"],
+                                           period=_per, tags=_sit)
                 _seg["story"] = len(mem or "")
                 if mem:
                     system = system + (
