@@ -20,6 +20,13 @@ CJK = re.compile(r"[\u4e00-\u9fff]")
 WORD = re.compile(r"[a-zA-Z]{2,}")
 STOP = set("的了是我你他她它在和与就都也很还又而但如果不没要会能可以这个那个什么怎么为什么吗呢吧啊呀哦嗯")
 
+# 只有「像在问剧情」的话才去检索原作文本：闲聊不该被塞一段剧本。
+# 想扩展就在这儿加词（这些词本身都是剧情锚点或回忆的说法）。
+STORY_HINTS = ('记得', '以前', '当时', '那时', '后来', '最后', '结局', 'END',
+               '故事', '剧情', '发生', '说过', '当年', '回忆', '线里', '那条线',
+               '学园祭', '文化祭', '演出', '事故', '车祸', '音乐室', '毕业',
+               '温泉', '车站', '音乐会', '告白', '分手', '结婚', '去世', '生病')
+
 
 def _load_docs(path):
     """读取剧本索引：优先 .json.gz（体积约为 json 的 1/6，启动更快）
@@ -67,19 +74,26 @@ class StoryIndex:
     def _idf_of(self, tid):
         v = self._idf.get(tid)
         if v is None:
-            df = len(self.post[tid])
+            # post[tid] 里每个文档出现几次就存几次（tf），所以 df 要去重后再算，
+            # 否则「雪菜」这种高频词会出现 df > N、idf 变负数。
+            # 倒排表按 doc id 升序追加，数「分组个数」即可，比 set() 快也不占内存。
+            df, last = 0, -1
+            for did in self.post[tid]:
+                if did != last:
+                    df += 1
+                    last = did
             v = math.log(1 + (self.N - df + 0.5) / (df + 0.5))
             self._idf[tid] = v
         return v
 
-    def _hit_terms(self, doc_id, q):
-        """该文档命中了几个「有信息量」的查询词（常见字不算）"""
+    def _hit_terms(self, doc_id, q, min_idf=3.0):
+        """该文档命中了几个「有信息量」的查询词（常见字不算；min_idf 可放宽）"""
         n = 0
         for t in q:
             tid = self.vocab.get(t)
             if tid is None:
                 continue
-            if self._idf_of(tid) < 3.0:     # 你好/我/你 这类高频字直接忽略
+            if self._idf_of(tid) < min_idf:     # 你好/我/你 这类高频字直接忽略
                 continue
             if doc_id in self.post[tid]:
                 n += 1
@@ -89,6 +103,10 @@ class StoryIndex:
         CHITCHAT = ('你好', '您好', '早安', '晚安', '天气', '吃了吗', '在吗', '在不在',
                     '嗨', '早上好', '中午好', '拜拜', '再见')
         if any(w in (query or '') for w in CHITCHAT):
+            return []
+        # 闲聊不检索：只有提到「过去 / 结局 / 具体场景」才去翻剧本，
+        # 否则每句「今天好冷」都会被塞 900 字原作片段。
+        if not any(h in (query or '') for h in STORY_HINTS):
             return []
         q = tokenize(query)
         if not q:
@@ -113,9 +131,15 @@ class StoryIndex:
                 last, cnt = doc_id, 1
         # 只保留「至少命中 2 个查询词」且分数够高的文档
         need = 2 if len(q) >= 2 else 1
-        MIN_HIT_TERMS = need
         top = [(i, sc) for i, sc in sorted(scores.items(), key=lambda x: -x[1])
-               if self._hit_terms(i, q) >= MIN_HIT_TERMS][:k]
+               if self._hit_terms(i, q, 3.0) >= need][:k]
+        if not top:
+            # 退一步：整句都是常见字（「学园祭的演出」「雪菜的车祸」）时，
+            # 上面那道 idf≥3 的门会一条都不给过。放宽到 1 个词、idf≥1.2，宁可多给一点
+            # 也别让「问剧情」变成空手（调用方只有拿到内容才注入）。
+            top = [(i, sc) for i, sc in sorted(scores.items(), key=lambda x: -x[1])
+                   if self._hit_terms(i, q, 1.2) >= 1][:k]
+            min_score = min_score * 0.7
         out = []
         for i, s in top:
             if s < min_score:

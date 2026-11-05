@@ -25,6 +25,18 @@ OUT_DEFAULT = os.path.join(ROOT, "src", "story_index.json.gz")
 OVERLAP = 100          # 相邻块重叠的字数，避免一句话被切断后检索不到
 
 
+def _heading(chapter, ctx):
+    """给每块加一行「标题行」，让 BM25 能按场景名/日期召回
+
+    剧本里有的场景第一行就是标题（「轻音乐同好会再结成（上）」），有的直接是台词；
+    台词行带引号或冒号，排除掉。都没有就退回章节日期。
+    """
+    first = (ctx or "").strip().split("\n", 1)[0].strip()
+    if 0 < len(first) <= 30 and "「" not in first and "『" not in first and "：" not in first:
+        return first
+    return (chapter or "").strip() or "本篇"
+
+
 def build(src, out, chunk):
     scenes = []
     with open(src, encoding="utf-8") as f:
@@ -43,6 +55,7 @@ def build(src, out, chunk):
     chunks, seen = [], set()
     for chapter, ctx, resp in scenes:
         full = ctx + ("\n" + resp if resp else "")
+        head = _heading(chapter, ctx)
         start = 0
         while start < len(full):
             piece = full[start:start + chunk]
@@ -50,7 +63,8 @@ def build(src, out, chunk):
                 key = piece[:200]
                 if key not in seen:            # 相同开头的块去重
                     seen.add(key)
-                    chunks.append({"src": chapter or "本篇", "text": piece})
+                    chunks.append({"src": chapter or "本篇",
+                                   "text": "〔%s〕\n%s" % (head, piece)})
             start += chunk - OVERLAP
 
     total = sum(len(c["text"]) for c in chunks)
