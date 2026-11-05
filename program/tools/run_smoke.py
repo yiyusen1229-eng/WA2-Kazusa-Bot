@@ -245,6 +245,11 @@ def live_smoke():
         wiz = json.loads(body)
         if not wiz.get("ok") or len(wiz.get("steps") or []) != 4:
             problems.append("assets/wizard 结构不对")
+        # 数据清理入口（#17）：只读概览，结构对、8 个清理项
+        st, body = _get(base + "/api/cleanup")
+        cl = json.loads(body)
+        if not cl.get("ok") or len(cl.get("items") or []) != 8:
+            problems.append("cleanup 概览结构不对")
         # 诊断包（#15）：真生成一份，确认能打开，再删掉（不留垃圾）
         st, body = _get(base + "/api/log/bundle")
         b = json.loads(body)
@@ -265,7 +270,7 @@ def live_smoke():
             # 这里是二进制 PNG；只验 HTTP 200 和长度，不解析
         if problems:
             return False, " / ".join(problems), time.time() - t0
-        return True, "端口 %d，接口 %d 个" % (port, 10 if has_assets else 9), time.time() - t0
+        return True, "端口 %d，接口 %d 个" % (port, 11 if has_assets else 10), time.time() - t0
     finally:
         try:
             proc.terminate()
