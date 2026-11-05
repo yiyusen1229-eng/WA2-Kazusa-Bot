@@ -103,6 +103,7 @@ STEPS = [
     ("静态", "架构映射表", "py", ["tools/arch_map.py", "--check"], 120),
     ("静态", "参数与指标表", "py", ["tools/param_table.py", "--check"], 120),
     ("静态", "像素测量 25 项", "py", ["tools/test_measure_ui.py"], 180),
+    ("静态", "选项条测量 9 项", "py", ["tools/test_measure_choice.py"], 120),
     ("静态", "前端拆分告警（≤%d）" % CHECK_SPLIT_MAX, "split", ["tools/check_split.py"], 180),
 ]
 

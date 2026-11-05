@@ -79,7 +79,7 @@ UI_LEVELS = {
     "wt-voice.js": ("二级 · 前端/语音", "TTS 播放与参考音频（WA2.voice）"),
     "wt-text.js": ("二级 · 前端/文字", "分页/打字机/翻页图标（WA2.text）"),
     "wt-backlog.js": ("二级 · 前端/回想", "对话历史与回想（WA2.backlog）"),
-    "wt-choices.js": ("二级 · 前端/选项", "随机台词选项（WA2.choices）"),
+    "wt-choices.js": ("二级 · 前端/选项", "选择分支选项条：/api/choice → 字模 + 贴图五层（WA2.choices）"),
     "wt-chat.js": ("二级 · 前端/对话", "发送与分析回复（WA2.chat）"),
     "wt-session.js": ("二级 · 前端/存档", "存读档与缩略图（WA2.session）"),
     "wt-cost.js": ("二级 · 前端/费用", "token/费用显示（WA2.cost）"),

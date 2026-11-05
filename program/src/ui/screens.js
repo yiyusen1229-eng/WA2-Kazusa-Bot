@@ -155,6 +155,8 @@
   /* 关掉「当前最上面那一层」：存读档的确认框 → 开着的浮层。
      右键退出先看这里；没有可关的就返回 false（交给对话界面自己的右键功能）。 */
   window.__closeTopScreen = function () {
+    /* 选择分支不是 .uiScreen（它是舞台里的一层贴图），最先收 */
+    if (window.__closeChoices && window.__closeChoices()) return true;
     var dlg = document.getElementById("dlgConfirm");
     if (dlg && dlg.classList.contains("on")) {
       dlg.classList.remove("on");

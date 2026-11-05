@@ -100,7 +100,9 @@
     playSE("cancel");
     showScreen("titleScreen");
     toggleBacklog(false);
-    $("choiceScreen").classList.remove("show");
+    /* 选择分支整层由它自己收（含状态机与按钮等待态），别只摘 show */
+    if (window.__closeChoices) window.__closeChoices();
+    else $("choiceScreen").classList.remove("show");
     titleBgmStarted = false;
     setBgm("menu", 800);
   }
@@ -111,6 +113,8 @@
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (backlogOpen) return;
+    /* 选择分支开着：这一下归它自己关（它的 keydown 已经拦了，这里是兜底） */
+    if (window.WA2 && WA2.choices && WA2.choices.isOpen && WA2.choices.isOpen()) return;
     if (window.__optOpen) return;
     if (window.__isScreenOpen && window.__isScreenOpen()) return;
     var gs = $("gameScreen");

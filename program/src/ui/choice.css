@@ -1,143 +1,167 @@
 /* choice.css —— 选择分支（选项条）
  *
- * 几何量全部来自原版整帧截图（2730×1536 → 800×450 舞台，系数 800/2730 = 0.29304），
- * 用「网格定位 + 亮边像素检测」读出来（见 other/docs/界面像素测量方法.md）：
- *   条宽 490（原图 x 556..2225）      条高 22（原图 y 606..682）
- *   上沿 y 176   行距 29（缝 7）      左端 x 163
- *   标签 11×17（条内左 23）           数字 9px（条内左 51）   文字 11px（条内左 73）
+ * ===========================================================================
+ * 几何量怎么来的（见 other/docs/界面像素测量方法.md）
+ * ---------------------------------------------------------------------------
+ * 参考图：program/work_scratch/orig_game.jpg（原版整帧 2730×1536，含两条选项）。
+ * 换算：800 / 2730 = 0.29304（整帧 → 800×450 舞台）。
  *
- * 素材（都是原版图，`tools/make_choice_assets.py` 生成）：
- *   bar_off.png / bar_on.png  ← sys_00200 段1 / 段2（784×72：条身 + 顶部高光 + 两端雪花）
- *   snow_l.png / snow_r.png   ← sys_00200 段3 左右两朵（裁到 alpha 盒）
- *   tag.png                   ← sys_00011 图集里那块小白牌
+ * 关键结论：**原版贴图是 1:1 等比缩放，不是三段拉伸**
+ *   sys_00200 每段 784×72；800/1280 = 0.625 = 8/5 是整套 UI 素材的固定缩放
+ *   → 784×0.625 = 490.0，72×0.625 = 45.0
+ *   所以条子就是 490×45，宽高比 10.9:1 和贴图一模一样（上一版写 490×22，
+ *   竖着压掉一半，这是"不像原版"的主因）。
  *
- * 素材 784×72 = 10.9:1，原版条子 490×22 = 22.3:1，比例不等 —— 所以用 border-image
- * 做三段拉伸：左右各 96px 原图不拉伸（雪花/端头保持形状），中间拉长。
+ * 实测读数（都用归一化互相关在 800×450 上量的，雪花/条子当模板）：
+ *   条宽 490        条高 45        左端 x=154.7（正好水平居中：(154.7+644.7)/2=399.7）
+ *   第 1 行上沿 y=148，行距 52（雪花模板在 y=148 / y=200 两处命中，score 均 >11）
+ *   贴图可见内容在段内第 5~58 行 → 条身可见 3.1~36.3px（上下各留软边）
+ *   雪花：和第 1/2 段同画布，整张 snow.png 叠上去即可，左朵在条内 x 24.4~58.1
+ *   小白牌：sys_00011 图集 alpha 盒 (219,64)-(236,96) = 18×33 → 11.25×20.625，
+ *          条内 (56, 10.7)，牌心与条子中线齐平
+ *   文字：原版字身格 32px（补丁字模 FONT_OCCUPATION）→ 0.625 后 20px；
+ *        首字墨迹在条内 x≈75.3、行高 20 时 top=11 正好对上（墨迹 y 213~228）
+ *        字距 = 28×0.625 = 17.5px/全角字（原版"把脸背过去"5 字跨 85px，实测吻合）
+ *        编号"1."与正文同一张字模（原版就是同字号全角步进，不是另找的数字图）
+ *   状态：常态 = 段1（半透明淡青）；悬停 = 段2（浓蓝＋亮青顶边）＋字变金
+ *
+ * 素材（都是原版图，`python program/tools/make_choice_assets.py` 生成）：
+ *   bar_off.png / bar_on.png / snow.png ← sys_00200 三段（784×72 各一帧）
+ *   tag.png                            ← sys_00011 图集里那块带别针的小白牌
+ * ===========================================================================
  */
 
 #choiceScreen {
-  position: fixed;
-  left: 0; top: 0; right: 0; bottom: 0;
+  position: absolute;
+  inset: 0;
   display: none;
   z-index: 70;
   opacity: 1;
-  transition: opacity .42s ease;
+  transition: opacity .26s ease;
   pointer-events: none;
 }
 #choiceScreen.show { display: block; pointer-events: auto; }
-#choiceScreen.fading { opacity: 0; }
+#choiceScreen.in { opacity: 0; }          /* 入场第一帧：压透明，下一帧推到 1 */
+#choiceScreen.fading { opacity: 0; }       /* 点选后整层淡出 */
 
-#choiceList { position: relative; }
+#choiceList { position: absolute; inset: 0; }
 
-/* 一条 = 背景（三段拉伸）+ 两端雪花 + 白牌 + 数字 + 文字 */
+/* 一条 = 条身贴图 + 雪花层 + 小白牌 + 一整张字模（编号+正文） */
 .choiceRow {
   position: absolute;
-  left: 163px;
+  left: 154.7px;
   width: 490px;
-  height: 22px;
+  height: 45px;
   padding: 0;
   margin: 0;
   border: 0;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: #dcecff;
-  font-family: inherit;
-  font-size: 11px;
-  letter-spacing: .3px;
-  text-shadow: 0 1px 2px rgba(0, 12, 28, .95);
+  display: block;
   background: none;
   border-radius: 0;
   appearance: none;
   -webkit-appearance: none;
-  transition: color .16s ease, filter .16s ease;
+  cursor: pointer;
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 条身：原版贴图三段拉伸（左右端不拉伸） */
+/* 条身：常态只画段1（sys_00200 第 1 帧），整张等比铺满 490×45（不切、不拉伸） */
 .choiceBg {
   position: absolute;
-  left: 0; top: 0; right: 0; bottom: 0;
-  /* 条身填充：贴图中间是透明的（原版靠顶点色染，而且半透明会让背景透出来），
-     所以底下铺一层深蓝渐变，颜色取原版条子的中间调 */
-  background: linear-gradient(180deg, rgba(38, 96, 142, .94) 0%,
-              rgba(18, 58, 96, .92) 55%, rgba(9, 28, 50, .95) 100%);
-  border-bottom: 1px solid rgba(120, 205, 255, .45);
-  border-style: solid;
-  border-width: 0 7px;
-  border-image: url("assets/ui/choice/bar_off.png") 0 96 fill / 0 7px stretch;
+  inset: 0;
+  background-image: url("assets/ui/choice/bar_off.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   pointer-events: none;
+  transition: filter .16s ease;
 }
+
+/* 悬停高亮层：段2（sys_00200 第 2 帧）**不是**替换贴图，而是叠加上去的一层。
+   证据：原版悬停那一条的像素 = 段1 + 段2 逐通道相加（实测 y=214 处
+   段1(11,91,126)+段2(10,58,123)=(21,149,249)，原版读数 (41,159,255)；
+   底部 段1(27,153,174)+段2(20,103,136)=(47,256,255)，原版 (66,245,254)）。
+   所以这里用 mix-blend-mode: plus-lighter 做加法，不是换 background-image。
+   浏览器不支持 plus-lighter 时退化成普通覆盖（暗一些，但不会坏）。 */
+.choiceHl {
+  position: absolute;
+  inset: 0;
+  background-image: url("assets/ui/choice/bar_on.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: plus-lighter;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease;
+}
+.choiceRow:hover .choiceHl,
+.choiceRow.hover .choiceHl { opacity: 1; }
+
+/* 悬停时条子外还带一圈青色辉光（原版截图里青色是溢出条外一截的） */
 .choiceRow:hover .choiceBg,
 .choiceRow.hover .choiceBg {
-  border-image: url("assets/ui/choice/bar_on.png") 0 96 fill / 0 7px stretch;
-  filter: drop-shadow(0 0 10px rgba(110, 220, 255, .65));
+  filter: drop-shadow(0 0 6px rgba(96, 208, 255, .5));
 }
 
-/* 两端雪花：原版里比条子高、会溢出去，按原始比例画，不拉伸 */
-.choiceSnowL, .choiceSnowR {
+/* 两端雪花：和条子同画布同原点，整张叠上去 */
+.choiceSnow {
   position: absolute;
-  top: 50%;
-  width: 30px; height: 30px;
-  transform: translateY(-50%);
+  inset: 0;
+  background-image: url("assets/ui/choice/snow.png");
+  background-size: 100% 100%;
   background-repeat: no-repeat;
-  background-size: contain;
-  background-position: center;
   pointer-events: none;
 }
-.choiceSnowL { left: -8px;  background-image: url("assets/ui/choice/snow_l.png"); }
-.choiceSnowR { right: -8px; background-image: url("assets/ui/choice/snow_r.png"); }
 
-/* 白牌（真素材） */
+/* 小白牌（真素材，18×33 × 0.625） */
 .choiceTag {
   position: absolute;
-  left: 23px;
-  top: 50%;
-  width: 11px;
-  height: 17px;
-  transform: translateY(-50%);
+  left: 56px;
+  top: 10.7px;
+  width: 11.25px;
+  height: 20.625px;
   background-image: url("assets/ui/choice/tag.png");
   background-size: 100% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
-  z-index: 2;
 }
 
-/* 编号：烤好的数字字模 + CSS 画的「.」 */
-.choiceNum {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 51px;
-  margin-right: 8px;
-  height: 9px;
-  z-index: 2;
-}
-.choiceNum img { height: 9px; width: auto; display: block; }
-.choiceNum .dot {
-  width: 3px; height: 3px;
-  margin-left: 2px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: .9;
-}
+/* 一整张字模：白字+黑描边（常态）/ 金字+黑描边（悬停），两层叠着做交叉淡入。
+   宽度必须写死：两层 img 都是 position:absolute，不给宽度容器会塌成 0，
+   再被 overflow:hidden 一裁就什么都看不见了（探针里 txtBox 宽 0 就是这个）。 */
 .choiceTxt {
-  position: relative;
-  z-index: 2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.choiceRow:hover, .choiceRow.hover { color: #ffe9a8; }
-
-.choiceLoading {
   position: absolute;
-  left: 163px;
-  top: 176px;
-  color: #cfe9ff;
-  font-size: 11px;
-  opacity: .85;
+  left: 74px;
+  top: 11px;
+  width: 400px;
+  height: 20px;
+  overflow: hidden;
+  pointer-events: none;
+  line-height: 0;
+}
+.choiceTxt img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 20px;
+  width: auto;
+  display: block;
+  transition: opacity .14s ease;
+}
+.choiceTxt .txtNormal { opacity: 1; }
+.choiceTxt .txtGold { opacity: 0; }
+.choiceRow:hover .txtNormal,
+.choiceRow.hover .txtNormal { opacity: 0; }
+.choiceRow:hover .txtGold,
+.choiceRow.hover .txtGold { opacity: 1; }
+
+/* 请求还没回来时：按钮进入等待态，别让用户连点 */
+#choiceBtn.busy {
+  opacity: .55 !important;
+  cursor: progress;
+  pointer-events: none;
 }
 
-/* 「选择分支」按钮（和发送键同一张三段底板） */
+/* 「选择分支」按钮（和发送键同一张三段底板，位置在输入栏左下） */
 #choiceBtn {
   position: absolute;
   bottom: -22px;
