@@ -25,6 +25,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import zipfile
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -53,6 +54,7 @@ STEPS = [
     ("核心", "响度归一化 28 项", "py", ["tools/test_audio_gain.py"], 180),
     ("核心", "调试账本 35 项", "py", ["tools/test_diag.py"], 120),
     ("核心", "参数表 51 项", "py", ["tools/test_params.py"], 180),
+    ("核心", "日志保留 + 诊断包 40 项", "py", ["tools/test_logpack.py"], 180),
     ("核心", "演出状态机 23 项", "node", ["tools/test_perf.js"], 120),
     ("核心", "交叉淡化 24 项", "node", ["tools/test_fade.js"], 120),
     ("边界", "长会话 / 缓存满 / 素材缺失", "py", ["tools/test_boundary.py"], 180),
@@ -188,12 +190,27 @@ def live_smoke():
         st, body = _get(base + "/api/session/list")
         if not isinstance(json.loads(body), dict):
             problems.append("session/list 不是 dict")
+        # 诊断包（#15）：真生成一份，确认能打开，再删掉（不留垃圾）
+        st, body = _get(base + "/api/log/bundle")
+        b = json.loads(body)
+        if not b.get("ok") or not os.path.isfile(b.get("path") or ""):
+            problems.append("log/bundle 没生成")
+        else:
+            try:
+                with zipfile.ZipFile(b["path"]) as z:
+                    if "README.txt" not in z.namelist():
+                        problems.append("诊断包缺 README")
+            finally:
+                try:
+                    os.remove(b["path"])
+                except OSError:
+                    pass
         if has_assets:
             st, body = _get(base + "/api/text?text=" + urllib.request.quote("冒烟"))
             # 这里是二进制 PNG；只验 HTTP 200 和长度，不解析
         if problems:
             return False, " / ".join(problems), time.time() - t0
-        return True, "端口 %d，接口 %d 个" % (port, 5 if has_assets else 4), time.time() - t0
+        return True, "端口 %d，接口 %d 个" % (port, 6 if has_assets else 5), time.time() - t0
     finally:
         try:
             proc.terminate()

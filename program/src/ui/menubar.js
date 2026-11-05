@@ -148,6 +148,26 @@
     try { if (window.__dbg) window.__dbg("FADE", on ? "on/" + (window.WA2 && WA2.fade ? WA2.fade.ms() : "?") + "ms" : "off"); } catch (e) {}
   }
 
+  /* 诊断包（#15）：交给后端 /api/log/bundle 打 zip，路径直接告诉用户 */
+  function exportDiag(turns) {
+    var url = "/api/log/bundle" + (turns ? "?turns=" + turns : "");
+    try { if (window.__toast) window.__toast("正在打包诊断包…", 1500); } catch (e) {}
+    fetch(url, { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) {
+          alert("导出失败：" + ((d && d.error) || "未知错误"));
+          return;
+        }
+        var kb = Math.round((d.bytes || 0) / 1024);
+        alert("诊断包已生成：\n" + d.path + "\n\n" +
+              kb + " KB · " + (d.note || "") + "\n" +
+              "（日志里的密钥、对话查询串、绝对路径都已抹掉）");
+        try { if (window.__dbg) window.__dbg("DIAG", "bundle " + kb + "KB turns=" + turns); } catch (e) {}
+      })
+      .catch(function (e) { alert("导出失败：" + String(e).slice(0, 80)); });
+  }
+
   // 窗口控制（无边框窗口需要自己实现）
   function winCtrl(act) {
     try { if (window.__dbg) window.__dbg("WIN", act); } catch (e) {}
@@ -380,6 +400,13 @@
             .then((r) => r.json())
             .then((d) => { alert("已写入日志：\\n" + (d.log || "")); })
             .catch(() => alert("日志导出失败"));
+        } },
+      /* 诊断包（#15）：默认不含对话；含对话的那条必须二次确认 */
+      { label: "导出诊断包（不含对话）", action: function () { exportDiag(0); } },
+      { label: "导出诊断包（含最近 20 轮）", action: function () {
+          if (!confirm("这个诊断包会包含最近 20 轮对话原文。\n" +
+                       "发给别人之前请自己先看一遍，确认没有不想外传的内容。\n\n继续？")) return;
+          exportDiag(20);
         } },
       { label: "关于本程序" }
     ]));

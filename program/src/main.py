@@ -44,6 +44,7 @@ import special_files
 import characters
 import char_res
 import diag
+import logpack
 import persona_ctx
 import persona_stage
 import runstate
@@ -387,6 +388,7 @@ from api_tts import TtsApi
 from api_text import TextApi
 from api_chat import ChatApi
 from api_charpack import CharPackApi
+from api_log import LogApi
 from api_memory import MemoryApi
 from api_update import UpdateApi
 from text_parse import (
@@ -504,6 +506,16 @@ def _write_asset_report():
     except Exception as e:
         log("素材自检失败：%s" % e)
         return None
+
+
+def _log_maintenance():
+    """启动时清一次旧日志（#15：按天滚动，默认留 14 天；崩溃现场留最新 10 份）"""
+    try:
+        r = logpack.prune()
+        if r.get("removed"):
+            log("日志清理：%d 个旧文件，%.1f KB" % (len(r["removed"]), r["freed"] / 1024.0))
+    except Exception as e:
+        log("日志清理失败（不影响运行）：%s" % e)
 
 
 
@@ -780,7 +792,7 @@ def _repack_async(msgs, a, b):
 
 
 class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
-              ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
+              ModelCfgApi, TtsApi, TextApi, LogApi, SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
 
@@ -908,8 +920,12 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
         try:
             dur = (time.time() - self._req_start) * 1000 if hasattr(self, "_req_start") else 0
             lvl = "SLOW" if dur > applog._SLOW_REQUEST_MS else "REQ"
+            # 这两个接口的查询串本身就是对话 / 朗读文本，日志里不记（#15：日志也会被打进诊断包）
+            path = self.path[:120]
+            if "/api/text?" in path or "/api/tts?" in path:
+                path = path.split("?", 1)[0] + "?<已隐藏>"
             applog.log("%s %s -> %s  %.0fms" % (getattr(self, "command", "?"),
-                       self.path[:120], status or "", dur), lvl)
+                       path, status or "", dur), lvl)
         except Exception:
             pass
 
@@ -920,6 +936,8 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
         if self.path.startswith("/api/log/dump"):
             applog.dump_stacks("手动触发")
             return self._json({"ok": True, "log": applog.path()})
+        if self.path.startswith("/api/log/bundle"):
+            return self._log_bundle()
         if self.path.startswith("/api/tts"):
             return self._tts()
         if self.path.startswith("/api/debug/state"):
@@ -1248,6 +1266,7 @@ def serve_only(prefer_port=None):
                           "--autoplay-policy=no-user-gesture-required")
     runstate.install_hooks()
     runstate.begin(APP_NAME, _VERSION)
+    _log_maintenance()
     _write_asset_report()
     _memory.clear_runtime()          # 后端模式也当作一次"新启动"
 
@@ -1289,6 +1308,7 @@ def serve_only(prefer_port=None):
 def main():
     runstate.install_hooks()
     runstate.begin(APP_NAME, _VERSION)
+    _log_maintenance()
     _clear_text_cache()
     _memory.clear_runtime()          # 记忆缓存只活这一次运行
     try:

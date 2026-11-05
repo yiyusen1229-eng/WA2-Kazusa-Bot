@@ -29,11 +29,12 @@
 | K11 | 参数表 | 51 项：区间 + 语义 + 文档与代码一致 | `test_params.py` |
 | K12 | 演出状态机 | 23 项：重播 / 流式 / 浮层 / 切角色仲裁 + 快速连点 | `test_perf.js` |
 | K13 | 交叉淡化 | 24 项：双层交替、收尾搬图、关过渡直接切 | `test_fade.js` |
-| K14 | 启动 + 只读接口 | 起无模型服务：`/api/ping`、`/api/debug/state`、`/api/scene/list`、`/api/voice/ok`、`/api/text` 都通 | `run_smoke.py`（在线） |
+| K14 | 启动 + 只读接口 | 起无模型服务：`/api/ping`、`/api/debug/state`、`/api/scene/list`、`/api/voice/ok`、`/api/log/bundle`、`/api/text` 都通 | `run_smoke.py`（在线） |
 | K15 | 真实对话一轮 | 有回复、有情绪标记、面板能看到本轮分段 | 手动 |
 | K16 | 存 → 读档 → 继续 | 时期 / 衣服 / 场景 / 记忆快照都回来 | 手动 |
 | K17 | 切角色 | 名字、立绘、语音、存档目录整套换掉 | 手动 |
 | K18 | 退出后重启 | `run_state.json` 干净，不弹「上次没有正常退出」 | 手动 |
+| K19 | 诊断包 | `logs/wa2_diag_*.zip` 能打开、有 README、无密钥 / 用户目录 / 对话查询串；默认不含 `conversation.json` | `test_logpack.py`（+ 在线冒烟真调一次） |
 
 ## 边界（极端输入不炸，行为仍可预期）
 
@@ -48,6 +49,7 @@
 | B7 | 坏场景目录 | `cg/index.json` 不是 JSON → 空目录，不抛 | `test_boundary.py` |
 | B8 | 前端拆分不退化 | `check_split.py` 告警数 ≤ 基线（现在 91），**只许降不许升** | `run_smoke.py`（静态） |
 | B9 | 语法门禁 | 后端 36 个 `.py`、前端 44 个 js/css 都能解析 | `test_py_syntax.py` / `test_ui_syntax.js` |
+| B10 | 日志过期清理 | 超过保留天数的日志删掉、正在写的那个不删、崩溃现场只留 10 份 | `test_logpack.py` |
 
 ## 降级（依赖不可用时还能继续玩）
 
