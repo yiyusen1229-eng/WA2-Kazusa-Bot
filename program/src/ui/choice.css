@@ -120,6 +120,11 @@
    会看成一条「分界线」（也点不到，收起来更接近原版只有对话框的样子）。 */
 body.choiceOpen #inputBar { opacity: 0; pointer-events: none; }
 
+/* 但工具栏要留在选项层**上面**：开着选项也要能点「存档」——
+   存下去的这一笔会带上还没选的分支（meta.choice），读回来就摆回原来那几条。
+   工具栏在右下（y≈421），选项条最多排到 y≈401，不会盖住。 */
+body.choiceOpen #toolbar { z-index: 78; }
+
 /* 小白牌（真素材，18×33 × 0.625） */
 .choiceTag {
   position: absolute;

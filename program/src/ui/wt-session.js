@@ -15,10 +15,28 @@
         body: JSON.stringify({
           slot: "auto",
           messages: (window.__history || history || []),
-          meta: { bg: currentBg || "", outfit: (WA2.state.outfit || ""), at: Date.now() }
+          meta: (window.__saveMeta && window.__saveMeta()) ||
+                { bg: currentBg || "", outfit: (WA2.state.outfit || ""), at: Date.now() }
         })
       }).catch(function () {});
     } catch (e) { return null; }
+  }
+
+  /* 读档：存档里带着「当时还没选的分支」就原样摆回来，不再问模型。
+     反过来，读的档里没有这一项时，手上还开着的旧选项也要收掉——
+     否则会出现「读了个没分支的档，屏幕上还挂着上一个档的选项」。 */
+  function restoreChoices(meta) {
+    try {
+      var c = meta && meta.choice;
+      var has = !!(c && c.length);
+      var ch = window.WA2 && WA2.choices;
+      if (has && ch && ch.show) {
+        ch.show(c);
+        return true;
+      }
+      if (ch && ch.isOpen && ch.isOpen()) ch.hide();
+    } catch (e) {}
+    return false;
   }
 
   /* 读档：保持 history 是同一个数组（别的模块持有引用），只换内容 */
@@ -63,6 +81,7 @@
         }
         console.log("[session] 已恢复", history.length, "条");
         try { rebuildBacklog(); } catch (e) {}
+        restoreChoices(meta);
         return true;
       })
       .catch(function () { return false; });
@@ -112,18 +131,27 @@
         if (_lastJa) speakLineJa(_lastJa, "calm");
       }
       try { rebuildBacklog(); } catch (e) {}
-      setTimeout(function () { $("input").focus(); }, 300);
+      /* 存档里存着「还没选的分支」：摆回来，并且不要抢输入框焦点 */
+      var hadChoices = restoreChoices(meta);
+      if (!hadChoices) setTimeout(function () { $("input").focus(); }, 300);
     } catch (e) { console.warn("load session failed", e); }
   };
 
-  /* 存档界面用：取当前会话要写进 meta 的东西（背景 / 立绘）
+  /* 存档界面用：取当前会话要写进 meta 的东西（背景 / 立绘 / 待选分支）
      currentBg、currentOutfit 是模块内变量，这里只读不写 */
   window.__saveMeta = function () {
-    return {
+    var meta = {
       bg: (typeof currentBg !== "undefined" && currentBg) || "",
       outfit: (WA2.state.outfit || ""),
       at: Date.now()
     };
+    /* 选择分支开着、而且一条都没选 → 把这几个选项一起存。
+       已经选过的这一层已经关了，pendingOptions() 会给 null。 */
+    try {
+      var c = (WA2.choices && WA2.choices.pendingOptions) ? WA2.choices.pendingOptions() : null;
+      if (c && c.length) meta.choice = c;
+    } catch (e) {}
+    return meta;
   };
   /* 存档界面用：按场景名取背景图，给槽位缩略图用 */
   window.__bgThumb = function (name) { return bgSrc(name); };

@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
-"""选择分支（api_choice.py）的自测：选项解析 / 清洗 / 数量裁剪。不联网。
+"""选择分支的自测：
+  · api_choice.py —— 选项解析 / 清洗 / 数量裁剪
+  · 存档带上「还没选的分支」后还能原样读回来（sessions.py 的 meta.choice）
+不联网。
 
 跑法：
     cd program
     build_env/venv/Scripts/python.exe tools/test_choice.py
 """
 import os
+import shutil
 import sys
+import tempfile
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -15,6 +20,7 @@ PROGRAM = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(PROGRAM, "src"))
 
 import api_choice as C  # noqa: E402
+import sessions as S  # noqa: E402
 
 FAILS = []
 
@@ -80,6 +86,40 @@ def main():
     check("没有云端配置 → 返回错误而不是抛", isinstance(opts, list) and isinstance(err, str),
           (opts, err))
     check("错误信息可读", bool(err), err)
+
+    # 6) 存档里的「还没选的分支」：进得去、出得来、老档不受影响
+    tmp = tempfile.mkdtemp(prefix="wa2_choice_")
+    old_dir = S.SESS_DIR
+    S.SESS_DIR = tmp
+    try:
+        msgs = [{"role": "user", "content": "你还记得那天吗"},
+                {"role": "assistant", "content": "「……记得」"}]
+        r = S.session_save({"slot": "1", "messages": msgs,
+                            "meta": {"bg": "classroom",
+                                     "choice": ["放开手", "把脸背过去"]}})
+        check("存档写成功", r.get("ok") is True, r)
+        d = S.session_load("1")
+        check("读档成功", d.get("ok") is True, d)
+        check("meta.choice 原样读回",
+              (d.get("meta") or {}).get("choice") == ["放开手", "把脸背过去"],
+              (d.get("meta") or {}).get("choice"))
+        check("其余 meta 没被挤掉", (d.get("meta") or {}).get("bg") == "classroom",
+              (d.get("meta") or {}).get("bg"))
+        S.session_save({"slot": "2", "messages": msgs, "meta": {"bg": "classroom"}})
+        m2 = S.session_load("2").get("meta") or {}
+        check("没有 choice 的存档不凭空长出一个", "choice" not in m2, m2)
+        # 坏数据不该让读档炸（前端会过滤，但后端也不能挂）
+        S.session_save({"slot": "3", "messages": msgs,
+                        "meta": {"choice": {"oops": 1}}})
+        check("meta.choice 类型乱写也能读出来（不抛）",
+              S.session_load("3").get("ok") is True)
+        # 空数组：前端当没有
+        S.session_save({"slot": "4", "messages": msgs, "meta": {"choice": []}})
+        check("空 choice 存得住（由前端判空）",
+              (S.session_load("4").get("meta") or {}).get("choice") == [])
+    finally:
+        S.SESS_DIR = old_dir
+        shutil.rmtree(tmp, ignore_errors=True)
 
     print()
     if FAILS:

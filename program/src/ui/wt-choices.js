@@ -11,6 +11,10 @@
  * 悬停那层用同样的字加 color= 染色，所以"字变金"是烘出来的，不是滤镜凑的。
  *
  * 交互：悬停整条变亮 + 字变金；点击整层淡出后发送；数字键 1~5 选择，Esc 关闭。
+ *
+ * 存档：开着选项、一条都没选的时候存档，会把这几个选项写进存档的 `meta.choice`；
+ *       读这个档时 `WA2.choices.show(options)` 原样摆回来，不再问模型。
+ *       已经选过的那一层已经关了，`pendingOptions()` 返回 null，所以不会记。
  */
 (function () {
   var WA2 = window.WA2 = window.WA2 || {};
@@ -193,6 +197,26 @@
     if (btn) btn.classList.toggle("busy", state.busy);
   }
 
+  /* ---------- 存档 / 读档（2026-11-05 加） ----------
+   * 开着选项、**一条都没选**的时候存档，要把这几条选项一起写进存档的 meta.choice；
+   * 读这个档就原样把这些条摆回来，不再问模型。
+   * 已经选过的（点了某一条）这一层已经关了，isOpen() 是 false，自然就不会记。 */
+  function pendingOptions() {
+    if (!state.open || state.busy) return null;
+    if (!state.options || !state.options.length) return null;
+    return state.options.slice();
+  }
+
+  /* 读档恢复：拿存档里的选项直接渲染，不请求 /api/choice */
+  function show(options) {
+    var opts = (options || []).filter(function (t) {
+      return typeof t === "string" && t.trim();
+    });
+    if (opts.length < 2) return Promise.resolve(state);
+    if (state.open) hide();                 /* 手上还开着就先收掉，再摆存档里那几条 */
+    return render(opts);
+  }
+
   function open() {
     if (state.busy || state.open) return Promise.resolve(state);
     setBusy(true);
@@ -222,9 +246,11 @@
 
   function isOpen() { return state.open; }
 
-  /* 键盘：1~5 直接选，Esc 关。Esc 要吃掉事件，不然 wt-nav 会顺手回标题 */
+  /* 键盘：1~5 直接选，Esc 关。Esc 要吃掉事件，不然 wt-nav 会顺手回标题。
+     上面压着浮层（存档 / 回想 / 设置）时一律不管：那时候 Esc 该关的是浮层。 */
   document.addEventListener("keydown", function (e) {
     if (!state.open) return;
+    if (window.__isScreenOpen && window.__isScreenOpen()) return;
     var k = parseInt(e.key, 10);
     if (k >= 1 && k <= state.options.length) {
       e.preventDefault(); e.stopPropagation();
@@ -243,7 +269,8 @@
 
   WA2.choices = {
     state: state, open: open, openChoices: open, showChoices: open,
-    pick: pick, hide: hide, isOpen: isOpen, prefsCount: prefsCount
+    pick: pick, hide: hide, isOpen: isOpen, prefsCount: prefsCount,
+    show: show, pendingOptions: pendingOptions
   };
   WA2.register("choices", WA2.choices);
 
