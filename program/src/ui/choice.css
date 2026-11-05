@@ -65,7 +65,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 条身：常态只画段1（sys_00200 第 1 帧），整张等比铺满 490×45（不切、不拉伸） */
+/* 条身：整张等比铺满 490×45（不切、不拉伸）。
+   悬停 = **换图**，不是再叠一层：bar_on.png 已经在素材阶段把「段1 + 段2」按加法
+   烘成一张，alpha 和 bar_off.png 逐像素相同，所以轮廓一模一样、结构上不可能接出边。
+   （曾经用 mix-blend-mode: plus-lighter 实时叠：选项层有 z-index，它的混合背景只有
+   条子本身、不含 CG，`α出 = α源+α底` 一夹满这块就变不透明、CG 被顶掉，
+   软边那几行出现最暗 −110 的黑边——就是用户看到的「框线」。） */
 .choiceBg {
   position: absolute;
   inset: 0;
@@ -74,32 +79,15 @@
   background-repeat: no-repeat;
   pointer-events: none;
 }
-
-/* 悬停高亮层：段2（sys_00200 第 2 帧）**不是**替换贴图，而是叠加上去的一层。
-   证据：原版悬停那一条的像素 = 段1 + 段2 逐通道相加（实测 y=214 处
-   段1(11,91,126)+段2(10,58,123)=(21,149,249)，原版读数 (41,159,255)；
-   底部 段1(27,153,174)+段2(20,103,136)=(47,256,255)，原版 (66,245,254)）。
-   所以这里用 mix-blend-mode: plus-lighter 做加法，不是换 background-image。
-   浏览器不支持 plus-lighter 时退化成普通覆盖（暗一些，但不会坏）。 */
-.choiceHl {
-  position: absolute;
-  inset: 0;
+.choiceRow:hover .choiceBg,
+.choiceRow.hover .choiceBg {
   background-image: url("assets/ui/choice/bar_on.png");
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  mix-blend-mode: plus-lighter;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .16s ease;
 }
-.choiceRow:hover .choiceHl,
-.choiceRow.hover .choiceHl { opacity: 1; }
 
 /* 悬停时**不要**再给条身加 filter: drop-shadow 做辉光。
    实测（开/关 filter 各截一张、同一场景逐像素差）：加 drop-shadow 之后，条子soft边外面
-   那几行会**变暗** 5~10 级（R 掉得最多），也就是用户看到的「亮起来的时候有明显黑边」；
-   不加就干净。原版本来也没有额外辉光——它的边缘衰减就是贴图自己的 alpha 坡
-   （原版实测 50% 点外侧 5px 内回到背景值），所以这里什么都不用叠。 */
+   那几行会**变暗** 5~10 级（R 掉得最多），也是一圈黑边；不加就干净。
+   原版本来也没有额外辉光——它的边缘衰减就是贴图自己的 alpha 坡。 */
 
 /* 两端雪花：和条子同画布同原点，整张叠上去。
    **也是加法**：雪花贴图芯色 (149,193,227)，原版常态那条的雪花最亮处实测 R = 159，

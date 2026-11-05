@@ -1,8 +1,9 @@
 /* wt-choices.js —— 选择分支：让 AI 按当前对话给几个分歧选项，点一条就当玩家发言发出去。
  *
  * 结构（每条 .choiceRow 是 490×45 的绝对定位盒子，几何见 choice.css 顶部注释）：
- *   .choiceBg     条身贴图（常态永远画段1 bar_off.png，整张等比铺满）
- *   .choiceHl     悬停高亮（段2 bar_on.png，plus-lighter 加法叠在条身上，不是替换）
+ *   .choiceBg     条身贴图（常态 bar_off.png，悬停换 bar_on.png —— 悬停那张已经在
+ *                 素材阶段烘成「常态+高亮」的加法结果，alpha 与常态逐像素相同，
+ *                 所以是换图不是叠图，接不出边）
  *   .choiceSnow   两端雪花（snow.png，和条身同画布同原点）
  *   .choiceTag    小白牌（tag.png，真素材）
  *   .choiceTxt    一整张字模：「1.」+ 选项正文，白字/金字两层叠着做交叉淡入
@@ -109,7 +110,6 @@
     b.type = "button";
     b.setAttribute("data-no-uitext", "1");        /* 字模已经烘好了，别再被 uitext 包一层 */
     b.innerHTML = '<span class="choiceBg"></span>' +
-                  '<span class="choiceHl"></span>' +
                   '<span class="choiceSnow"></span>' +
                   '<span class="choiceTag"></span>' +
                   '<span class="choiceTxt"></span>';
