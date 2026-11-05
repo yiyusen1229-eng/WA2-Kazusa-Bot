@@ -362,7 +362,12 @@
       ev.stopPropagation();
       closeAll();
       var p = document.getElementById("dbgPanel");
-      if (p) p.style.display = (p.style.display === "none") ? "block" : "none";
+      if (p) {
+        var showing = (p.style.display === "none");
+        p.style.display = showing ? "block" : "none";
+        /* 打开就立刻拉一次状态，别等那 1.5 秒的轮询 */
+        if (showing && window.__dbgState) { try { window.__dbgState(); } catch (e) {} }
+      }
     });
     bar.appendChild(dbgBtn);
 

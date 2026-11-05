@@ -4,7 +4,9 @@
 import json, os, time
 import char_res
 import characters
+import diag
 import persona_ctx
+import persona_stage
 import scene_cg
 import tts_client
 
@@ -46,19 +48,28 @@ class ChatApi:
         # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
         msgs, mem_note = _memory_context(msgs, bool(cc))
 
+        # ---- 调试面板（#13）：这一轮 system 花在哪一段、送了多少条 ----
+        # 只记字数和估算 token，不记正文（面板不该变成聊天记录查看器）
+        _seg = {"msgs_total": len(raw_msgs), "msgs_sent": len(msgs),
+                "mem_note": len(mem_note or ""),
+                "mem_trimmed": len(msgs) < len(raw_msgs)}
+
         wb_ctx, wb_names = persona_ctx.worldbook_context(msgs, period=period)
         system = persona_ctx.persona_text(raw_msgs, period=period)
+        _seg["persona"] = len(system)
 
         # system 的拼装顺序（措辞必须分开，否则模型会把设定和"这次聊过的事"混一起）：
         #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
         #   后面还有：剧本检索（原作片段）
         try:
             mem_extra = char_res.memory_text()
+            _seg["memory_extra"] = len(mem_extra or "")
             if mem_extra:
                 system = system + (
                     "\n\n【你记得的旧事（角色设定的一部分，事先记好的，不是这轮对话里发生的事；"
                     "用你自己的口气提起，不要照抄原文）】\n" + mem_extra)
             wb_extra = char_res.worldbook_text()
+            _seg["wb_extra"] = len(wb_extra or "")
             if wb_extra:
                 system = system + (
                     "\n\n【设定补充（用户整理好的资料，只作参考，不要整段复述）】\n"
@@ -68,8 +79,11 @@ class ChatApi:
 
         if wb_ctx:
             system = system + "\n\n" + wb_ctx
+        _seg["worldbook"] = len(wb_ctx or "")
+        _seg["wb_names"] = (wb_names or [])[:8]
         if mem_note:
             system = system + "\n\n" + mem_note
+        _seg["mem_note"] = len(mem_note or "")
 
         # 剧本检索: 找出和这句话相关的原作片段, 作为"想起来的事"而不是台词。
         # 和世界书分开写：世界书是「设定」，这里是「原作里真的发生过什么」。
@@ -81,6 +95,7 @@ class ChatApi:
                         last_user = m.get("content") or ""
                         break
                 mem = STORY.memory_context(last_user, k=2, max_chars=900)
+                _seg["story"] = len(mem or "")
                 if mem:
                     system = system + (
                         "\n\n【原作里发生过的片段（资料，不是这轮对话的内容，也不是你的台词）】\n"
@@ -97,6 +112,7 @@ class ChatApi:
             outfit_hint = "、".join(_outfit_names) if _outfit_names else "（按当前角色立绘）"
         except Exception:
             outfit_hint = "（按当前角色立绘）"
+        _before_tail = len(system)
         if cc:
             # 云端：人设末尾补语言/格式约束，前面插 few-shot
             # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
@@ -111,10 +127,11 @@ class ChatApi:
                 "标记只能是开头那一个，正文里不要再出现。"
                 "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
                 "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
+        _seg["tail"] = len(system) - _before_tail
+        _few = fewshot_msgs() if cc else []
         payload = {
             "model": model,
-            "messages": ([{"role": "system", "content": system}]
-                         + (fewshot_msgs() if cc else []) + msgs),
+            "messages": ([{"role": "system", "content": system}] + _few + msgs),
             "stream": False,
             "max_tokens": 400 if cc else 260,
         }
@@ -167,6 +184,26 @@ class ChatApi:
                     log("场景匹配失败: %s" % e)
                 if not bg_hit:
                     log("场景没匹配上：%r（当前背景 %r）" % (scene_now, prev_bg))
+            diag.note("scene", query=scene_now[:24], id=bg_hit.get("id", ""),
+                      place=bg_hit.get("place", ""), time=bg_hit.get("time", ""),
+                      score=bg_hit.get("score"))
+
+            _ms = int((time.time() - t0) * 1000)
+            # 调试面板：这一轮的提示词分段 / token 估算 / 耗时 / 用量（只记数字和标签）
+            try:
+                _tok = {"system": diag.token_est(system),
+                        "msgs": sum(diag.token_est(m.get("content") or "") + 4 for m in msgs),
+                        "fewshot": sum(diag.token_est(m.get("content") or "") + 4 for m in _few)}
+                diag.round_record(
+                    model=model, tier=("cloud" if cc else "local"), period=period,
+                    stage=(persona_stage.debug_state() or {}).get("stage"),
+                    seg=_seg, tokens=_tok,
+                    usage={k: _uinfo.get(k) for k in ("tokens", "in", "out", "cost") if k in (_uinfo or {})},
+                    scene={"id": bg_hit.get("id", ""), "score": bg_hit.get("score")},
+                    emotion=emo, outfit=(outfit_now or "")[:16],
+                    reply_chars=len(reply or ""), ms=_ms)
+            except Exception as e:
+                log("调试账本写入失败（不影响对话）: %s" % e)
 
             self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                         "action": action, "action_zh": action_zh,
@@ -176,9 +213,11 @@ class ChatApi:
                         "period": period,
                         "usage": _uinfo,
                         "model": model,
-                        "ms": int((time.time() - t0) * 1000),
+                        "ms": _ms,
                         "worldbook": wb_names})
         except urllib.error.HTTPError as e:
+            diag.count("chat.error")
             self._json({"error": "HTTP %s %s" % (e.code, e.read().decode("utf-8", "replace")[:200])})
         except Exception as e:
+            diag.count("chat.error")
             self._json({"error": "连不上 Ollama（%s），请先启动 Ollama" % e})

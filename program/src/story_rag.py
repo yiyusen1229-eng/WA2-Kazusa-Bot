@@ -9,8 +9,12 @@ import math
 import os
 import re
 import threading
+import time
 
 import cache_io
+
+# 最近一次检索的只看账（调试面板用：出处 / 分数 / 字数，不含正文）
+_LAST = {"hits": [], "chars": 0, "at": 0}
 
 CJK = re.compile(r"[\u4e00-\u9fff]")
 WORD = re.compile(r"[a-zA-Z]{2,}")
@@ -209,9 +213,11 @@ def preload():
 def memory_context(query, k=2, max_chars=900):
     idx = get_index()
     if idx is None:
+        _LAST.update({"hits": [], "chars": 0, "at": int(time.time())})
         return ""
     hits = idx.search(query, k=k)
     if not hits:
+        _LAST.update({"hits": [], "chars": 0, "at": int(time.time())})
         return ""
     parts, used = [], 0
     for h in hits:
@@ -222,4 +228,26 @@ def memory_context(query, k=2, max_chars=900):
         used += len(t)
         if used >= max_chars:
             break
+    # 调试面板（#13）：只留出处 / 分数 / 字数，不返回正文
+    _LAST.update({
+        "hits": [{"src": str(h.get("src") or "")[:20], "score": h.get("score"),
+                  "chars": len(h.get("text") or "")} for h in hits],
+        "chars": used,
+        "at": int(time.time()),
+    })
     return "\n---\n".join(parts)
+
+
+def last_hits():
+    """最近一次检索的只看账（面板 / 自测用；不含正文）"""
+    return dict(_LAST)
+
+
+def cached_blocks():
+    """已经加载进内存的索引有多少块；没加载返回 0（**不触发加载**，面板轮询不能拖 1 秒）"""
+    try:
+        for idx in list(_CACHE.values()):
+            return len(getattr(idx, "docs", []) or [])
+    except Exception:
+        pass
+    return 0

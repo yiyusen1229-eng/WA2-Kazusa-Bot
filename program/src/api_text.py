@@ -4,6 +4,7 @@
 import os
 
 import cache_io
+import diag
 
 
 class TextApi:
@@ -49,6 +50,7 @@ class TextApi:
                 # 坏缓存（0 字节 / 半截）当没有：cache_io 会删掉它，下面重新渲染
                 data = cache_io.read_image(_disk)
                 if data:
+                    diag.count("text.disk")
                     self.send_response(200)
                     self.send_header("Content-Type", "image/png")
                     self.send_header("Content-Length", str(len(data)))
@@ -58,7 +60,9 @@ class TextApi:
                     return
             if _key in _TEXT_CACHE:
                 data = _TEXT_CACHE[_key]
+                diag.count("text.mem")
             else:
+                diag.count("text.render")
                 try:
                     import io as _io
                     import sub_render

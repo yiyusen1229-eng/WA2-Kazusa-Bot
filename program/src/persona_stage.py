@@ -179,6 +179,27 @@ def current(messages):
     return st["stage"]
 
 
+def debug_state():
+    """只读快照（调试面板 / 自测）：**不触发任何分类**，只读状态文件。"""
+    st = _load()
+    rounds_now = int(st.get("rounds") or 0)
+    last = int(st.get("last_round") or 0)
+    try:
+        busy = _BUSY.locked()
+    except Exception:
+        busy = False
+    return {
+        "stage": int(st.get("stage") or 1),
+        "rounds": rounds_now,
+        "last_round": last,
+        "seen": int(st.get("seen") or 0),
+        "every": EVERY,
+        "due_in": max(0, EVERY - (rounds_now - last)),
+        "busy": busy,
+        "has_llm": bool(_LLM),
+    }
+
+
 def reset():
     """读档 / 新游戏：清掉状态，下一次按新历史重新判"""
     try:

@@ -20,6 +20,7 @@ import urllib.request
 import char_res
 import audio_gain
 import cache_io
+import diag
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 def _find_gsv():
@@ -527,6 +528,12 @@ def _record_gain(wav_path, data):
     info["bytes"] = len(data)
     info["at"] = int(time.time())
     try:
+        diag.note("tts", lufs=info.get("lufs"), peak_db=info.get("peak_db"),
+                  gain_db=info.get("gain_db"), target=info.get("target"),
+                  secs=round(len(data) / 2.0 / max(1, info.get("rate") or 32000), 2))
+    except Exception:
+        pass
+    try:
         os.makedirs(os.path.dirname(side), exist_ok=True)
         with open(side, "w", encoding="utf-8") as f:
             json.dump(info, f, ensure_ascii=False)
@@ -618,6 +625,7 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
                     with open(_cp, 'rb') as _f:
                         _cached = _f.read()
                     if _cached:
+                        diag.count("tts.hit")
                         _record_gain(_cp, _cached)      # 侧车缺了就补一份，下次直接读
                         return _cached
             except Exception:
@@ -645,6 +653,7 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
             _data = _post("/tts?" + q, timeout=timeout)
             try:
                 if _data and _cp:
+                    diag.count("tts.render")
                     os.makedirs(os.path.dirname(_cp), exist_ok=True)
                     with open(_cp, 'wb') as _f:
                         _f.write(_data)

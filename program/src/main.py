@@ -43,6 +43,7 @@ import special_cfg
 import special_files
 import characters
 import char_res
+import diag
 import persona_ctx
 import persona_stage
 import runstate
@@ -919,6 +920,12 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             return self._json({"ok": True, "log": applog.path()})
         if self.path.startswith("/api/tts"):
             return self._tts()
+        if self.path.startswith("/api/debug/state"):
+            # 调试面板要的只读状态包（#13）：提示词分段 / 命中 / 缓存 / 分类器 / 阶段
+            try:
+                return self._json(diag.snapshot())
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)}, 500)
         if self.path == "/api/ping":
             return self._json({"ok": True, "app": APP_NAME})
         if self.path == "/api/run/state":
