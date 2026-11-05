@@ -14,8 +14,10 @@
   left: 0; top: 0; right: 0; bottom: 0;
   display: none;
   z-index: 70;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-left: 163px;
+  padding-top: 174px;
   padding-bottom: 120px;              /* 稍微偏上，别压住输入框 */
   opacity: 1;
   transition: opacity .42s ease;
@@ -27,24 +29,24 @@
 #choiceList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 9px;
   /* 几何量自原版整帧截图（2730×1536，系数 800/2730 = 0.29304）：
      条宽 1320 → 387 舞台px；条高 62 → 18.2；行距 118 → 34.6（减去条高 = 16 的缝） */
-  width: 390px;
+  width: 490px;
 }
 
 .choiceRow {
   position: relative;
-  height: 18px;
+  height: 20px;
   border: 0;
   margin: 0;
-  padding: 0 0 0 62px;
+  padding: 0 0 0 54px;
   width: 100%;
   text-align: left;
   cursor: pointer;
   color: #d8ecff;                     /* 常态：浅蓝白 */
   font-family: inherit;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .5px;
   background: none;
   border-radius: 0;
@@ -70,7 +72,7 @@
 .choiceTop {
   position: absolute;
   left: 0; right: 0; top: 0;
-  height: 8px;
+  height: 4px;
   background-image: url("assets/ui/choice/bar_top.png");
   background-size: 100% 100%;
   background-repeat: no-repeat;
@@ -112,10 +114,10 @@
    原图自带一点蓝色小火苗和一个挂孔，别再用 CSS 画假的。 */
 .choiceTag {
   position: absolute;
-  left: 40px;
+  left: 30px;
   top: 50%;
-  width: 10px;
-  height: 14px;
+  width: 11px;
+  height: 17px;
   transform: translateY(-50%);
   background-image: url("assets/ui/choice/tag.png");
   background-size: 100% 100%;
@@ -128,7 +130,7 @@
 .choiceNum {
   display: inline-flex;
   align-items: center;
-  margin-right: 12px;
+  margin-right: 8px;
   height: 9px;
   z-index: 1;
 }
