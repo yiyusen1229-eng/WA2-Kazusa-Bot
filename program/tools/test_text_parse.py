@@ -118,6 +118,12 @@ def main():
     # 5) ja_clean
     check("只留第一行", T.ja_clean("「おはよう」\n第二行") == "「おはよう」", T.ja_clean("「おはよう」\n第二行"))
     check("砍掉解释尾巴", T.ja_clean("「やあ」翻訳：你好") == "「やあ」", T.ja_clean("「やあ」翻訳：你好"))
+    check("两句台词不会被砍成一句",
+          T.ja_clean("…冗談だ。ちゃんと起きる。") == "…冗談だ。ちゃんと起きる。",
+          T.ja_clean("…冗談だ。ちゃんと起きる。"))
+    check("句中逗号不截断",
+          T.ja_clean("…冗談だ、ちゃんと起きる") == "…冗談だ、ちゃんと起きる",
+          T.ja_clean("…冗談だ、ちゃんと起きる"))
     check("人称改成あたし", "あたし" in T.ja_clean("私のピアノ"), T.ja_clean("私のピアノ"))
     check("去掉英文/数字", "abc" not in T.ja_clean("abc「やあ」123"), T.ja_clean("abc「やあ」123"))
     check("空输入返回空", T.ja_clean("") == "", repr(T.ja_clean("")))
