@@ -71,7 +71,8 @@
       window.__speakJa = replyZh ? reply.replace(/^「|」$/g, "") : "";
       /* 中日对照：content 保留语言模型原句（含 action/emotion 未过滤），zh 存翻译模型原样输出 */
       history[history.length - 1].zh = replyZh;
-      addHistory("assistant", shown, reply);   /* 第三参：日文原句，只存不显示 */
+      history[history.length - 1].emo = window.__lastEmo || "";   /* 重播要按当时的情绪算缓存 key */
+      addHistory("assistant", shown, reply, window.__lastEmo || "");   /* 三参：日文原句；四参：当时的情绪 */
       // 先合成语音；语音没准备好就先不出文字，等语音出来一起出
       speakReply(reply).then(() => {
         // 场景/服装只在模型明确标记时才切，且与文字同一时刻出现

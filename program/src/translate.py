@@ -85,14 +85,11 @@ def provider():
 
 # ---------------------------------------------------------------- 术语表
 
-_GLOSS_CACHE = {"path": "", "mtime": 0, "map": {}}
-
-
 def glossary_path():
     """当前角色的术语表：`characters/<角色>/translation_glossary.json`
 
-    结构（两段可选，只写要纠正的）：
-        {"to_zh": {"はるき": "春希", "せつな": "雪菜"}}
+    结构（两种都认，只写要纠正的）：
+        {"to_zh": {"はるき": "春希", "せつな": "雪菜"}}   或扁平 {"春树": "春希"}
     """
     try:
         import characters
@@ -103,13 +100,15 @@ def glossary_path():
 
 
 def glossary(p="zh", path=None):
+    """读术语表。
+
+    故意**不缓存**：文件很小（几百字节），但按 mtime 缓存会在「同一秒内改文件」时
+    读到旧内容（自测当场抓到过）。翻译结果本身有缓存，这里每次读盘代价可以忽略。
+    """
     gl = path if path is not None else glossary_path()
     if not gl or not os.path.isfile(gl):
         return {}
     try:
-        mt = os.path.getmtime(gl)
-        if _GLOSS_CACHE["path"] == gl and _GLOSS_CACHE["mtime"] == mt:
-            return (_GLOSS_CACHE["map"] or {}).get(p, {})
         with open(gl, encoding="utf-8") as f:
             d = json.load(f)
         table = {}
@@ -121,20 +120,27 @@ def glossary(p="zh", path=None):
                     table[lang] = {str(a): str(b) for a, b in v.items()}
                 else:
                     table.setdefault("zh", {})[str(k)] = str(v)
-        _GLOSS_CACHE.update({"path": gl, "mtime": mt, "map": table})
         return table.get(p, {})
     except Exception:
         return {}
 
 
 def apply_glossary(text, p="zh", path=None):
-    """把术语表里的错译换回正确写法。长的优先，避免「春希」被「春」先吃掉。"""
+    """把术语表里的错译换回正确写法。
+
+    **一遍过**（单个正则，长键优先）：逐条 replace 会自我覆盖 —— 例如同时有
+    「春树→春希」和「春→X」时，「春树」先变「春希」、紧接着「春」又把里面的「春」
+    换成 X，得到「X希」。自测就是被这一条抓到的。
+    """
     out = text or ""
-    pairs = sorted((glossary(p, path) or {}).items(), key=lambda kv: -len(kv[0]))
-    for wrong, right in pairs:
-        if wrong and wrong != right and wrong in out:
-            out = out.replace(wrong, right)
-    return out
+    table = glossary(p, path) or {}
+    if not out or not table:
+        return out
+    keys = sorted([k for k in table if k], key=len, reverse=True)
+    if not keys:
+        return out
+    rx = re.compile("|".join(re.escape(k) for k in keys))
+    return rx.sub(lambda m: table.get(m.group(0), m.group(0)), out)
 
 
 # ---------------------------------------------------------------- 引擎

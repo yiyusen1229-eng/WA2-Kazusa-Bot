@@ -5,10 +5,14 @@
   var WA2 = window.WA2 = window.WA2 || {};
   var $ = (WA2.util && WA2.util.$) || function (id) { return document.getElementById(id); };
 
-  function addHistory(role, text, raw) {
+  function addHistory(role, text, raw, emo) {
     const d = document.createElement("div");
     d.className = "hline " + (role === "user" ? "me" : "her");
     if (raw) d.dataset.ja = raw;      /* 原始日文（含 action/emotion），只存不显示 */
+    /* 这句当时的情绪：重播要用它算缓存 key。
+       以前重播写死 emotion=neutral，而当时合成用的是 calm/毒舌 → 缓存永远不命中，
+       每次重播都要重新合成 2~5 秒（用户报「重放不像重放，像重新加载」）。 */
+    if (emo) d.dataset.emo = emo;
     const ico = document.createElement("div");
     ico.className = "ico";
     const ic = document.createElement("img");
@@ -90,6 +94,10 @@
     setRowHighlight(row, true);
     const clean = ja.replace(/<[^>]*>/g, "")
                     .replace(/^[「『]/, "").replace(/[」』]$/, "").trim();
+    /* 用这句当时的情绪（dataset.emo）算缓存 key，才能命中原来那段音频；
+       老存档没有 emo 才退回按文本猜。 */
+    const emo = (row.dataset.emo || "").trim() ||
+                (window.emoOf ? window.emoOf(clean) : "calm");
     const done = function () {
       if (done._ended) return;
       done._ended = true;
@@ -98,7 +106,7 @@
       setRowHighlight(row, false);
       if (backlogPlayingRow === row) backlogPlayingRow = null;
     };
-    fetch("/api/tts?text=" + encodeURIComponent(clean) + "&lang=ja&emotion=neutral&speak_ja=" + encodeURIComponent(clean))
+    fetch("/api/tts?text=" + encodeURIComponent(clean) + "&lang=ja&emotion=" + encodeURIComponent(emo) + "&speak_ja=" + encodeURIComponent(clean))
       .then(function (r) { if (!r.ok) throw new Error("tts " + r.status); return r.blob(); })
       .then(function (b) {
         const u = URL.createObjectURL(b);
@@ -121,7 +129,7 @@
       const isHer = m.role === "assistant";
       const shown = isHer ? (m.zh || m.content || "") : (m.content || "");
       if (!shown) return;
-      addHistory(m.role, shown, isHer ? (m.content || "") : "");
+      addHistory(m.role, shown, isHer ? (m.content || "") : "", isHer ? (m.emo || "") : "");
     });
   }
 
