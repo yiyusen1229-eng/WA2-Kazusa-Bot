@@ -164,6 +164,11 @@
       charBusy = true;
       closeCharPicker();
       window.__charSwitching = true;       // send() 会看这个标志
+      if (WA2.perf) {
+        WA2.perf.begin("CHARACTER_SWITCHING");
+        try { if (WA2.voice && WA2.voice.stopSpeak) WA2.voice.stopSpeak(); } catch (e) {}
+        try { if (window.__closeScreens) window.__closeScreens(); } catch (e) {}
+      }
       setInputEnabled(false);
       fadeOn(name || id);
       var t0 = Date.now();
@@ -175,6 +180,7 @@
         setTimeout(function () {
           charBusy = false;
           window.__charSwitching = false;
+          if (WA2.perf) WA2.perf.end("CHARACTER_SWITCHING");
           setInputEnabled(true);
           if (d && d.ok) {
             afterCharacter(d);
@@ -188,6 +194,7 @@
       }).catch(function () {
         charBusy = false;
         window.__charSwitching = false;
+        if (WA2.perf) WA2.perf.end("CHARACTER_SWITCHING");
         setInputEnabled(true);
         fadeOff();
         flash("切换失败");

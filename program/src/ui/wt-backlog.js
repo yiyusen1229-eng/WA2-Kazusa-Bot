@@ -76,6 +76,8 @@
   function replayBacklogVoice(row) {
     const ja = (row.dataset.ja || "").trim();
     if (!ja || !window.__voiceOk) return;
+    if (WA2.perf && !WA2.perf.can("REPLAYING")) return;   // 切角色 / 流式输出中不许重播
+    if (WA2.perf) { WA2.perf.interrupt("REPLAYING"); WA2.perf.begin("REPLAYING"); }
     if (backlogPlayingRow && backlogPlayingRow !== row) {
       delete backlogPlayingRow.dataset.playing;
       setRowHighlight(backlogPlayingRow, false);
@@ -89,6 +91,9 @@
     const clean = ja.replace(/<[^>]*>/g, "")
                     .replace(/^[「『]/, "").replace(/[」』]$/, "").trim();
     const done = function () {
+      if (done._ended) return;
+      done._ended = true;
+      if (WA2.perf) WA2.perf.end("REPLAYING");
       delete row.dataset.playing;
       setRowHighlight(row, false);
       if (backlogPlayingRow === row) backlogPlayingRow = null;

@@ -7,6 +7,12 @@
 
   async function send() {
     if (window.__charSwitching) return;      // 切角色过渡中：先别发，等新角色就位
+    /* 新消息先打断重播：回想里正在播的那句要停，状态机也清掉 */
+    if (WA2.perf) {
+      WA2.perf.interrupt("REPLAYING");
+      try { if (WA2.voice && WA2.voice.stopSpeak) WA2.voice.stopSpeak(); } catch (e) {}
+      WA2.perf.begin("DIALOGUE_STREAMING");
+    }
     const inp = $("input");
     const text = inp.value.trim();
     if (!text || typing) return;
@@ -85,6 +91,8 @@
       turnCount++;
     } catch (e) {
       $("msgText").textContent = "[网络错误] " + e.message;
+    } finally {
+      if (WA2.perf) WA2.perf.end("DIALOGUE_STREAMING");
     }
   }
 

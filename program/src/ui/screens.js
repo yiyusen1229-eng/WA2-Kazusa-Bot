@@ -32,12 +32,23 @@
     return Array.prototype.slice.call(document.querySelectorAll(".uiScreen"));
   }
 
+  /* 浮层开关同步给演出状态机（重播 / 流式靠它判断"现在忙不忙"） */
+  function syncOverlay() {
+    var p = window.WA2 && window.WA2.perf;
+    if (!p) return;
+    var open = window.__isScreenOpen ? window.__isScreenOpen() : false;
+    if (open && !p.active("OVERLAY_OPEN")) p.begin("OVERLAY_OPEN");
+    else if (!open && p.active("OVERLAY_OPEN")) p.interrupt("OVERLAY_OPEN");
+  }
+  window.__syncOverlay = syncOverlay;
+
   /* 关一个浮层 */
   function hideScreen(el) {
     if (!el) return;
     el.classList.remove("show");
     el.style.transition = "none";
     el.style.opacity = "";
+    syncOverlay();
   }
 
   /* 关全部。except：先关别的、再开自己时用，别把自己也关了 */
@@ -51,6 +62,7 @@
     el.style.transition = "none";
     el.style.opacity = "0";
     el.classList.add("show");
+    syncOverlay();
     if (window.zoomIn) window.zoomIn(el, 390);
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
@@ -69,6 +81,7 @@
     if (!el) return null;
     closeAll(el);
     el.classList.add("show");
+    syncOverlay();
     return el;
   };
   window.__openScreen = function (name, mode) {
