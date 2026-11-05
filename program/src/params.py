@@ -92,11 +92,11 @@ PARAMS = [
       "太小：慢模型正常回复也会被判失败；太大：真断线时要等到超时", "低",
       "test_params 断言 ≥30；手动：断网后发一句，看多久报错"),
     P("chat.story_k", "对话", "原作检索注入块数", lambda: _m("api_chat").STORY_K,
-      "块", (0, 6), "api_chat.py 常量",
+      "块", (0, 6), "api_chat.py 常量（角色 persona_slices.json 的 story_k 可覆盖）",
       "调大：更像原作但每轮更贵，且容易盖过当前语境", "中",
       "test_params 断言 ≥0；面板「检索」行看命中块数"),
     P("chat.story_max_chars", "对话", "原作检索最多字数", lambda: _m("api_chat").STORY_MAX_CHARS,
-      "字", (0, 4000), "api_chat.py 常量",
+      "字", (0, 4000), "api_chat.py 常量（persona_slices.json 的 story_max_chars 可覆盖）",
       "调大：挤占人设/世界书预算", "中", "面板「提示词」行的「原作」段字数"),
 
     # ---------------- 记忆 ----------------
@@ -143,12 +143,12 @@ PARAMS = [
       "越大越容易误命中；越小越容易漏", "中", "面板「提示词」行的世界书字数"),
     P("worldbook.max_entries", "人设/世界书", "每轮最多注入几条",
       lambda: _m("persona_ctx").WB_DEFAULT_ENTRIES, "条", (1, 20),
-      "persona_ctx.py 常量（worldbook.json 可覆盖）",
+      "persona_ctx.py 常量（worldbook.json / persona_slices.json 可覆盖）",
       "调大：设定更全，但挤占原文和条目预算", "中",
       "面板「提示词」行的「世界书(n条)」"),
     P("worldbook.max_chars", "人设/世界书", "每轮最多注入字数",
       lambda: _m("persona_ctx").WB_DEFAULT_CHARS, "字", (200, 8000),
-      "persona_ctx.py 常量（worldbook.json 可覆盖）",
+      "persona_ctx.py 常量（worldbook.json / persona_slices.json 可覆盖）",
       "调大同上；和 entries 是双重闸", "中", "面板「提示词」行的世界书字数"),
     P("persona.max_prompt_chars", "人设/世界书", "人设正文上限",
       lambda: _m("char_res").MAX_PROMPT_CHARS, "字", (1000, 60000), "char_res.py 常量",
@@ -157,7 +157,8 @@ PARAMS = [
       lambda: _m("char_res").MAX_WORLDBOOK_CHARS, "字", (500, 20000), "char_res.py 常量",
       "同上", "低", "同上"),
     P("persona.max_memory_chars", "人设/世界书", "常驻记忆书上限",
-      lambda: _m("char_res").MAX_MEMORY_CHARS, "字", (200, 10000), "char_res.py 常量",
+      lambda: _m("char_res").MAX_MEMORY_CHARS, "字", (200, 10000),
+      "char_res.py 常量（persona_slices.json 的 memory_max_chars 可再压一道）",
       "常驻记忆书每轮都进，写长了直接推高每轮成本", "中", "面板「提示词」行的「常驻」字数"),
 
     # ---------------- 关系阶段 ----------------

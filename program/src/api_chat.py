@@ -6,6 +6,7 @@ import char_res
 import characters
 import diag
 import perf
+import perfcfg
 import persona_ctx
 import persona_stage
 import scene_cg
@@ -63,7 +64,16 @@ class ChatApi:
                 "mem_note": len(mem_note or ""),
                 "mem_trimmed": len(msgs) < len(raw_msgs)}
 
-        wb_ctx, wb_names = persona_ctx.worldbook_context(msgs, period=period)
+        # 演出 / 切片规则（#19）：每角色的 persona_slices.json，缺了就是默认值
+        try:
+            _sl = perfcfg.slices()
+        except Exception as e:
+            log("切片配置读取失败（用默认值）: %s" % e)
+            _sl = dict(perfcfg.DEFAULTS_SLICES)
+
+        wb_ctx, wb_names = persona_ctx.worldbook_context(
+            msgs, period=period,
+            max_entries=_sl["worldbook_entries"], max_chars=_sl["worldbook_chars"])
         system = persona_ctx.persona_text(raw_msgs, period=period)
         _seg["persona"] = len(system)
 
@@ -73,6 +83,9 @@ class ChatApi:
         try:
             # 常驻记忆书（#3）：两段化之后是「固定设定 + 关系摘要」；没 standing.json 就回落老文本
             mem_extra = standing.text()
+            # 切片配置（#19）可以再压一道上限
+            if mem_extra and _sl.get("memory_max_chars"):
+                mem_extra = mem_extra[:_sl["memory_max_chars"]]
             _seg["memory_extra"] = len(mem_extra or "")
             if mem_extra:
                 system = system + (
@@ -104,7 +117,8 @@ class ChatApi:
                     if m.get("role") == "user":
                         last_user = m.get("content") or ""
                         break
-                mem = STORY.memory_context(last_user, k=STORY_K, max_chars=STORY_MAX_CHARS)
+                mem = STORY.memory_context(last_user, k=_sl["story_k"],
+                                           max_chars=_sl["story_max_chars"])
                 _seg["story"] = len(mem or "")
                 if mem:
                     system = system + (

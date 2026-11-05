@@ -193,6 +193,16 @@ def main():
     check("换阶段不受冷却影响", standing.note(4, msgs()) is True)
     standing.wait()
 
+    # 带 BOM 的 standing.json 也要能读（记事本存出来的样子）
+    standing.set_llm(fake_llm)
+    standing.build(msgs(), 3)
+    with open(p, "rb") as f:
+        raw = f.read()
+    with open(p, "wb") as f:
+        f.write(b"\xef\xbb\xbf" + raw)
+    check("带 BOM 的 standing.json 也能读", standing.load() is not None
+          and "练琴" in (standing.load() or {}).get("relation_summary", ""), standing.load())
+
     # 8) 坏 json / 没有 LLM
     with open(p, "w", encoding="utf-8") as f:
         f.write("{ 这不是 json")

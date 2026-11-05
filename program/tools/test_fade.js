@@ -71,6 +71,24 @@ check("乱填回默认", fade.ms() === 240, fade.ms());
 prefs.xfadeMs = 0;
 check("0 回默认（不是夹到 200）", fade.ms() === 240, fade.ms());
 
+/* ---------- 4b：#19 角色演出配置 performance.json 的 fade_ms ---------- */
+delete prefs.xfadeMs;
+sandbox.window.WA2.perfCfg = { fadeMs: function () { return 280; } };
+check("没设 xfadeMs → 用角色配置 280", fade.ms() === 280, fade.ms());
+prefs.xfadeMs = 250;
+check("prefs 设了 → 压过角色配置", fade.ms() === 250, fade.ms());
+delete prefs.xfadeMs;
+sandbox.window.WA2.perfCfg = { fadeMs: function () { return 999; } };
+check("角色配置超上限 → 夹到 300", fade.ms() === 300, fade.ms());
+sandbox.window.WA2.perfCfg = { fadeMs: function () { return 10; } };
+check("角色配置太小 → 夹到 200", fade.ms() === 200, fade.ms());
+sandbox.window.WA2.perfCfg = { fadeMs: function () { return "abc"; } };
+check("角色配置乱填 → 内置默认 240", fade.ms() === 240, fade.ms());
+sandbox.window.WA2.perfCfg = { fadeMs: function () { throw new Error("boom"); } };
+check("角色配置抛错 → 内置默认 240", fade.ms() === 240, fade.ms());
+delete sandbox.window.WA2.perfCfg;
+check("没有 perfCfg → 内置默认 240", fade.ms() === 240, fade.ms());
+
 fade.set(false);
 check("set(false) 写进 prefs", prefs.xfade === false && saved.length === 1, saved);
 fade.set(true, 500);

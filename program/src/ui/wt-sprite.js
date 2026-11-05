@@ -35,11 +35,28 @@
       .then(function (d) {
         Object.keys(SPRITE_INDEX).forEach(function (k) { delete SPRITE_INDEX[k]; });
         Object.assign(SPRITE_INDEX, (d && d.outfits) || {});
+        /* 切角色后顺手重拉演出配置（#19）：每角色的 performance.json */
+        try { if (WA2.perfCfg && WA2.perfCfg.refresh) WA2.perfCfg.refresh(); } catch (e) {}
         if (cb) cb();
       })
       .catch(function () {});
   }
   loadIndex(null);
+
+  /* #19：performance.json 里的映射表是「覆盖/追加」，没配就用内置表 */
+  function cfgOverride(name) {
+    try {
+      if (WA2.perfCfg && typeof WA2.perfCfg[name] === "function") return WA2.perfCfg[name]() || {};
+    } catch (e) {}
+    return {};
+  }
+
+  function mergeMap(base, extra) {
+    var out = {}, k;
+    for (k in base) { if (Object.prototype.hasOwnProperty.call(base, k)) out[k] = base[k]; }
+    for (k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) out[k] = extra[k]; }
+    return out;
+  }
 
   /* 名字 / 旧编号 / label → index 里的衣服名（合并过的衣服有多个编号，都在 codes 里） */
   function resolveOutfit(v) {
@@ -55,7 +72,7 @@
   }
 
   function outfitOf(scene) {
-    var name = OUTFIT_BY_SCENE[scene];
+    var name = mergeMap(OUTFIT_BY_SCENE, cfgOverride("outfitMap"))[scene];
     if (name && SPRITE_INDEX[name]) return name;
     /* 场景表没命中（或这套衣服没有立绘）：优先校服，再退到索引里的第一套 */
     var keys = Object.keys(SPRITE_INDEX);
@@ -72,7 +89,7 @@
   function spritePath(outfit, emotion) {
     var o = SPRITE_INDEX[outfit];
     if (!o) return "assets/kaz_cold.png";
-    var emo = emotion ? (MOOD_TO_EMO[emotion] || emotion) : "";
+    var emo = emotion ? (mergeMap(MOOD_TO_EMO, cfgOverride("moodMap"))[emotion] || emotion) : "";
     var u = function (name) {
       return "/api/character/sprite/" + encodeURIComponent(outfit) + "/" + encodeURIComponent(name);
     };

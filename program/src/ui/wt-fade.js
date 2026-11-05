@@ -6,7 +6,7 @@
  *
  * 对外（WA2.fade）：
  *   enabled()                过渡开不开（prefs.xfade === false 就关，默认开）
- *   ms()                     时长（prefs.xfadeMs，夹在 200~300ms，默认 240）
+ *   ms()                     时长（prefs.xfadeMs → performance.json 的 fade_ms → 240，夹 200~300）
  *   set(on, ms)              改设置（写进 prefs，跟着设置文件持久化）
  *   crossBg(url, ok, fail)   场景背景：图先预载，载完再淡
  *   crossSprite(url, ok, fail) 立绘：新图叠一层淡入，淡完再把主图换掉
@@ -38,9 +38,20 @@
     return P.xfade !== false;          /* 只有显式 false 才关：老设置文件里没有这个键 */
   }
 
+  /* #19：每角色的 performance.json 里可以给 fade_ms；prefs.xfadeMs 仍然优先（用户自己调过） */
+  function cfgMs() {
+    try {
+      if (window.WA2 && window.WA2.perfCfg && typeof window.WA2.perfCfg.fadeMs === "function") {
+        var v = window.WA2.perfCfg.fadeMs();
+        if (isFinite(v) && v > 0) return v;
+      }
+    } catch (e) {}
+    return DEF_MS;
+  }
+
   function ms() {
     var v = Number(prefs().xfadeMs);
-    if (!isFinite(v) || v <= 0) return DEF_MS;
+    if (!isFinite(v) || v <= 0) v = cfgMs();       /* 没设 → 角色配置 → 内置默认 */
     return Math.max(MIN_MS, Math.min(MAX_MS, Math.round(v)));
   }
 

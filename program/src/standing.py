@@ -91,7 +91,7 @@ def load():
     if not p or not os.path.isfile(p):
         return None
     try:
-        with open(p, encoding="utf-8") as f:
+        with open(p, encoding="utf-8-sig") as f:   # 带 BOM 也算合法（用户可能拿记事本存过）
             d = json.load(f)
     except Exception as e:
         _warn_once("bad", "常驻记忆书：standing.json 读不了（回落到 memory/*.txt）：%s" % e)

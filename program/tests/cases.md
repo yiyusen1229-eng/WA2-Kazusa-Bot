@@ -37,6 +37,7 @@
 | K19 | 诊断包 | `logs/wa2_diag_*.zip` 能打开、有 README、无密钥 / 用户目录 / 对话查询串；默认不含 `conversation.json` | `test_logpack.py`（+ 在线冒烟真调一次） |
 | K20 | 性能采样 | `logs/perf-<日期>.csv` 表头只写一次、每 N 轮一行、`WA2_PERF=0` 关掉、写不进去也不抛 | `test_perf_sample.py` |
 | K21 | 常驻记忆书两段化 | 没有 `standing.json` 时回落老文本；阶段变化后台刷一次摘要；fixed 不被程序改写；失败保留旧版 | `test_standing.py` |
+| K22 | 演出/切片配置 | 没配置文件 → 默认值（且等于代码常量）；正常覆盖生效；超范围夹边界、类型不对回默认、未知键忽略、坏 JSON 全默认，每种都带 warning；切角色读对应文件 | `test_perfcfg.py`（+ `test_perfcfg.js` 验前端 `/api/performance` 拉取与 toast） |
 
 ## 边界（极端输入不炸，行为仍可预期）
 

@@ -390,6 +390,7 @@ from api_text import TextApi
 from api_chat import ChatApi
 from api_charpack import CharPackApi
 from api_log import LogApi
+from api_perfcfg import PerfCfgApi
 from api_memory import MemoryApi
 from api_update import UpdateApi
 from text_parse import (
@@ -797,7 +798,7 @@ def _repack_async(msgs, a, b):
 
 
 class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
-              ModelCfgApi, TtsApi, TextApi, LogApi, SimpleHTTPRequestHandler):
+              ModelCfgApi, TtsApi, TextApi, LogApi, PerfCfgApi, SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
 
@@ -945,6 +946,8 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             return self._log_bundle()
         if self.path.startswith("/api/tts"):
             return self._tts()
+        if self.path.startswith("/api/performance"):
+            return self._performance_get()
         if self.path.startswith("/api/debug/state"):
             # 调试面板要的只读状态包（#13）：提示词分段 / 命中 / 缓存 / 分类器 / 阶段
             try:
