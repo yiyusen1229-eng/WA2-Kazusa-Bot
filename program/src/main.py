@@ -45,6 +45,7 @@ import characters
 import char_res
 import persona_ctx
 import persona_stage
+import runstate
 import scene_cg
 try:
     import gdi_text as GLIB
@@ -57,6 +58,10 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 BUILD_TAG = time.strftime("%H%M%S")
 APP_NAME = "WHITE ALBUM2 Extension~ どこまでも続く道~"
 WINDOW_TITLE = APP_NAME
+try:
+    from version import VERSION as _VERSION
+except Exception:
+    _VERSION = ""
 OLLAMA = "http://127.0.0.1:11434"
 # 安全模式: 存在 模型开关.txt(或环境变量 WA2_NO_MODELS=1) 时不加载任何模型
 def _no_models_flag():
@@ -899,6 +904,8 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             return self._tts()
         if self.path == "/api/ping":
             return self._json({"ok": True, "app": APP_NAME})
+        if self.path == "/api/run/state":
+            return self._json(runstate.state())
         if self.path.startswith("/api/update"):
             return self._update_check()
         if self.path.startswith("/api/open_url"):
@@ -1213,6 +1220,8 @@ def serve_only(prefer_port=None):
     """
     os.environ.setdefault("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
                           "--autoplay-policy=no-user-gesture-required")
+    runstate.install_hooks()
+    runstate.begin(APP_NAME, _VERSION)
     _memory.clear_runtime()          # 后端模式也当作一次"新启动"
 
     port_holder = []
@@ -1246,10 +1255,13 @@ def serve_only(prefer_port=None):
             time.sleep(1)
     except KeyboardInterrupt:
         log("\n已退出")
+    runstate.end()
     return port
 
 
 def main():
+    runstate.install_hooks()
+    runstate.begin(APP_NAME, _VERSION)
     _clear_text_cache()
     _memory.clear_runtime()          # 记忆缓存只活这一次运行
     try:
@@ -1358,6 +1370,7 @@ def main():
     apply_model_cfg()
     # private_mode=True: 每次启动都用全新的 WebView2 数据目录, 彻底避免旧缓存
     webview.start(private_mode=True)
+    runstate.end()                   # 正常退出：删掉运行标记
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 /* 文字大小调节: Ctrl + = / - 实时缩放, Ctrl+0 复位, 自动记忆 */
 (function () {
-  function toast(msg) {
+  function toast(msg, ms) {
     var ro = document.getElementById("scaleReadout");
     if (ro) {
       ro.textContent = msg;
@@ -19,7 +19,7 @@
     t.textContent = msg;
     t.style.display = "block";
     clearTimeout(t._h);
-    t._h = setTimeout(function () { t.style.display = "none"; }, 1500);
+    t._h = setTimeout(function () { t.style.display = "none"; }, ms || 1500);
   }
 
   /* 给别的模块用（读档失败提示等）：window.__toast("…") */

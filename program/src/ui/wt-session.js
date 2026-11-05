@@ -68,6 +68,25 @@
       .catch(function () { return false; });
   }
 
+  /* 启动时问后端：上次是不是正常退出。不是就提示一句（存档本身仍走「继续」恢复） */
+  function runStateCheck() {
+    return fetch("/api/run/state", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok && d.dirty_exit) {
+          var t = window.__toast || function () {};
+          t(d.has_autosave ? "上次没有正常退出，可从「继续」恢复" : "上次没有正常退出", 4000);
+          console.log("[run] 上次异常退出", d.prev || {});
+        }
+        return d || null;
+      })
+      .catch(function () { return null; });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(runStateCheck, 1500);
+  });
+
   /* 读档：把存档恢复到当前对话并进入游戏 */
   window.__loadSession = function (data) {
     try {
@@ -155,7 +174,7 @@
   /* ---------- 场景切换 ---------- */
   let currentBg = null;
   var _exp = {};
-  var _names = ["sessionRestore", "sessionSave"];
+  var _names = ["sessionRestore", "sessionSave", "runStateCheck"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }
