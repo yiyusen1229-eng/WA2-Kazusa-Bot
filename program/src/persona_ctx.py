@@ -35,6 +35,11 @@ LEGACY_PERSONA_FILE = os.path.join(BASE, "persona.txt")
 LEGACY_PERSONA_CORE_FILE = os.path.join(BASE, "persona_core.txt")
 LEGACY_WORLDBOOK_FILE = os.path.join(BASE, "worldbook.json")
 
+# 世界书默认值（worldbook.json 里没写这几项时用它；#12 集中在这里，表见 参数与指标.md）
+WB_DEFAULT_DEPTH = 3        # 只看最近几条消息做关键词匹配
+WB_DEFAULT_ENTRIES = 3      # 每轮最多注入几条
+WB_DEFAULT_CHARS = 1200     # 每轮最多注入多少字
+
 _LOG = None
 
 
@@ -247,9 +252,9 @@ def worldbook_context(messages, depth=None, max_entries=None, max_chars=None, pe
     条目的 period 字段可以是 ic / cc / coda / all。
     """
     wb = load_worldbook()
-    depth = depth or wb.get("scan_depth", 3)
-    max_entries = max_entries or wb.get("max_entries", 3)
-    max_chars = max_chars or wb.get("max_chars", 1200)
+    depth = depth or wb.get("scan_depth", WB_DEFAULT_DEPTH)
+    max_entries = max_entries or wb.get("max_entries", WB_DEFAULT_ENTRIES)
+    max_chars = max_chars or wb.get("max_chars", WB_DEFAULT_CHARS)
     recent = " ".join((m.get("content") or "") for m in messages[-depth:])
     p = (period or "").strip().lower() or None
     hits = []

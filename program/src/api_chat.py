@@ -10,6 +10,13 @@ import persona_stage
 import scene_cg
 import tts_client
 
+# 关键参数（#12：以前散在函数体里的数字，集中在这里；表见 other/docs/参数与指标.md）
+MAX_TOKENS_CLOUD = 400       # 云端一次回复的上限
+MAX_TOKENS_LOCAL = 260       # 本地小模型回复更短
+CHAT_TIMEOUT_S = 300         # 等云端回复的超时
+STORY_K = 2                  # 原作检索注入几块
+STORY_MAX_CHARS = 900        # 原作检索最多注入多少字
+
 
 class ChatApi:
     """见 main.Handler。"""
@@ -94,7 +101,7 @@ class ChatApi:
                     if m.get("role") == "user":
                         last_user = m.get("content") or ""
                         break
-                mem = STORY.memory_context(last_user, k=2, max_chars=900)
+                mem = STORY.memory_context(last_user, k=STORY_K, max_chars=STORY_MAX_CHARS)
                 _seg["story"] = len(mem or "")
                 if mem:
                     system = system + (
@@ -133,7 +140,7 @@ class ChatApi:
             "model": model,
             "messages": ([{"role": "system", "content": system}] + _few + msgs),
             "stream": False,
-            "max_tokens": 400 if cc else 260,
+            "max_tokens": MAX_TOKENS_CLOUD if cc else MAX_TOKENS_LOCAL,
         }
         if not cc:
             payload["reasoning_effort"] = "none"
@@ -148,7 +155,7 @@ class ChatApi:
                 headers=({"Content-Type": "application/json",
                           "Authorization": "Bearer " + cc["api_key"]} if cc
                          else {"Content-Type": "application/json"}))
-            with urllib.request.urlopen(rq, timeout=300) as r:
+            with urllib.request.urlopen(rq, timeout=CHAT_TIMEOUT_S) as r:
                 d = json.loads(r.read().decode("utf-8"))
             raw = (d["choices"][0]["message"].get("content") or "").strip()
             _uinfo = _record_usage(model, d.get("usage") or {})

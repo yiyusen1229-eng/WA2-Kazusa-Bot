@@ -11,7 +11,8 @@ class TextApi:
     """见 main.Handler；从 main 注入运行时全局。"""
 
     def _text_img(self):
-        from main import (GLIB, _RENDER_LOCK, _TEXT_CACHE, _TEXT_CACHE_MAX, _text_disk_path, qs)
+        from main import (GLIB, _RENDER_LOCK, _TEXT_CACHE, _TEXT_CACHE_EVICT,
+                          _TEXT_CACHE_MAX, _text_disk_path, qs)
         """把文字渲染成 PNG（和对话框走同一套字模流程）
 
         参数（正式名 / 兼容旧名）：
@@ -74,8 +75,8 @@ class TextApi:
                         _buf = _io.BytesIO()
                         img.save(_buf, "PNG")
                         data = _buf.getvalue()
-                        # 缓存上限：超过 400 条就丢掉最早的，避免内存一直涨
-                        if len(_TEXT_CACHE) >= 400:
+                        # 缓存上限：到 _TEXT_CACHE_EVICT 条就丢掉最早的，避免内存一直涨
+                        if len(_TEXT_CACHE) >= _TEXT_CACHE_EVICT:
                             try:
                                 _TEXT_CACHE.pop(next(iter(_TEXT_CACHE)))
                             except Exception:

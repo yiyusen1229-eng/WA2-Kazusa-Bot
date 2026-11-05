@@ -27,6 +27,7 @@ LEVELS = {
     "text_parse.py": ("二级 · 核心", "回复标签解析、日文清理（纯函数）"),
     "applog.py": ("二级 · 核心", "日志文件"),
     "diag.py": ("二级 · 核心", "调试面板的只读状态账本（/api/debug/state）"),
+    "params.py": ("二级 · 核心", "关键参数登记表（生成 other/docs/参数与指标.md）"),
     "secret.py": ("二级 · 核心", "密钥来源（环境变量优先）与日志脱敏"),
     "winutil.py": ("二级 · 核心", "Windows 窗口 API"),
     "pricing.py": ("二级 · 核心", "价格与用量估算"),

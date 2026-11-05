@@ -45,6 +45,9 @@ PY = os.path.join(GSV, "runtime", "python.exe")
 HOST = "127.0.0.1"
 PORT = 9880
 T_PORT = 9881
+# 等 GPT-SoVITS 起来的超时（第一次要加载模型，给足）；单句合成超时
+READY_TIMEOUT_S = 120
+SYNTH_TIMEOUT_S = 60
 T_PY = os.path.join(os.path.dirname(GSV), "翻译服务.py")
 _tproc = None
 URL = "http://%s:%d" % (HOST, PORT)
@@ -328,7 +331,7 @@ def _ensure_char_model():
         return False
 
 
-def _wait_ready(timeout=120):
+def _wait_ready(timeout=READY_TIMEOUT_S):
     import socket
     t0 = time.time()
     while time.time() - t0 < timeout:
@@ -601,7 +604,7 @@ def normalize_ja_names(text):
     return text
 
 
-def synthesize(text, lang="zh", timeout=60, emo="neutral"):
+def synthesize(text, lang="zh", timeout=SYNTH_TIMEOUT_S, emo="neutral"):
     """返回 wav 字节；失败返回 None
 
     合成串行：GPT-SoVITS 的 api 同时来两个请求会抢模型，这里排队；

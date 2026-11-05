@@ -469,6 +469,8 @@ def _text_disk_path(key):
     os.makedirs(d, exist_ok=True)
     return os.path.join(d, h + ".png")
 _TEXT_CACHE_MAX = 2000
+# 内存里到多少条就开始丢最早的（#12：原来这个 400 写死在 api_text 里，和上面那 2000 对不上）
+_TEXT_CACHE_EVICT = 400
 
 
 def log(msg):
