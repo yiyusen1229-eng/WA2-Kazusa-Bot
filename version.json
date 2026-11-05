@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-04.2",
+  "version": "2026-11-05.1",
   "url": "https://github.com/yiyusen1229-eng/ai-chat-ui-arch/tree/master/other/docs/patches",
-  "notes": "拆包体检、成本显示与读档修复"
+  "notes": "角色包导出/导入、密钥脱敏、记忆书界面、改名"
 }

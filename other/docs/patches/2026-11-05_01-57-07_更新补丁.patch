@@ -1,0 +1,4811 @@
+diff --git a/README.md b/README.md
+index c5dd4a7..ee56fda 100644
+--- a/README.md
++++ b/README.md
+@@ -23,7 +23,7 @@
+ 
+ ---
+ 
+-# WA2-Kazusa-Bot · 桌面对话程序
++# WHITE ALBUM2 Extension~ どこまでも続く道~ · 桌面对话程序
+ 
+ 一个**桌面聊天程序**：界面 + 立绘 + 日文语音 + 中文对照。
+ 
+@@ -37,6 +37,13 @@
+ 
+ → [完结感言](other/docs/完结感言.md)
+ 
++## 近期更新（2026-11-04 打包）
++
++> 安装包产物名带版本号与时间戳；修掉「安装包里夹带用户存档」的问题。
++
++- [更新日志 2026-11-04_16-27-33](other/docs/更新日志_2026-11-04_16-27-33.md)
++- [本版补丁](other/docs/patches/2026-11-04_16-27-33_更新补丁.patch)（基线 `d9ca59c`）
++
+ ## 近期更新（2026-11-04 更新检查）
+ 
+ > 启动时自动查 GitHub 上的新版本，有新版本就在标题栏弹一条可点击的通知，点开直达补丁页。
+@@ -323,6 +330,7 @@ WA2-Kazusa-Bot/
+ 
+ | 文档 | 内容 |
+ |---|---|
++| [other/docs/更新日志_2026-11-04_16-27-33.md](other/docs/更新日志_2026-11-04_16-27-33.md) | 最新：安装包命名（版本+时间戳）、排除存档 |
+ | [other/docs/更新日志_2026-11-04_02-00-15.md](other/docs/更新日志_2026-11-04_02-00-15.md) | 最新：启动自动检查新版本 + 标题栏通知 |
+ | [other/docs/更新日志_2026-11-04_01-53-50.md](other/docs/更新日志_2026-11-04_01-53-50.md) | 最新：命名规则（时分秒）+ 拆包体检报告 |
+ | [other/docs/架构/00_总览.md](other/docs/架构/00_总览.md) | **架构地图**：总览 + 7 个层级文档，按任务只读一层 |
+@@ -339,7 +347,8 @@ WA2-Kazusa-Bot/
+ | [other/docs/创作手记.md](other/docs/创作手记.md) | 完整创作过程、失败的尝试、踩过的坑 |
+ | [other/docs/架构与文件说明.md](other/docs/架构与文件说明.md) | 每个文件夹每个文件的作用 |
+ | [other/docs/项目文档_字体机制.md](other/docs/项目文档_字体机制.md) | 字体图集机制说明 |
+-| [other/docs/后续更新路线图.md](other/docs/后续更新路线图.md) | 后续更新路线图（P0/P1/P2 规划，非已实现） |
++| [other/docs/后续更新路线图.md](other/docs/后续更新路线图.md) | 后续更新路线图：**只含还没做的**，每条标「现在有什么 / 缺什么」 |
++| [other/docs/已完成与取舍记录.md](other/docs/已完成与取舍记录.md) | 已了结的条目：做完的、换做法解决的、明确不做的（含代价与依据） |
+ | [other/docs/场景CG系统.md](other/docs/场景CG系统.md) | 场景背景 CG：文件名标签规则、导入工具、匹配算法、接口 |
+ | [other/docs/设计_分层人格提示词.md](other/docs/设计_分层人格提示词.md) | 通用思路：base + 情境切片，按关系/场景/对象按需注入，省 token |
+ | [other/docs/完结感言.md](other/docs/完结感言.md) | 完结感言：从立项到今天的磕磕绊绊 |
+diff --git a/config.example.json b/config.example.json
+index a756977..5e2ba4e 100644
+--- a/config.example.json
++++ b/config.example.json
+@@ -1,6 +1,7 @@
+ {
++  "_note": "api_key 可以留空，改用环境变量 WA2_API_KEY 或 DEEPSEEK_API_KEY（环境变量优先，且不会被写进本文件）",
+   "provider": "deepseek",
+   "base_url": "https://api.deepseek.com",
+-  "api_key": "sk-替换成你自己的key",
++  "api_key": "",
+   "model": "deepseek-flash"
+ }
+diff --git a/other/docs/patches/2026-11-04_16-27-33_更新补丁.patch b/other/docs/patches/2026-11-04_16-27-33_更新补丁.patch
+new file mode 100644
+index 0000000..8d8a6e4
+--- /dev/null
++++ b/other/docs/patches/2026-11-04_16-27-33_更新补丁.patch
+@@ -0,0 +1,141 @@
++diff --git a/README.md b/README.md
++index c5dd4a7..7c6f955 100644
++--- a/README.md
+++++ b/README.md
++@@ -37,6 +37,13 @@
++ 
++ → [完结感言](other/docs/完结感言.md)
++ 
+++## 近期更新（2026-11-04 打包）
+++
+++> 安装包产物名带版本号与时间戳；修掉「安装包里夹带用户存档」的问题。
+++
+++- [更新日志 2026-11-04_16-27-33](other/docs/更新日志_2026-11-04_16-27-33.md)
+++- [本版补丁](other/docs/patches/2026-11-04_16-27-33_更新补丁.patch)（基线 `d9ca59c`）
+++
++ ## 近期更新（2026-11-04 更新检查）
++ 
++ > 启动时自动查 GitHub 上的新版本，有新版本就在标题栏弹一条可点击的通知，点开直达补丁页。
++@@ -323,6 +330,7 @@ WA2-Kazusa-Bot/
++ 
++ | 文档 | 内容 |
++ |---|---|
+++| [other/docs/更新日志_2026-11-04_16-27-33.md](other/docs/更新日志_2026-11-04_16-27-33.md) | 最新：安装包命名（版本+时间戳）、排除存档 |
++ | [other/docs/更新日志_2026-11-04_02-00-15.md](other/docs/更新日志_2026-11-04_02-00-15.md) | 最新：启动自动检查新版本 + 标题栏通知 |
++ | [other/docs/更新日志_2026-11-04_01-53-50.md](other/docs/更新日志_2026-11-04_01-53-50.md) | 最新：命名规则（时分秒）+ 拆包体检报告 |
++ | [other/docs/架构/00_总览.md](other/docs/架构/00_总览.md) | **架构地图**：总览 + 7 个层级文档，按任务只读一层 |
++diff --git a/other/docs/更新日志_2026-11-04_16-27-33.md b/other/docs/更新日志_2026-11-04_16-27-33.md
++new file mode 100644
++index 0000000..ff40329
++--- /dev/null
+++++ b/other/docs/更新日志_2026-11-04_16-27-33.md
++@@ -0,0 +1,48 @@
+++# 更新日志 2026-11-04_16-27-33
+++
+++> 本轮只改**打包脚本**，不碰运行时逻辑：产物名带版本号与时间戳，安装包不再夹带存档。
+++
+++## 一、打包产物命名
+++
+++旧：`release/和纱_本地测试/` + `.zip`
+++
+++新：`release/和纱_<版本号>_<YYYY-MM-DD_HH-MM-SS>/` + 同名 `.zip`
+++
+++版本号读自 `program/src/version.py` 的 `VERSION`，时间戳用打包那一刻的时间。
+++本次产物：
+++
+++- `和纱_2026-11-04.2_2026-11-04_16-27-18/`（目录，约 289 MB）
+++- `和纱_2026-11-04.2_2026-11-04_16-27-18.zip`（约 248 MB）
+++
+++## 二、修掉一个泄漏：安装包里带了存档
+++
+++第一次打包时 zip 里出现了 `characters/和纱/sessions/1.json`、`6.json`、`7.json`、`8.json`、`auto.json` ——
+++这些是**用户自己的聊天存档**，不该随安装包发出去。
+++
+++修复：
+++
+++- 复制 `characters/` 时按目录过滤：`sessions` / `cache` / `logs` / `text_cache` / `__pycache__` 全部跳过
+++- 打 zip 时再加一道兜底：路径里含 `/sessions/` 或文件名是 `config.json` 的一律跳过
+++- 顺手跳过测试时新建的占位角色「新角色」（只有默认种子内容，21.7 KB）
+++
+++验证（解包核对）：
+++
+++| 项 | 结果 |
+++|---|---|
+++| zip 条目数 | 1449（原 1464：少 5 个存档 + 10 个占位角色文件） |
+++| 含 `sessions/` 的条目 | 无 |
+++| 含 `config.json` 的条目 | 无（密钥不外泄） |
+++| 含 `cache/`、`logs/` 的条目 | 无 |
+++| `和纱.exe` | 在 |
+++| `characters/和纱` 的立绘/语音/人设/世界书/记忆书 | 都在（371 条目） |
+++
+++## 三、变更文件
+++
+++| 文件 | 改动 |
+++|---|---|
+++| `program/tools/build_portable.py` | 产物名 = `和纱_<VERSION>_<时间戳>`；复制角色时排除存档与缓存；跳过占位角色；打 zip 兜底过滤 |
+++
+++## 四、发布流程
+++
+++- 补丁：`other/docs/patches/2026-11-04_16-27-33_更新补丁.patch`（基线 `d9ca59c`，只含工具脚本）
+++- 版本号未变（仍是 `2026-11-04.2`）：本轮不改运行时代码，客户端更新提示逻辑不受影响
++diff --git a/program/tools/build_portable.py b/program/tools/build_portable.py
++index d7d2d0c..6ca2ad4 100644
++--- a/program/tools/build_portable.py
+++++ b/program/tools/build_portable.py
++@@ -24,7 +24,19 @@ SRC = os.path.join(BASE, "src")
++ RES = os.path.join(BASE, "res")
++ APP = os.path.join(BASE, "build_env")
++ UI2 = os.path.join(BASE, "ui2")
++-OUTNAME = "和纱_本地测试"
+++# 产物名：和纱_<版本号>_<时间戳>（版本号取 src/version.py，时间戳带时分秒）
+++def _read_version():
+++    try:
+++        t = io.open(os.path.join(SRC, "version.py"), encoding="utf-8").read()
+++        m = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', t)
+++        return m.group(1) if m else "dev"
+++    except Exception:
+++        return "dev"
+++
+++
+++_VER = _read_version()
+++_STAMP = time.strftime("%Y-%m-%d_%H-%M-%S")
+++OUTNAME = "和纱_%s_%s" % (_VER, _STAMP)
++ OUTDIR = os.path.join(os.path.dirname(BASE), "release", OUTNAME)
++ ZIP = os.path.join(os.path.dirname(BASE), "release", OUTNAME + ".zip")
++ PY = os.path.join(APP, "venv", "Scripts", "python.exe")
++@@ -103,7 +115,25 @@ def _copy_into(src, name):
++ # 用户数据：fewshot / 界面偏好 / 上下文设置 / 导入的角色资源（不复制存档、缓存、日志）
++ for f in ("fewshot.json", "prefs.json", "memory.json"):
++     _copy_into(os.path.join(APP, f), f)
++-_copy_into(os.path.join(APP, "characters"), "characters")
+++def _copy_characters(src, dst):
+++    """角色文件夹要带上，但**不能带存档 / 缓存**（用户的聊天记录不该进安装包）"""
+++    skip_dirs = {"sessions", "cache", "logs", "text_cache", "__pycache__"}
+++    skip_chars = {"新角色"}          # 测试时新建的占位角色，不进包
+++    for dp, dns, fns in os.walk(src):
+++        dns[:] = [d for d in dns if d not in skip_dirs]
+++        if os.path.normpath(dp) == os.path.normpath(src):
+++            dns[:] = [d for d in dns if d not in skip_chars]
+++        rel = os.path.relpath(dp, src)
+++        target = dst if rel == "." else os.path.join(dst, rel)
+++        os.makedirs(target, exist_ok=True)
+++        for f in fns:
+++            if f.endswith((".log", ".tmp")):
+++                continue
+++            shutil.copy2(os.path.join(dp, f), os.path.join(target, f))
+++
+++
+++if os.path.isdir(os.path.join(APP, "characters")):
+++    _copy_characters(os.path.join(APP, "characters"), os.path.join(OUTDIR, "characters"))
++ # 空配置模板（不含密钥）
++ cfg = os.path.join(OUTDIR, "config.example.json")
++ if not os.path.exists(cfg):
++@@ -123,6 +153,8 @@ with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
++         for f in fs:
++             if f == "config.json":
++                 continue
+++            if "/sessions/" in os.path.join(dp, f).replace("\\", "/") + "/":
+++                continue
++             full = os.path.join(dp, f)
++             rel = os.path.join(OUTNAME, os.path.relpath(full, OUTDIR))
++             z.write(full, rel)
+diff --git a/other/docs/patches/2026-11-04_17-09-45_更新补丁.patch b/other/docs/patches/2026-11-04_17-09-45_更新补丁.patch
+new file mode 100644
+index 0000000..8271de2
+--- /dev/null
++++ b/other/docs/patches/2026-11-04_17-09-45_更新补丁.patch
+@@ -0,0 +1,1331 @@
++diff --git a/other/docs/更新日志_2026-11-04_17-09-45.md b/other/docs/更新日志_2026-11-04_17-09-45.md
++new file mode 100644
++index 0000000..339647c
++--- /dev/null
+++++ b/other/docs/更新日志_2026-11-04_17-09-45.md
++@@ -0,0 +1,126 @@
+++# 更新日志 2026-11-04 17:09:45 · 角色包导出 / 导入
+++
+++> 版本不变（仍是 `2026-11-04.2`，没发版）· 基线 `648207a`
+++> 一句话：特别模式的角色配置区多了「导出 / 导入」两个按钮，角色可以打包成 zip 带走、换台机器直接导入。
+++
+++## 做了什么
+++
+++| 功能 | 说明 |
+++|---|---|
+++| 导出 | 点「导出」→ 弹出角色列表（复用切换面板，标题变成「选择要导出的角色」）→ 选一个角色 → 选保存目录 → 生成 `<角色名>.zip` |
+++| 导入 | 点「导入」→ 系统选文件窗口（只列 `.zip`）→ 确定 → 自动解成 `characters/` 下的新角色，**不自动切换** |
+++| 按钮 | 底板直接复用对话界面发送按钮的三态图 `btn_3state.png`，标签走 `/api/text` 字模，和「切换角色 / 新建角色」同一套 |
+++
+++## 包里有什么
+++
+++只带「换台机器也能直接演」的东西：
+++
+++```
+++manifest.json      格式名 / 版本 / 角色名 / 导出时间 / 文件数 / 字节数
+++name.txt           显示名
+++prompt/            提示词（base + stage1~4 + persona_*）
+++worldbook/         世界书
+++memory/            常驻记忆书
+++portrait/          立绘 + index.json
+++voice/             参考音频（TTS 音色）
+++```
+++
+++**不带**（都是有意的）：
+++
+++- `sessions/` —— 对话存档不跟着包到处跑
+++- `story.json` —— 剧情索引是本机生成的，别人拿了也用不了
+++- `tts.json` —— 权重是绝对路径，换机必失效
+++- `opening.json` / `pronunciation.json` —— 可选小配置，不算角色本体
+++- 任何缓存
+++
+++## 导入是怎么处理的
+++
+++1. 先解到 `characters/.importing_<毫秒>`（和角色目录同一个盘，最后一步是原子改名）
+++2. 校验：只认 `name.txt` / `prompt/` / `worldbook/` / `memory/` / `portrait/` / `voice/`，其它条目跳过并在返回里报告
+++3. 角色 id：`manifest.id` > 包里的 `name.txt` > 压缩包文件名；重名自动加序号（和纱 → 和纱2）
+++4. 落盘后：没有 `name.txt` 就补一个；`prompt/` 是空的就用自带模板铺一份（免得导入后是个空角色）
+++5. 失败不会在 `characters/` 里留下半个角色（临时目录在 `finally` 里清掉）
+++
+++支持两种包：正规包（`prompt/` 在根）和「把整个角色文件夹压进去」的包（`和纱/prompt/...`，会自动剥掉包装层）。
+++
+++## 安全
+++
+++- 路径穿越（`../../x`）、绝对路径（`/x`）、盘符（`C:/x`）条目一律丢弃
+++- 总量 2GB、单文件 512MB、条目 2 万上限（防解压炸弹）
+++- 不是 zip / 空包 / 坏包都给明确报错
+++- 导出时 PNG / JPG / WAV 等已压过的媒体用 `STORED`，不再白压一遍（实测 104MB 角色包 0.2 秒）
+++
+++## 接口
+++
+++| 方法 | 路径 | 说明 |
+++|---|---|---|
+++| POST | `/api/charpack/export` | body `{"id": "和纱"}`；弹选目录窗口 → 打包。取消返回 `{"ok": false, "cancelled": true}` |
+++| POST | `/api/charpack/import` | 弹选文件窗口 → 导入。同上 |
+++
+++两个接口都是**阻塞式**的：系统窗口开着的时候前端那个 `fetch` 一直等着，关掉才返回。放在 `ThreadingHTTPServer` 的独立线程里，界面不卡。
+++
+++## 验证
+++
+++```
+++python tools/test_char_pack.py       # 44 项，全绿
+++python tools/test_char_res.py        # 原有 6 个自测，全绿
+++python tools/arch_map.py --check     # 映射表最新
+++python tools/check_split.py          # 新模块 0 告警（sp-pack.js 无 eval / 无未定义引用）
+++```
+++
+++真实数据实测（和纱：360 个文件 / 103.6MB）：
+++
+++| 项 | 结果 |
+++|---|---|
+++| 导出 | 0.2 秒，zip 103.7MB，`testzip` 无坏块 |
+++| 导入 | 0.2 秒，prompt 7/7、worldbook 1/1、memory 1/1、voice 71/71、portrait 279/279 全部对上 |
+++| 存档 / tts.json | 确认没进包、也没被导进来 |
+++
+++界面探针（`ui_probe.py`，读数字不截图）：
+++
+++```
+++exportBox [49,15]  importBox [49,15]        ← 四个按钮同宽，行宽 210 < 栏宽 275，不溢出
+++exportLabelH 8.6                            ← 和烤好的 8.5px 标签一样高
+++pickerTitleTextH 14                         ← 和「切换角色」标题一样高
+++pickerTitleImgHidden true / TextShown true  ← 导出模式标题切换生效
+++itemCount 2  wa2Pack true
+++```
+++
+++## 怎么用
+++
+++1. 进「特别模式」→ 右边「配置角色」→ 点 **导出** → 选角色 → 选目录
+++2. 把 `<角色名>.zip` 发给别人 / 拷到另一台机器
+++3. 对方点 **导入** → 选这个 zip → 角色列表里就多一个（要切过去自己点「切换角色」）
+++
+++## 边界 / 已知取舍
+++
+++- **不打包存档**：分享角色不会把聊天记录带出去，但反过来也不能靠角色包搬家存档。
+++- **不打包 `tts.json`**：对方的权重路径和你不一样，导过去也是错的；要换音色就自己重新导参考音频。
+++- **立绘靠 `portrait/index.json`**：包里有它就能正确认衣服 / 表情；手工做的裸包缺它时，立绘会落到「其他」。
+++- **导入不自动切换**：避免正在聊天时被换人；要立刻用就再点一下「切换角色」。
+++- 导出目录会记住（`char_pack.json`，和 `prefs.json` 一个位置），下次直接落在那儿。
+++
+++## 改动文件
+++
+++```
+++新增  program/src/char_pack.py            角色包导出/导入（zip、校验、系统窗口）
+++新增  program/src/api_charpack.py         /api/charpack/* 的 mixin
+++新增  program/src/ui/sp-pack.js           导出/导入按钮（WA2.spPack）
+++新增  program/tools/test_char_pack.py     44 项自测
+++改    program/src/main.py                 注册 CharPackApi + 两条 POST 路由
+++改    program/src/ui/index.html           两个按钮 + 导出模式标题 + sp-pack.js + ?v= 全量 bump
+++改    program/src/ui/special.css          .spRoleBtn 46px / 8.5px，导出模式标题样式
+++改    program/src/ui/sp-char.js           openCharPicker 支持 export 模式
+++改    program/tools/arch_map.py           登记 3 个新文件
+++改    other/docs/架构/映射表.md            重新生成
+++改    other/docs/架构/01_后端与接口.md      接口表补一行
+++改    other/docs/架构/04_角色与资源.md      补「角色包」一节
+++```
+++
+++## 回滚
+++
+++```powershell
+++git apply -R "other/docs/patches/2026-11-04_17-09-45_更新补丁.patch"
+++```
+++
+++只回代码，不动 `characters/` 里的数据（导出的包和导入的角色都还在）。
++diff --git a/other/docs/架构/01_后端与接口.md b/other/docs/架构/01_后端与接口.md
++index 52e596d..8149928 100644
++--- a/other/docs/架构/01_后端与接口.md
+++++ b/other/docs/架构/01_后端与接口.md
++@@ -28,6 +28,7 @@
++ | `/api/session/{list,load,save,thumb}` | 存读档（目录 = `characters/<角色>/sessions/`） |
++ | `/api/special/{cfg,name,open,status,upload}` | 特别模式：参数、角色名、打开文件、状态、导入素材 |
++ | `/api/character/{list,switch,pick,new,opening,sprite/index.json}` | 多角色 |
+++| `/api/charpack/{export,import}` | 角色包导出 / 导入（zip，会弹系统窗口） |
++ | `/api/scene/{list,match}` | 场景 CG 匹配 |
++ | `/api/window` | 窗口控制（close/min/max/move/dragbegin/state） |
++ | `/api/modelcfg`、`/api/ollama`、`/api/prefs`、`/api/price*`、`/api/usage`、`/api/voice/ok`、`/api/ping`、`/api/log/dump` | 杂项 |
++diff --git a/other/docs/架构/04_角色与资源.md b/other/docs/架构/04_角色与资源.md
++index ed7d67f..6850435 100644
++--- a/other/docs/架构/04_角色与资源.md
+++++ b/other/docs/架构/04_角色与资源.md
++@@ -44,6 +44,16 @@ characters/
++ - 权重：`tts.json` 有就用，没有走默认；`_char_voice_sig` 变了才切（同进程不重启）
++ - 读音替换：`pronunciation.json` → 送 TTS 前替换，界面文字不变
++ 
+++## 角色包（`char_pack.py`）
+++
+++- 导出：只挑 `name.txt` + `prompt/ worldbook/ memory/ portrait/ voice/` → `<角色名>.zip`
+++  （不带 `sessions/`、`story.json`、`tts.json`、`opening.json`、`pronunciation.json`、缓存）
+++- zip 里带 `manifest.json`（格式名 / 版本 / 角色名 / 导出时间 / 文件数 / 字节数）
+++- 导入：先解到 `characters/.importing_*` → 校验 → 改名落盘（**不自动切换**），重名加序号；
+++  没有 manifest 的裸包也认（用 `name.txt` 或压缩包文件名当角色名）
+++- 界面：特别模式 → 配置角色 → 导出 / 导入（底板就是发送按钮的三态图 `btn_3state.png`）
+++- 安全：路径穿越 / 绝对路径 / 盘符条目丢弃；总量 2GB、单文件 512MB、条目 2 万上限
+++
++ ## 坑
++ 
++ - `ensure()`/`switch()`/`create()` 会灌种子（把自带 `persona/`、`worldbook/` 复制进角色文件夹），别绕过。
++diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
++index 9369d98..b0c53ae 100644
++--- a/other/docs/架构/映射表.md
+++++ b/other/docs/架构/映射表.md
++@@ -31,7 +31,7 @@
++ 
++ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++ |---|---|---|---|---|---|
++-| `src/main.py` | 1327 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | api_char, api_chat, api_modelcfg, api_text, api_tts, api_update | — |
+++| `src/main.py` | 1335 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | api_char, api_charpack, api_chat, api_modelcfg, api_text, api_tts | — |
++ 
++ ## 二级 · 前端/回想
++ 
++@@ -105,7 +105,8 @@
++ 
++ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++ |---|---|---|---|---|---|
++-| `src/ui/sp-char.js` | 183 | 角色切换/新建（WA2.spChar） | afterCharacter, closeCharPicker, openCharPicker, postCharacter | <script 全局> | — |
+++| `src/ui/sp-char.js` | 207 | 角色切换/新建（WA2.spChar） | afterCharacter, openCharPicker, postCharacter, setPickerTitle | <script 全局> | — |
+++| `src/ui/sp-pack.js` | 96 | 角色包导出/导入按钮（WA2.spPack） | flash, pickCharacterForExport, post, setBusy | <script 全局> | — |
++ 
++ ## 二级 · 前端/特别面板
++ 
++@@ -229,6 +230,7 @@
++ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++ |---|---|---|---|---|---|
++ | `src/api_char.py` | 60 | 角色查询与切换后处理 | CharApi | characters, persona_stage, special_cfg | main |
+++| `src/api_charpack.py` | 35 | 角色包导出/导入 /api/charpack/* | CharPackApi | char_pack | main |
++ 
++ ## 二级 · 接口/语音
++ 
++@@ -250,8 +252,9 @@
++ 
++ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++ |---|---|---|---|---|---|
+++| `src/char_pack.py` | 477 | 角色包导出/导入（zip） | pick_export_dir, pick_pack_file, export_pack, export_with_dialog, import_pack, import_with_dialog | characters | api_charpack |
++ | `src/char_res.py` | 234 | 角色资源定位与状态 | char_file, prompt_path, prompt_text, worldbook, worldbook_text, memory_path | special_files | api_chat, main, persona_ctx, tts_client |
++-| `src/characters.py` | 528 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | api_char, api_chat, main, persona_ctx, special_cfg, special_files |
+++| `src/characters.py` | 528 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | api_char, api_chat, char_pack, main, persona_ctx, special_cfg |
++ | `src/special_cfg.py` | 132 | 角色名读写 | name_file, defaults, current, ensure, save, get_name | characters, memory | api_char, main |
++ | `src/special_files.py` | 404 | 特别模式导入/打开/立绘落盘 | char_dir, set_assets_dir, save_upload, set_default_paths, kind_dir, portrait_dir | characters | char_res, main |
++ | `src/tts_client.py` | 624 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | char_res | api_chat, api_modelcfg, api_tts, main |
++@@ -275,11 +278,11 @@
++ 
++ | 文件 | 行数 | 建议 |
++ |---|---|---|
++-| `src/main.py` | 1327 | 超过 800 行，必须拆 |
+++| `src/main.py` | 1335 | 超过 800 行，必须拆 |
++ | `src/tts_client.py` | 624 | 超过 400 行，建议拆 |
++ | `src/characters.py` | 528 | 超过 400 行，建议拆 |
++ | `src/ui/menubar.js` | 523 | 超过 400 行，建议拆 |
++ | `src/ui/game.js` | 522 | 超过 400 行，建议拆 |
+++| `src/char_pack.py` | 477 | 超过 400 行，建议拆 |
++ | `src/memory.py` | 405 | 超过 400 行，建议拆 |
++ | `src/special_files.py` | 404 | 超过 400 行，建议拆 |
++-| `src/ui/opt-widgets.js` | 390 | 可接受 |
++diff --git a/program/src/api_charpack.py b/program/src/api_charpack.py
++new file mode 100644
++index 0000000..480e63a
++--- /dev/null
+++++ b/program/src/api_charpack.py
++@@ -0,0 +1,34 @@
+++# -*- coding: utf-8 -*-
+++"""/api/charpack/* 的实现：角色包导出 / 导入
+++
+++和 api_char.py 一个套路 —— 只是 Handler 的一个 mixin，路由在 main.py 的 do_POST 里。
+++
+++两个接口都会**弹系统窗口**（选目录 / 选文件），所以是阻塞式 HTTP 请求：
+++窗口开着的时候前端那个 fetch 就一直等着，关掉才返回。取消返回
+++{"ok": false, "cancelled": true}，前端按「已取消」提示，不当成错误。
+++"""
+++
+++import char_pack
+++
+++
+++class CharPackApi:
+++    """见 main.Handler。"""
+++
+++    def _charpack_export(self):
+++        """POST /api/charpack/export  {"id": "和纱"} → 选目录 → 打包 zip"""
+++        try:
+++            body = self._body()
+++        except Exception as e:
+++            return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
+++        cid = ((body or {}).get("id") or "").strip()
+++        try:
+++            return self._json(char_pack.export_with_dialog(cid))
+++        except Exception as e:
+++            return self._json({"ok": False, "error": "导出失败：%s" % e})
+++
+++    def _charpack_import(self):
+++        """POST /api/charpack/import  → 选 zip → 解成新角色（不自动切换）"""
+++        try:
+++            return self._json(char_pack.import_with_dialog())
+++        except Exception as e:
+++            return self._json({"ok": False, "error": "导入失败：%s" % e})
++diff --git a/program/src/char_pack.py b/program/src/char_pack.py
++new file mode 100644
++index 0000000..4613cba
++--- /dev/null
+++++ b/program/src/char_pack.py
++@@ -0,0 +1,481 @@
+++# -*- coding: utf-8 -*-
+++"""角色包导出 / 导入（zip）
+++
+++一个角色 = `characters/<角色>/` 一个文件夹。角色包只带走「换台机器也能直接演」的东西：
+++
+++    name.txt          显示名
+++    prompt/           提示词（base + stage1~4 + persona_*）
+++    worldbook/        世界书
+++    memory/           常驻记忆书
+++    portrait/         立绘（含 index.json）
+++    voice/            参考音频（TTS 音色）
+++
+++**不带**（都是有意的）：
+++
+++    sessions/         存档 —— 对话记录不该跟着包到处跑
+++    story.json        剧情索引开关（索引文件是本机生成的，别人拿了也用不了）
+++    tts.json          权重路径（绝对路径，换机必失效）
+++    opening.json / pronunciation.json   可选小配置，不属于「角色本体」
+++    任何缓存
+++
+++zip 里多放一份 `manifest.json`：格式名、版本、角色名、导出时间、文件数、字节数。
+++导入时优先用它拿角色名；没有 manifest 的裸包也认（用压缩包文件名当角色名）。
+++
+++导入是「先解到临时目录 → 校验 → 改名落盘」：中途失败不会在 characters/ 里留下半个角色。
+++防路径穿越 / 绝对路径 / 盘符 / 超大文件 / 条目爆炸；只认上面那几个目录，其它条目跳过并报告。
+++"""
+++import json
+++import os
+++import re
+++import shutil
+++import subprocess
+++import sys
+++import tempfile
+++import time
+++import zipfile
+++
+++import characters
+++
+++FORMAT = "wa2-char-pack"
+++FORMAT_VERSION = 1
+++
+++# 包里的「角色本体」：5 个资源目录 + 显示名
+++PACK_DIRS = ("prompt", "worldbook", "memory", "portrait", "voice")
+++PACK_FILES = ("name.txt",)
+++MANIFEST = "manifest.json"
+++
+++# 上限（防解压炸弹；正常角色包 ~100MB，立绘 279 张 + 参考音频 71 个）
+++MAX_TOTAL = 2 * 1024 ** 3          # 解压后总量 2GB
+++MAX_ENTRY = 512 * 1024 ** 2        # 单个文件 512MB
+++MAX_ENTRIES = 20000
+++
+++# 已经压过的媒体用 STORED：省掉白花的 CPU（实测 87MB 立绘 + 16MB 参考音频）
+++_STORE_EXT = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif",
+++              ".wav", ".mp3", ".ogg", ".flac", ".m4a")
+++
+++# 记住上次导出到哪儿（下次选目录直接落在那儿）；和 prefs.json 一个规矩，放用户目录
+++CFG_NAME = "char_pack.json"
+++
+++
+++def _log(msg):
+++    try:
+++        import applog
+++        applog.log(msg, "PACK")
+++    except Exception:
+++        pass
+++
+++
+++# ------------------------------------------------------------------ 小工具
+++def _safe_rel(rel):
+++    """压缩包条目 → 安全的相对路径；不安全返回空串"""
+++    rel = (rel or "").replace("\\", "/").strip()
+++    if not rel or rel.endswith("/"):
+++        return ""
+++    if rel.startswith("/") or re.match(r"^[A-Za-z]:", rel):
+++        return ""
+++    parts = [p for p in rel.split("/") if p not in ("", ".")]
+++    if not parts or any(p == ".." for p in parts):
+++        return ""
+++    return "/".join(parts)
+++
+++
+++def _top_dir(rel):
+++    return rel.split("/")[0] if "/" in rel else ""
+++
+++
+++def _wrapper_dir(names):
+++    """用户常常把整个角色文件夹压进去（条目是 `和纱/prompt/...`）。
+++
+++    所有带目录的条目都在同一个顶层目录下、且那个名字不是 prompt/worldbook/...
+++    就把它当包装层剥掉。返回要剥掉的目录名，没有就是空串。
+++    """
+++    tops = set()
+++    for n in names:
+++        t = _top_dir(n)
+++        if t:
+++            tops.add(t)
+++    if len(tops) == 1:
+++        t = next(iter(tops))
+++        if t not in PACK_DIRS:
+++            return t
+++    return ""
+++
+++
+++def _cfg_path():
+++    return os.path.join(characters.user_dir(), CFG_NAME)
+++
+++
+++def _last_dir():
+++    try:
+++        with open(_cfg_path(), encoding="utf-8") as f:
+++            d = json.load(f)
+++        p = (d or {}).get("last_export_dir") or ""
+++        return p if p and os.path.isdir(p) else ""
+++    except Exception:
+++        return ""
+++
+++
+++def _save_last_dir(path):
+++    try:
+++        tmp = _cfg_path() + ".tmp"
+++        with open(tmp, "w", encoding="utf-8") as f:
+++            json.dump({"last_export_dir": path}, f, ensure_ascii=False, indent=1)
+++        os.replace(tmp, _cfg_path())
+++    except Exception:
+++        pass
+++
+++
+++# ------------------------------------------------------------------ 系统对话框
+++# 和 characters.pick_folder() 同一套：PowerShell 独立进程 + 1x1 置顶 Owner，
+++# 路径经 UTF-8 临时文件传回来（走 stdout 会被 GBK 转坏中文路径）。
+++_OWNER = (
+++    "$ErrorActionPreference='Stop';"
+++    "Add-Type -AssemblyName System.Windows.Forms;"
+++    "Add-Type -AssemblyName System.Drawing;"
+++    "$f=New-Object System.Windows.Forms.Form;"
+++    "$f.TopMost=$true;$f.ShowInTaskbar=$false;$f.FormBorderStyle='None';"
+++    "$f.StartPosition='Manual';$f.Size=New-Object System.Drawing.Size(1,1);"
+++    "$f.Location=New-Object System.Drawing.Point(-3000,-3000);$f.Show();"
+++)
+++
+++
+++def _q(s):
+++    return (s or "").replace("'", "''")
+++
+++
+++def _run_ps(ps, tmp_out):
+++    """跑 PowerShell 对话框，返回它写进临时文件的路径（没选就是空串）
+++
+++    打包版是窗口程序，不带控制台：加 CREATE_NO_WINDOW 免得多闪一个黑框
+++    （对话框本身是 WinForms 窗口，不受影响）。
+++    """
+++    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+++    try:
+++        subprocess.run(["powershell", "-NoProfile", "-STA", "-Command", ps],
+++                       capture_output=True, text=True, encoding="utf-8",
+++                       errors="replace", timeout=600, creationflags=flags)
+++    except subprocess.TimeoutExpired:
+++        return ""
+++    except Exception as e:
+++        _log("角色包：选择窗口打不开 %s" % e)
+++        return ""
+++    try:
+++        with open(tmp_out, encoding="utf-8-sig", errors="replace") as f:
+++            return f.read().strip()
+++    except OSError:
+++        return ""
+++
+++
+++def _tmp_out():
+++    fd, p = tempfile.mkstemp(prefix="wa2_pack_", suffix=".txt")
+++    os.close(fd)
+++    try:
+++        os.remove(p)                  # 让脚本自己创建；没选就还是不存在
+++    except OSError:
+++        pass
+++    return p
+++
+++
+++def pick_export_dir(title="选择角色包导出到哪个文件夹", default=""):
+++    """系统「选择文件夹」窗口。返回 {ok, dir} 或 {ok:False, cancelled:True}"""
+++    if os.name != "nt":
+++        return {"ok": False, "error": "只有 Windows 支持文件夹选择窗口"}
+++    tmp = _tmp_out()
+++    ps = (
+++        "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" + _OWNER +
+++        "$d=New-Object System.Windows.Forms.FolderBrowserDialog;"
+++        "$d.Description='%s';"
+++        "$d.SelectedPath='%s';"
+++        "$d.ShowNewFolderButton=$true;"
+++        "$ok=($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK);"
+++        "$f.Close();"
+++        "if($ok){[System.IO.File]::WriteAllText('%s', $d.SelectedPath, "
+++        "(New-Object System.Text.UTF8Encoding $false))}"
+++    ) % (_q(title), _q(default or characters.user_dir()), _q(tmp))
+++    picked = _run_ps(ps, tmp)
+++    try:
+++        os.remove(tmp)
+++    except OSError:
+++        pass
+++    if not picked:
+++        return {"ok": False, "cancelled": True}
+++    picked = os.path.normpath(picked)
+++    if not os.path.isdir(picked):
+++        return {"ok": False, "error": "选的不是文件夹：%s" % picked}
+++    return {"ok": True, "dir": picked}
+++
+++
+++def pick_pack_file(title="选择角色包（.zip）", default=""):
+++    """系统「选择文件」窗口，只列 zip。返回 {ok, path} 或 cancelled"""
+++    if os.name != "nt":
+++        return {"ok": False, "error": "只有 Windows 支持文件选择窗口"}
+++    tmp = _tmp_out()
+++    ps = (
+++        "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" + _OWNER +
+++        "$d=New-Object System.Windows.Forms.OpenFileDialog;"
+++        "$d.Title='%s';"
+++        "$d.Filter='角色包 (*.zip)|*.zip|所有文件 (*.*)|*.*';"
+++        "$d.CheckFileExists=$true;$d.Multiselect=$false;"
+++        "%s"
+++        "$ok=($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK);"
+++        "$f.Close();"
+++        "if($ok){[System.IO.File]::WriteAllText('%s', $d.FileName, "
+++        "(New-Object System.Text.UTF8Encoding $false))}"
+++    ) % (_q(title),
+++         ("$d.InitialDirectory='%s';" % _q(default)) if default and os.path.isdir(default) else "",
+++         _q(tmp))
+++    picked = _run_ps(ps, tmp)
+++    try:
+++        os.remove(tmp)
+++    except OSError:
+++        pass
+++    if not picked:
+++        return {"ok": False, "cancelled": True}
+++    picked = os.path.normpath(picked)
+++    if not os.path.isfile(picked):
+++        return {"ok": False, "error": "选的文件不存在：%s" % picked}
+++    return {"ok": True, "path": picked}
+++
+++
+++# ------------------------------------------------------------------ 导出
+++def _members(cid):
+++    """要打包的文件 [(绝对路径, 包内相对路径)]"""
+++    root = os.path.join(characters.root(), cid)
+++    out = []
+++    for fn in PACK_FILES:
+++        p = os.path.join(root, fn)
+++        if os.path.isfile(p):
+++            out.append((p, fn))
+++    for d in PACK_DIRS:
+++        base = os.path.join(root, d)
+++        if not os.path.isdir(base):
+++            continue
+++        for dirpath, _dirs, files in os.walk(base):
+++            for fn in sorted(files):
+++                p = os.path.join(dirpath, fn)
+++                if not os.path.isfile(p):
+++                    continue
+++                rel = os.path.relpath(p, root).replace("\\", "/")
+++                out.append((p, rel))
+++    return out
+++
+++
+++def _unique_zip(out_dir, base):
+++    name = characters._sanitize(base) or "角色"
+++    p = os.path.join(out_dir, name + ".zip")
+++    i = 2
+++    while os.path.exists(p):
+++        p = os.path.join(out_dir, "%s_%d.zip" % (name, i))
+++        i += 1
+++    return p
+++
+++
+++def export_pack(cid, out_dir):
+++    """把 characters/<cid>/ 打包成 <out_dir>/<角色名>.zip"""
+++    cid = characters._sanitize(cid or "")
+++    if not cid:
+++        return {"ok": False, "error": "角色名不对"}
+++    src = os.path.join(characters.root(), cid)
+++    if not os.path.isdir(src):
+++        return {"ok": False, "error": "没有这个角色文件夹：%s" % cid}
+++    if not out_dir or not os.path.isdir(out_dir):
+++        return {"ok": False, "error": "导出目录不存在：%s" % out_dir}
+++
+++    members = _members(cid)
+++    if not members:
+++        return {"ok": False, "error": "这个角色文件夹是空的（没有提示词 / 立绘 / 语音可导出）"}
+++
+++    parts = {}
+++    total = 0
+++    for p, rel in members:
+++        top = _top_dir(rel) or rel
+++        parts[top] = parts.get(top, 0) + 1
+++        try:
+++            total += os.path.getsize(p)
+++        except OSError:
+++            pass
+++
+++    target = _unique_zip(out_dir, characters.display_name(cid) or cid)
+++    manifest = {
+++        "format": FORMAT,
+++        "version": FORMAT_VERSION,
+++        "id": cid,
+++        "name": characters.display_name(cid),
+++        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+++        "app": "WA2-Kazusa-Bot",
+++        "parts": parts,
+++        "files": len(members),
+++        "bytes": total,
+++    }
+++    tmp = target + ".tmp"
+++    try:
+++        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
+++            z.writestr(MANIFEST, json.dumps(manifest, ensure_ascii=False, indent=1))
+++            for p, rel in members:
+++                ext = os.path.splitext(rel)[1].lower()
+++                kind = zipfile.ZIP_STORED if ext in _STORE_EXT else zipfile.ZIP_DEFLATED
+++                z.write(p, rel, compress_type=kind)
+++        os.replace(tmp, target)          # 原子替换：写一半断电不会留半个包
+++    except Exception as e:
+++        try:
+++            os.remove(tmp)
+++        except OSError:
+++            pass
+++        _log("角色包：导出失败 %s" % e)
+++        return {"ok": False, "error": "打包失败：%s" % e}
+++
+++    _save_last_dir(out_dir)
+++    _log("角色包：导出 %s → %s（%d 个文件）" % (cid, target, len(members)))
+++    return {"ok": True, "path": target, "file": os.path.basename(target),
+++            "dir": out_dir, "files": len(members), "bytes": total, "parts": parts}
+++
+++
+++def export_with_dialog(cid):
+++    """导出按钮：先选目录再打包（目录窗口取消就什么都不做）"""
+++    cid = characters._sanitize(cid or "")
+++    if not cid:
+++        return {"ok": False, "error": "角色名不对"}
+++    if not os.path.isdir(os.path.join(characters.root(), cid)):
+++        return {"ok": False, "error": "没有这个角色文件夹：%s" % cid}
+++    d = pick_export_dir(default=_last_dir() or os.path.dirname(characters.root()))
+++    if not d.get("ok"):
+++        return d
+++    return export_pack(cid, d["dir"])
+++
+++
+++# ------------------------------------------------------------------ 导入
+++def _read_manifest(z, prefix):
+++    """读 manifest.json（可能在根，也可能在包装目录里）；坏了就当没有"""
+++    for name in ((prefix + "/" + MANIFEST) if prefix else "", MANIFEST):
+++        if not name:
+++            continue
+++        try:
+++            with z.open(name) as f:
+++                d = json.loads(f.read().decode("utf-8"))
+++            if isinstance(d, dict):
+++                return d
+++        except Exception:
+++            continue
+++    return {}
+++
+++
+++def _plan_entries(infos, prefix):
+++    """把条目分成「要的」和「跳过的」，顺便做安全与体积校验"""
+++    plan, skipped = [], []
+++    for i in infos:
+++        if i.is_dir():
+++            continue
+++        rel = _safe_rel(i.filename)
+++        if not rel:
+++            skipped.append(i.filename)
+++            continue
+++        if prefix:
+++            if not rel.startswith(prefix + "/"):
+++                # 包装层外的散文件（manifest.json 之类）单独处理
+++                if rel != MANIFEST:
+++                    skipped.append(rel)
+++                continue
+++            rel = rel[len(prefix) + 1:]
+++        if rel == MANIFEST:
+++            continue
+++        if rel in PACK_FILES or _top_dir(rel) in PACK_DIRS:
+++            plan.append((i, rel))
+++        else:
+++            skipped.append(rel)
+++    return plan, skipped
+++
+++
+++def _check_limits(infos):
+++    if len(infos) > MAX_ENTRIES:
+++        return "压缩包条目太多（%d 个，上限 %d）" % (len(infos), MAX_ENTRIES)
+++    total = 0
+++    for i in infos:
+++        if i.file_size > MAX_ENTRY:
+++            return "包里有超大文件：%s（%d MB）" % (i.filename, i.file_size // (1024 * 1024))
+++        total += i.file_size
+++        if total > MAX_TOTAL:
+++            return "解压后太大（超过 2GB）"
+++    return ""
+++
+++
+++def import_pack(zip_path):
+++    """把一个角色包解成 characters/ 下的新角色（不自动切换）"""
+++    if not zip_path or not os.path.isfile(zip_path):
+++        return {"ok": False, "error": "找不到文件：%s" % zip_path}
+++    if not zipfile.is_zipfile(zip_path):
+++        return {"ok": False, "error": "这不是有效的 zip 文件"}
+++
+++    tmp_root = ""
+++    try:
+++        with zipfile.ZipFile(zip_path) as z:
+++            infos = z.infolist()
+++            bad = _check_limits(infos)
+++            if bad:
+++                return {"ok": False, "error": bad}
+++
+++            names = [_safe_rel(i.filename) for i in infos if not i.is_dir()]
+++            names = [n for n in names if n]
+++            prefix = _wrapper_dir(names)
+++            manifest = _read_manifest(z, prefix)
+++            plan, skipped = _plan_entries(infos, prefix)
+++            if not plan:
+++                return {"ok": False,
+++                        "error": "包里没有角色内容（要 prompt/ worldbook/ memory/ portrait/ voice/）"}
+++
+++            # 先解到 characters/ 下的临时目录：同一个盘，最后一步是原子改名
+++            tmp_root = os.path.join(characters.root(),
+++                                    ".importing_%d" % int(time.time() * 1000))
+++            os.makedirs(tmp_root, exist_ok=True)
+++            total = 0
+++            for i, rel in plan:
+++                dst = os.path.join(tmp_root, *rel.split("/"))
+++                os.makedirs(os.path.dirname(dst), exist_ok=True)
+++                with z.open(i) as srcf, open(dst, "wb") as outf:
+++                    shutil.copyfileobj(srcf, outf, 1024 * 1024)
+++                total += i.file_size
+++
+++        # 角色 id：manifest 里的 > 包里的 name.txt > 压缩包文件名；重名自动加序号
+++        nm_text = ""
+++        try:
+++            with open(os.path.join(tmp_root, "name.txt"), encoding="utf-8") as f:
+++                nm_text = f.read().strip()
+++        except Exception:
+++            pass
+++        raw = (manifest.get("id") or manifest.get("name") or nm_text
+++               or os.path.splitext(os.path.basename(zip_path))[0])
+++        base = characters._sanitize(raw) or "导入角色"
+++        cid = characters._unique(base)
+++        final = os.path.join(characters.root(), cid)
+++        os.replace(tmp_root, final)          # 目录改名，失败会抛异常
+++        tmp_root = ""
+++
+++        characters._make_dirs(final)
+++        if not os.path.isfile(os.path.join(final, "name.txt")):
+++            nm = (manifest.get("name") or base or cid).strip()[:12] or cid
+++            characters._write(os.path.join(final, "name.txt"), nm)
+++        # 提示词是空的（裸包/手工包）→ 用自带模板铺一份，免得导入后是个空角色
+++        if not characters._has_prompt(os.path.join(final, "prompt")):
+++            characters.seed_character(cid)
+++
+++        name = characters.display_name(cid)
+++        _log("角色包：导入 %s → %s（%d 个文件）" % (zip_path, cid, len(plan)))
+++        return {"ok": True, "id": cid, "name": name, "files": len(plan),
+++                "bytes": total, "skipped": skipped[:20],
+++                "skipped_count": len(skipped),
+++                "manifest": {k: manifest.get(k) for k in ("format", "version", "name", "created_at")}}
+++    except zipfile.BadZipFile:
+++        return {"ok": False, "error": "压缩包损坏，读不出来"}
+++    except Exception as e:
+++        _log("角色包：导入失败 %s" % e)
+++        return {"ok": False, "error": "导入失败：%s" % e}
+++    finally:
+++        if tmp_root and os.path.isdir(tmp_root):
+++            shutil.rmtree(tmp_root, ignore_errors=True)
+++
+++
+++def import_with_dialog():
+++    """导入按钮：弹选文件窗口 → 导入（取消就什么都不做）"""
+++    f = pick_pack_file(default=_last_dir() or os.path.dirname(characters.root()))
+++    if not f.get("ok"):
+++        return f
+++    return import_pack(f["path"])
++diff --git a/program/src/main.py b/program/src/main.py
++index 962e8e5..809754c 100644
++--- a/program/src/main.py
+++++ b/program/src/main.py
++@@ -358,6 +358,7 @@ from api_modelcfg import ModelCfgApi
++ from api_tts import TtsApi
++ from api_text import TextApi
++ from api_chat import ChatApi
+++from api_charpack import CharPackApi
++ from api_update import UpdateApi
++ from text_parse import (
++     ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
++@@ -729,7 +730,8 @@ def _repack_async(msgs, a, b):
++ # ---------------- HTTP 服务 ----------------
++ 
++ 
++-class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
+++class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, ModelCfgApi,
+++              TtsApi, TextApi, SimpleHTTPRequestHandler):
++     def __init__(self, *a, **kw):
++         super().__init__(*a, directory=UI_DIR, **kw)
++ 
++@@ -1047,6 +1049,12 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextA
++                 body = {}
++             res = characters.create((body or {}).get("name") or "")
++             return self._json(self._after_switch(res))
+++        if self.path == "/api/charpack/export":
+++            # 角色包导出：先弹「选目录」，再打包（都在这一个请求里做完）
+++            return self._charpack_export()
+++        if self.path == "/api/charpack/import":
+++            # 角色包导入：弹「选文件」，解成 characters/ 下的新角色（不自动切换）
+++            return self._charpack_import()
++         if self.path.startswith("/api/special/upload"):
++             # 特别模式的角色资源：原始字节流，文件名走 query（前端 encodeURIComponent）
++             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
++diff --git a/program/src/ui/index.html b/program/src/ui/index.html
++index 0fad560..8c1cf2e 100644
++--- a/program/src/ui/index.html
+++++ b/program/src/ui/index.html
++@@ -4,14 +4,14 @@
++ <meta charset="UTF-8">
++ <meta name="viewport" content="width=device-width, initial-scale=1.0">
++ <title>WHITE ALBUM 2</title>
++-<link rel="stylesheet" href="screens-base.css?v=202611040400">
++-<link rel="stylesheet" href="opt-screen.css?v=202611040400">
++-<link rel="stylesheet" href="save-screen.css?v=202611040400">
++-<link rel="stylesheet" href="game450.css?v=202611040400">
++-<link rel="stylesheet" href="unifont.css?v=202611040400">
++-<link rel="stylesheet" href="opt.css?v=202611040400">
++-  <link rel="stylesheet" href="menubar.css?v=202611040400">
++-<link rel="stylesheet" href="special.css?v=202611040400">
+++<link rel="stylesheet" href="screens-base.css?v=202611041750">
+++<link rel="stylesheet" href="opt-screen.css?v=202611041750">
+++<link rel="stylesheet" href="save-screen.css?v=202611041750">
+++<link rel="stylesheet" href="game450.css?v=202611041750">
+++<link rel="stylesheet" href="unifont.css?v=202611041750">
+++<link rel="stylesheet" href="opt.css?v=202611041750">
+++  <link rel="stylesheet" href="menubar.css?v=202611041750">
+++<link rel="stylesheet" href="special.css?v=202611041750">
++ </head>
++ <body>
++ <div id="stage">
++@@ -126,6 +126,8 @@
++         <div class="spRoleBtns">
++           <button class="spRoleBtn" id="spSwitch" type="button" title="从总角色资源文件夹里选一个角色"><img src="assets/ui/text/sp_btn_switch.png" alt=""></button>
++           <button class="spRoleBtn" id="spNew" type="button" title="在总角色资源文件夹里新建一个角色"><img src="assets/ui/text/sp_btn_new.png" alt=""></button>
+++          <button class="spRoleBtn" id="spExport" type="button" title="把角色打包成 zip（提示词 / 世界书 / 记忆书 / 立绘 / 语音）">导出</button>
+++          <button class="spRoleBtn" id="spImport" type="button" title="从 zip 角色包导入一个新角色">导入</button>
++         </div>
++       </div>
++ 
++@@ -178,7 +180,8 @@
++     <!-- 角色切换：直接列出现有角色，一键切换（标题在框外，列表可滚动） -->
++     <div id="spCharPick" class="spCharPick" data-no-uitext="1" role="dialog" aria-hidden="true">
++       <div class="spcpWrap">
++-        <img class="spcpTitle" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
+++        <img class="spcpTitle" id="spcpTitleImg" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
+++        <span class="spcpTitle spcpTitleText" id="spcpTitleText" style="display:none"></span>
++         <div class="spcpBox">
++           <div id="spcpList" class="spcpList"></div>
++         </div>
++@@ -272,38 +275,39 @@
++ </div>
++ 
++ <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
++-<script src="wt-core.js?v=202611040400"></script>
++-<script src="wt-update.js?v=202611040400"></script>
++-<script src="wt-audio.js?v=202611040400"></script>
++-<script src="wt-sprite.js?v=202611040400"></script>
++-<script src="wt-voice.js?v=202611040400"></script>
++-<script src="wt-text.js?v=202611040400"></script>
++-<script src="wt-backlog.js?v=202611040400"></script>
++-<script src="wt-choices.js?v=202611040400"></script>
++-<script src="wt-chat.js?v=202611040400"></script>
++-<script src="wt-session.js?v=202611040400"></script>
++-<script src="wt-cost.js?v=202611040400"></script>
++-<script src="wt-mood.js?v=202611040400"></script>
++-<script src="wt-gdi.js?v=202611040400"></script>
++-<script src="wt-nav.js?v=202611040400"></script>
++-<script src="config.js?v=202611040400"></script>
++-<script src="opt-widgets.js?v=202611040400"></script>
++-<script src="opt-model.js?v=202611040400"></script>
++-<script src="opt.js?v=202611040400"></script>
++-  <script src="savetabs4.js?v=202611040400"></script>
++-  <script src="savepages.js?v=202611040400"></script>
++-  <script src="screens.js?v=202611040400"></script>
++-  <script src="sp-sliders.js?v=202611040400"></script>
++-<script src="sp-char.js?v=202611040400"></script>
++-<script src="sp-panels.js?v=202611040400"></script>
++-<script src="special.js?v=202611040400"></script>
++-<script src="game.js?v=202611040400"></script>
++-<script src="sound.js?v=202611040400"></script>
++-<script src="zoom.js?v=202611040400"></script>
++-<script src="debug.js?v=202611040400"></script>
++-<script src="scale.js?v=202611040400"></script>
++-<script src="menubar.js?v=202611040400"></script>
++-<script src="uitext.js?v=202611040400"></script>
+++<script src="wt-core.js?v=202611041750"></script>
+++<script src="wt-update.js?v=202611041750"></script>
+++<script src="wt-audio.js?v=202611041750"></script>
+++<script src="wt-sprite.js?v=202611041750"></script>
+++<script src="wt-voice.js?v=202611041750"></script>
+++<script src="wt-text.js?v=202611041750"></script>
+++<script src="wt-backlog.js?v=202611041750"></script>
+++<script src="wt-choices.js?v=202611041750"></script>
+++<script src="wt-chat.js?v=202611041750"></script>
+++<script src="wt-session.js?v=202611041750"></script>
+++<script src="wt-cost.js?v=202611041750"></script>
+++<script src="wt-mood.js?v=202611041750"></script>
+++<script src="wt-gdi.js?v=202611041750"></script>
+++<script src="wt-nav.js?v=202611041750"></script>
+++<script src="config.js?v=202611041750"></script>
+++<script src="opt-widgets.js?v=202611041750"></script>
+++<script src="opt-model.js?v=202611041750"></script>
+++<script src="opt.js?v=202611041750"></script>
+++  <script src="savetabs4.js?v=202611041750"></script>
+++  <script src="savepages.js?v=202611041750"></script>
+++  <script src="screens.js?v=202611041750"></script>
+++  <script src="sp-sliders.js?v=202611041750"></script>
+++<script src="sp-char.js?v=202611041750"></script>
+++<script src="sp-panels.js?v=202611041750"></script>
+++<script src="sp-pack.js?v=202611041750"></script>
+++<script src="special.js?v=202611041750"></script>
+++<script src="game.js?v=202611041750"></script>
+++<script src="sound.js?v=202611041750"></script>
+++<script src="zoom.js?v=202611041750"></script>
+++<script src="debug.js?v=202611041750"></script>
+++<script src="scale.js?v=202611041750"></script>
+++<script src="menubar.js?v=202611041750"></script>
+++<script src="uitext.js?v=202611041750"></script>
++ <script>
++ /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
++ window.addEventListener("load", function () {
++diff --git a/program/src/ui/sp-char.js b/program/src/ui/sp-char.js
++index 47a720b..7d059ea 100644
++--- a/program/src/ui/sp-char.js
+++++ b/program/src/ui/sp-char.js
++@@ -25,10 +25,29 @@
++ 
++     var charBusy = false;
++ 
++-    function openCharPicker() {
+++    /* 面板标题：切换模式用烤好的「切换角色」图；导出模式换成动态文字 */
+++    function setPickerTitle(mode) {
+++      var img = $("spcpTitleImg");
+++      var txt = $("spcpTitleText");
+++      var isExport = (mode === "export");
+++      if (img) img.style.display = isExport ? "none" : "";
+++      if (txt) {
+++        txt.style.display = isExport ? "" : "none";
+++        if (isExport) {
+++          var s = "选择要导出的角色";
+++          try { setGlyph(txt, s); } catch (e) { txt.textContent = s; }
+++        }
+++      }
+++    }
+++
+++    /* opts.mode = "switch"（默认，点了就切过去）| "export"（点了交给 onPick） */
+++    function openCharPicker(opts) {
+++      var mode = (opts && opts.mode) || "switch";
+++      var onPick = (opts && opts.onPick) || null;
++       var panel = $("spCharPick");
++       var list = $("spcpList");
++       if (!panel || !list) return;
+++      setPickerTitle(mode);
++       list.innerHTML = "";
++       var loading = document.createElement("div");
++       loading.className = "spcpMsg";
++@@ -58,6 +77,11 @@
++             name.textContent = display;
++             b.appendChild(name);
++             b.addEventListener("click", function () {
+++              if (mode === "export") {          // 导出：选中即打包，不切换
+++                closeCharPicker();
+++                if (onPick) onPick(c);
+++                return;
+++              }
++               if (c.active) { closeCharPicker(); return; }
++               doSwitchCharacter(c.id);
++             });
++@@ -169,7 +193,7 @@
++ 
++     /* 平时：字模显示，输入框藏起来 */
++   var _exp = {};
++-  var _names = ["afterCharacter", "bindCharacters", "bindSave", "closeCharPicker", "doSwitchCharacter", "newCharacter", "openCharPicker", "postCharacter", "switchCharacter"];
+++  var _names = ["afterCharacter", "bindCharacters", "bindSave", "closeCharPicker", "doSwitchCharacter", "newCharacter", "openCharPicker", "postCharacter", "setPickerTitle", "switchCharacter"];
++   for (var _i = 0; _i < _names.length; _i++) {
++     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
++   }
++diff --git a/program/src/ui/sp-pack.js b/program/src/ui/sp-pack.js
++new file mode 100644
++index 0000000..c15750b
++--- /dev/null
+++++ b/program/src/ui/sp-pack.js
++@@ -0,0 +1,95 @@
+++/* sp-pack.js —— 角色包导出 / 导入（特别模式 → 配置角色 → 导出 / 导入）
+++ *
+++ * 导出：先选角色（复用角色切换面板，export 模式，点了不切换），再选目录 → 后端打包 zip
+++ * 导入：后端弹系统选文件窗口（.zip）→ 校验 → 解成 characters/ 下的新角色（不自动切换）
+++ *
+++ * 两个按钮的底板就是对话界面发送按钮的三态图（.spRoleBtn → btn_3state.png），
+++ * 标签是动态文字，由 uitext.js 转成字模，和界面其它文字同一套。
+++ *
+++ * 打包 / 解包都在后端做，前端只等结果；窗口开着的时候 fetch 会一直挂着，
+++ * 取消时后端返回 {ok:false, cancelled:true}，这里按「已取消」提示。
+++ */
+++(function () {
+++  var WA2 = window.WA2 = window.WA2 || {};
+++  var $ = function (id) { return document.getElementById(id); };
+++
+++  var busy = false;
+++
+++  function flash(msg) {
+++    if (typeof window.flash === "function") window.flash(msg);
+++  }
+++
+++  function post(url, body) {
+++    return fetch(url, {
+++      method: "POST",
+++      headers: { "Content-Type": "application/json" },
+++      body: JSON.stringify(body || {})
+++    }).then(function (r) { return r.json(); });
+++  }
+++
+++  function setBusy(on) {
+++    busy = on;
+++    ["spExport", "spImport"].forEach(function (id) {
+++      var b = $(id);
+++      if (!b) return;
+++      b.disabled = !!on;
+++      b.style.opacity = on ? "0.55" : "";
+++    });
+++  }
+++
+++  /* ---------- 导出：选角色 → 选目录 → 打包 ---------- */
+++  function pickCharacterForExport() {
+++    if (busy) return;
+++    var spChar = WA2.spChar || {};
+++    if (typeof spChar.openCharPicker !== "function") { flash("角色面板没加载"); return; }
+++    spChar.openCharPicker({ mode: "export", onPick: doExport });
+++  }
+++
+++  function doExport(c) {
+++    if (busy || !c || !c.id) return;
+++    setBusy(true);
+++    flash("正在打包 " + (c.name || c.id) + " …");
+++    post("/api/charpack/export", { id: c.id })
+++      .then(function (d) {
+++        setBusy(false);
+++        if (d && d.ok) flash("已导出 " + (d.file || ""));
+++        else if (d && d.cancelled) flash("已取消导出");
+++        else flash((d && d.error) || "导出失败");
+++      })
+++      .catch(function () { setBusy(false); flash("导出失败"); });
+++  }
+++
+++  /* ---------- 导入：选 zip → 解成新角色 ---------- */
+++  function doImport() {
+++    if (busy) return;
+++    setBusy(true);
+++    flash("正在导入 …");
+++    post("/api/charpack/import", {})
+++      .then(function (d) {
+++        setBusy(false);
+++        if (d && d.ok) flash("已导入 " + (d.name || d.id || ""));
+++        else if (d && d.cancelled) flash("已取消导入");
+++        else flash((d && d.error) || "导入失败");
+++      })
+++      .catch(function () { setBusy(false); flash("导入失败"); });
+++  }
+++
+++  function bind() {
+++    var ex = $("spExport");
+++    var im = $("spImport");
+++    if (ex) ex.addEventListener("click", function (e) {
+++      e.stopPropagation();
+++      pickCharacterForExport();
+++    });
+++    if (im) im.addEventListener("click", function (e) {
+++      e.stopPropagation();
+++      doImport();
+++    });
+++  }
+++
+++  bind();                                  // 脚本在 body 末尾，元素已经在了
+++
+++  var _exp = { bind: bind, doExport: doExport, doImport: doImport, pickCharacterForExport: pickCharacterForExport };
+++  WA2.spPack = _exp;
+++  WA2.register("spPack", _exp);
+++})();
++diff --git a/program/src/ui/special.css b/program/src/ui/special.css
++index 27c20c6..7e8fd89 100644
++--- a/program/src/ui/special.css
+++++ b/program/src/ui/special.css
++@@ -340,7 +340,7 @@
++ }
++ #specialScreen .spRoleBtn {
++   position: relative;
++-  width: 62px;
+++  width: 46px;
++   height: 15px;
++   padding: 0;
++   border: 0;
++@@ -350,6 +350,12 @@
++   align-items: center;
++   justify-content: center;
++   isolation: isolate;
+++  /* 导出 / 导入是动态文字（走 /api/text 字模），字号直接就是字模高度：
+++     8.5px 和「切换角色 / 新建角色」那两张烤好的标签一样高 */
+++  font-size: 8.5px;
+++  letter-spacing: 1px;
+++  color: #f4fcff;
+++  text-shadow: 0 1px 2px rgba(0, 18, 36, .95);
++ }
++ #specialScreen .spRoleBtn::before {
++   content: "";
++@@ -434,6 +440,14 @@
++   margin: 0 auto 6px;
++   filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
++ }
+++/* 导出模式下标题换成动态文字（「选择要导出的角色」），由 sp-char.js 用字模渲染。
+++   字号 14px = 字模高度，和烤好的「切换角色」标题（14px）一样高 */
+++#specialScreen .spcpTitleText {
+++  font-size: 14px;
+++}
+++#specialScreen .spcpTitleText img {
+++  height: 14px; width: auto; display: block; margin: 0 auto;
+++}
++ #specialScreen .spcpList {
++   display: flex; flex-direction: column; gap: 4px; align-items: center;
++   justify-content: safe center;   /* 少角色时居中，多角色时从顶部开始滚 */
++diff --git a/program/tools/arch_map.py b/program/tools/arch_map.py
++index 7dc8b61..d963431 100644
++--- a/program/tools/arch_map.py
+++++ b/program/tools/arch_map.py
++@@ -35,6 +35,7 @@ LEVELS = {
++     "sessions.py": ("二级 · 存档", "存读档读写"),
++     "characters.py": ("二级 · 角色", "角色文件夹/切换/立绘索引"),
++     "char_res.py": ("二级 · 角色", "角色资源定位与状态"),
+++    "char_pack.py": ("二级 · 角色", "角色包导出/导入（zip）"),
++     "special_files.py": ("二级 · 角色", "特别模式导入/打开/立绘落盘"),
++     "special_cfg.py": ("二级 · 角色", "角色名读写"),
++     "tts_client.py": ("二级 · 角色", "语音合成与参考音频"),
++@@ -46,6 +47,7 @@ LEVELS = {
++     "api_tts.py": ("二级 · 接口/语音", "/api/tts 语音合成"),
++     "api_text.py": ("二级 · 接口/字模", "/api/text 字模渲染"),
++     "api_chat.py": ("二级 · 接口/对话", "/api/chat 对话入口"),
+++    "api_charpack.py": ("二级 · 接口/角色", "角色包导出/导入 /api/charpack/*"),
++     "api_update.py": ("二级 · 接口/更新", "版本检查 /api/update、打开链接 /api/open_url"),
++     "version.py": ("二级 · 核心", "版本号与 GitHub 仓库地址"),
++     "wt-update.js": ("二级 · 前端/更新", "启动查新版本 + 标题栏通知（WA2.update）"),
++@@ -70,6 +72,7 @@ UI_LEVELS = {
++     "opt-model.js": ("二级 · 前端/设置模型", "模型/连接配置（WA2.optModel）"),
++     "sp-sliders.js": ("二级 · 前端/特别参数", "滑条与配置读写（WA2.spSliders）"),
++     "sp-char.js": ("二级 · 前端/特别角色", "角色切换/新建（WA2.spChar）"),
+++    "sp-pack.js": ("二级 · 前端/特别角色", "角色包导出/导入按钮（WA2.spPack）"),
++     "sp-panels.js": ("二级 · 前端/特别面板", "角色面板/立绘/语音（WA2.spPanels）"),
++     "game.js": ("一级 · 前端/对话", "对话演出：请求/解析/打字机/立绘/回想/音量"),
++     "menubar.js": ("一级 · 前端/菜单", "顶部菜单：场景/服装/时期/窗口"),
++diff --git a/program/tools/test_char_pack.py b/program/tools/test_char_pack.py
++new file mode 100644
++index 0000000..0da58ad
++--- /dev/null
+++++ b/program/tools/test_char_pack.py
++@@ -0,0 +1,198 @@
+++# -*- coding: utf-8 -*-
+++"""角色包导出 / 导入的自测（不联网、不弹窗）。
+++
+++跑法：
+++    cd program
+++    build_env/venv/Scripts/python.exe tools/test_char_pack.py
+++
+++验的是这条链路：
+++  1. 导出只带 5 类资源 + name.txt + manifest.json；sessions/、story.json、tts.json 不带
+++  2. 导出 → 导入 内容一致（提示词 / 世界书 / 记忆书 / 立绘 / 语音）
+++  3. 重名自动加序号；导入不切换当前角色
+++  4. 包装层（和纱/prompt/...）能剥掉
+++  5. 路径穿越、绝对路径、盘符条目被丢掉，不会写到 characters/ 外面
+++  6. 不是 zip / 空包 / 超大条目 有明确报错，且不在 characters/ 里留半个角色
+++"""
+++import json
+++import os
+++import sys
+++import tempfile
+++import zipfile
+++
+++sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+++
+++HERE = os.path.dirname(os.path.abspath(__file__))
+++PROGRAM = os.path.dirname(HERE)
+++sys.path.insert(0, os.path.join(PROGRAM, "src"))
+++
+++FAILS = []
+++
+++
+++def check(name, cond, extra=""):
+++    print(("  ok   " if cond else "  FAIL ") + name +
+++          (("  " + str(extra)[:300]) if extra and not cond else ""))
+++    if not cond:
+++        FAILS.append(name)
+++
+++
+++def write(path, text, binary=False):
+++    os.makedirs(os.path.dirname(path), exist_ok=True)
+++    mode = "wb" if binary else "w"
+++    with open(path, mode, **({} if binary else {"encoding": "utf-8"})) as f:
+++        f.write(text)
+++    return path
+++
+++
+++def make_character(root, cid, name="和纱"):
+++    """造一个「全都有」的角色：5 类资源 + 存档 + story.json + tts.json"""
+++    d = os.path.join(root, cid)
+++    write(os.path.join(d, "name.txt"), name)
+++    write(os.path.join(d, "prompt", "base.txt"), "人设 base")
+++    write(os.path.join(d, "prompt", "stage1.txt"), "阶段一")
+++    write(os.path.join(d, "worldbook", "worldbook.json"),
+++          json.dumps({"entries": [{"keys": ["冬天"], "text": "很冷"}]}, ensure_ascii=False))
+++    write(os.path.join(d, "memory", "standing.txt"), "常驻记忆")
+++    write(os.path.join(d, "portrait", "index.json"),
+++          json.dumps({"outfits": {"礼服": {"code": "001"}}}, ensure_ascii=False))
+++    write(os.path.join(d, "portrait", "礼服", "微笑.png"), b"\x89PNG\r\n\x1a\nfake", binary=True)
+++    write(os.path.join(d, "voice", "soft", "a.wav"), b"RIFFfakewav", binary=True)
+++    # 这些不该进包
+++    write(os.path.join(d, "sessions", "auto.json"), "{}")
+++    write(os.path.join(d, "story.json"), '{"enabled": false}')
+++    write(os.path.join(d, "tts.json"), '{"gpt": "D:/secret/model.ckpt"}')
+++    write(os.path.join(d, "opening.json"), '{"zh": "开场"}')
+++    return d
+++
+++
+++def names(zpath):
+++    with zipfile.ZipFile(zpath) as z:
+++        return sorted(i.filename for i in z.infolist() if not i.is_dir())
+++
+++
+++def main():
+++    tmp = tempfile.mkdtemp(prefix="wa2_pack_")
+++    user1 = os.path.join(tmp, "user1")
+++    user2 = os.path.join(tmp, "user2")
+++    out = os.path.join(tmp, "out")
+++    os.makedirs(out)
+++    os.makedirs(user1)
+++    os.makedirs(user2)
+++
+++    # characters.py 用 WA2_USER_DIR 定位角色总目录（和自测/便携版一个规矩）
+++    os.environ["WA2_USER_DIR"] = user1
+++    import characters  # noqa: E402
+++    import char_pack   # noqa: E402
+++
+++    root1 = characters.root()
+++    make_character(root1, "和纱")
+++    write(os.path.join(tmp, "tpl", "base.txt"), "模板人设")
+++    characters.set_seed_sources(os.path.join(tmp, "tpl"), "")
+++
+++    print("== 1. 导出 ==")
+++    res = char_pack.export_pack("和纱", out)
+++    check("导出成功", res.get("ok"), res)
+++    zp = res.get("path") or ""
+++    check("zip 落在导出目录", os.path.isfile(zp), zp)
+++    check("文件名是角色名", os.path.basename(zp) == "和纱.zip", zp)
+++    got = names(zp)
+++    check("带 name.txt", "name.txt" in got, got)
+++    check("带 manifest.json", "manifest.json" in got, got)
+++    check("带提示词", "prompt/base.txt" in got and "prompt/stage1.txt" in got, got)
+++    check("带世界书", "worldbook/worldbook.json" in got, got)
+++    check("带记忆书", "memory/standing.txt" in got, got)
+++    check("带立绘 + index", "portrait/index.json" in got and "portrait/礼服/微笑.png" in got, got)
+++    check("带参考音频", "voice/soft/a.wav" in got, got)
+++    check("不带存档", not any(n.startswith("sessions/") for n in got), got)
+++    check("不带 story.json", "story.json" not in got, got)
+++    check("不带 tts.json", "tts.json" not in got, got)
+++    check("不带 opening.json", "opening.json" not in got, got)
+++    with zipfile.ZipFile(zp) as z:
+++        man = json.loads(z.read("manifest.json").decode("utf-8"))
+++        png = z.getinfo("portrait/礼服/微笑.png")
+++    check("manifest 格式对", man.get("format") == "wa2-char-pack", man)
+++    check("manifest 记了角色名", man.get("name") == "和纱", man)
+++    check("png 用 STORED（不再压一遍）", png.compress_type == zipfile.ZIP_STORED,
+++          png.compress_type)
+++
+++    print("== 2. 导入（换一个用户目录）==")
+++    os.environ["WA2_USER_DIR"] = user2
+++    check("导入前角色总目录是空的", not os.path.isdir(characters.root()) or
+++          not os.listdir(characters.root()))
+++    res2 = char_pack.import_pack(zp)
+++    check("导入成功", res2.get("ok"), res2)
+++    check("id = 和纱", res2.get("id") == "和纱", res2)
+++    check("name.txt 回来了", os.path.isfile(os.path.join(characters.root(), "和纱", "name.txt")))
+++    check("提示词回来了", os.path.isfile(
+++        os.path.join(characters.root(), "和纱", "prompt", "base.txt")))
+++    check("世界书回来了", os.path.isfile(
+++        os.path.join(characters.root(), "和纱", "worldbook", "worldbook.json")))
+++    check("立绘回来了", os.path.isfile(
+++        os.path.join(characters.root(), "和纱", "portrait", "礼服", "微笑.png")))
+++    check("语音回来了", os.path.isfile(
+++        os.path.join(characters.root(), "和纱", "voice", "soft", "a.wav")))
+++    check("没带存档进来", not os.path.isdir(
+++        os.path.join(characters.root(), "和纱", "sessions")))
+++    check("没带 tts.json 进来", not os.path.isfile(
+++        os.path.join(characters.root(), "和纱", "tts.json")))
+++    check("没自动切换（active.json 没写）", not os.path.isfile(
+++        os.path.join(characters.root(), "active.json")))
+++    check("临时目录没留下", not any(n.startswith(".importing_")
+++                                  for n in os.listdir(characters.root())))
+++
+++    print("== 3. 重名自动加序号 ==")
+++    res3 = char_pack.import_pack(zp)
+++    check("第二次导入成功", res3.get("ok"), res3)
+++    check("id 变成 和纱2", res3.get("id") == "和纱2", res3)
+++    check("两个角色都在", len(characters.list_characters()) == 2,
+++          characters.list_characters())
+++
+++    print("== 4. 包装层（整个角色文件夹压进去）==")
+++    wrap = os.path.join(tmp, "wrap.zip")
+++    with zipfile.ZipFile(wrap, "w") as z:
+++        z.writestr("和纱/name.txt", "包了一层")
+++        z.writestr("和纱/prompt/base.txt", "包里的提示词")
+++        z.writestr("和纱/portrait/index.json", "{}")
+++    res4 = char_pack.import_pack(wrap)
+++    check("包装层导入成功", res4.get("ok"), res4)
+++    check("没有 manifest 时用包里的 name.txt 当角色名", res4.get("id") == "包了一层", res4)
+++    d4 = os.path.join(characters.root(), res4.get("id") or "")
+++    check("包装层被剥掉", os.path.isfile(os.path.join(d4, "prompt", "base.txt")), d4)
+++    check("包装层没被当成子目录", not os.path.isdir(os.path.join(d4, "和纱")), d4)
+++
+++    print("== 5. 路径穿越 / 绝对路径被丢掉 ==")
+++    evil = os.path.join(tmp, "evil.zip")
+++    with zipfile.ZipFile(evil, "w") as z:
+++        z.writestr("../../evil.txt", "x")
+++        z.writestr("C:/Windows/evil.txt", "x")
+++        z.writestr("/abs/evil.txt", "x")
+++        z.writestr("prompt/ok.txt", "ok")
+++    res5 = char_pack.import_pack(evil)
+++    check("恶意包也能导入（只收安全的）", res5.get("ok"), res5)
+++    check("报出了被跳过的条目", res5.get("skipped_count", 0) >= 3, res5.get("skipped"))
+++    outside = os.path.join(tmp, "evil.txt")
+++    check("没写到 characters/ 外面", not os.path.isfile(outside), outside)
+++
+++    print("== 6. 坏包 / 空包 ==")
+++    notzip = write(os.path.join(tmp, "notzip.zip"), "hello")
+++    check("不是 zip 会报错", not char_pack.import_pack(notzip).get("ok"))
+++    empty = os.path.join(tmp, "empty.zip")
+++    with zipfile.ZipFile(empty, "w") as z:
+++        z.writestr("readme.txt", "nothing")
+++    r6 = char_pack.import_pack(empty)
+++    check("空包会报错", not r6.get("ok"), r6)
+++    check("空包没留下角色", len(characters.list_characters()) == 4,
+++          characters.list_characters())
+++    check("不存在的文件会报错", not char_pack.import_pack(
+++        os.path.join(tmp, "nope.zip")).get("ok"))
+++    check("导出不存在的角色会报错", not char_pack.export_pack("没有这个", out).get("ok"))
+++
+++    print()
+++    if FAILS:
+++        print("失败 %d 项：%s" % (len(FAILS), ", ".join(FAILS)))
+++        return 1
+++    print("全部通过")
+++    return 0
+++
+++
+++if __name__ == "__main__":
+++    sys.exit(main())
+diff --git a/other/docs/后续更新路线图.md b/other/docs/后续更新路线图.md
+index d4d93ae..b513e9a 100644
+--- a/other/docs/后续更新路线图.md
++++ b/other/docs/后续更新路线图.md
+@@ -1,265 +1,243 @@
+ # 后续更新路线图
+ 
+-> 本文档基于项目现有架构与 `other/docs` 下的设计文档推导。
+-> 状态：**规划建议**，非已实现功能。优先级按“不做会出问题 → 做了明显更好 → 长期可维护/可分发”排序。
+-> 实现思路尽量贴合现有架构：Python 桌面应用、角色即文件夹、硬盘缓存、时间轴演出、分层切片、记忆书双层。
++> **只写还没做的。** 已经做完的、换了做法了结的、明确不做的，都在
++> [`已完成与取舍记录.md`](已完成与取舍记录.md) 里，别再往这份里塞。
++>
++> 编号沿用 2026-11-04 版，所以有缺口：`#4 关系回退`、`#8 记忆书界面`、`#9 切角色过渡`、
++> `#10 角色包`、`#16 密钥脱敏` 已经了结、移出。
++> 每条都写「现在有什么 / 缺什么」，不再假设从零开始——上一版就是因为假设从零写，
++> 和实际代码对不上。
++>
++> 排序原则：不做会出事 → 做了明显更好 → 长期可维护 / 可分发。
+ 
+ ---
+ 
+-## P0：地基补漏（优先做，不做会串味/崩）
++## P0：不做会出事
+ 
+-### 1. 缓存隔离与淘汰策略
++### #5 存档 schema 版本化 + 崩溃恢复
+ 
+-**是什么**
+-语音、文字渲染图、立绘、场景 CG 都可能落硬盘缓存。多角色架构下，缓存 key 不带角色标识时，切到角色 B 可能命中角色 A 的缓存——用户听到/看到另一个角色的内容，比“忘记”更破坏沉浸感。缓存只增不减，长期使用硬盘会失控。
++**现在**：每轮对话结束自动存档（`wt-chat.js:83` `sessionSave()`），读档能恢复上下文与记忆书快照。
+ 
+-**怎么实现**
+-- 缓存路径改为 `cache/<角色id>/<类型>/<hash>`，hash 输入包含文本内容、音色/语速/情绪参数、字体图集版本、素材路径与 mtime。
+-- 分层目录：`cache/<角色id>/tts/`、`text_render/`、`portrait/`、`scene/`。
+-- 淘汰策略：启动或每 N 轮检查体积，超过上限（如每角色 TTS 500MB、文字渲染 200MB）按 LRU 删除；维护轻量 `cache_index.json` 记录路径、大小、最后访问时间。
+-- 删除角色时同步清理 `cache/<角色id>/`。
+-- 边界：共享素材（全局字体图集）不按角色隔离；角色改名时迁移或清空重建。
++**缺**：存档 / `index.json` / 记忆书都没有 `schema_version`；没有迁移链；没有「上次没正常退出」的检测与恢复提示。
+ 
+-### 2. 演出状态机冲突仲裁
++**怎么做**
++- 先给 `sessions/<slot>.json` 加 `schema_version`，再建 `migrations/` 链：读档按版本迁移，迁移前备份，失败回退并提示。
++- 「正常退出」写一个标记文件；启动时发现标记缺失 → 提示「恢复上次会话」。
++- 崩溃时写 `crash_<timestamp>.log` + 会话快照。
+ 
+-**是什么**
+-语音重播、流式输出、浮层、角色切换可能同时发生。没有优先级规则会出现“声音叠在一起”“画面卡住”“重播中发新消息不知道听谁的”。
++**边界**：自动存档不覆盖手动存档；旧版程序读到新存档应拒绝并提示升级。
+ 
+-**怎么实现**
+-- 定义状态：`IDLE`、`DIALOGUE_STREAMING`、`VOICE_PLAYING`、`REPLAYING`、`OVERLAY_OPEN`、`CHARACTER_SWITCHING`。
+-- 定义事件与优先级：新消息、重播请求、浮层开关、角色切换、播放结束。
+-- 典型规则：重播中收到新消息默认打断重播；浮层打开时语音继续但重播禁用或排队；切角色时停止语音、关闭浮层、保存会话。
+-- 所有演出调用先经过 `performance_controller` 统一仲裁，不让各模块自行判断。
+-- 仲裁规则可配置（至少“重播冲突策略”“切角色时语音行为”两项可调）。
+-- 边界：快速连点、重播中再点重播、浮层叠开时右键只关最上层。
++### #6 缓存完整性 + 素材缺失占位
+ 
+-### 3. 常驻记忆书更新策略
++**现在**：`check_assets.py` 能报缺什么（文本 / `--json`），但要手动跑。
+ 
+-**是什么**
+-常驻记忆书是 252 字骨架，每轮注入。若永久静态，长期对话后它和对话记忆书会语义漂移。
++**缺**：读缓存前不校验（断电、磁盘满留下的 0 字节文件会被当成有效缓存）；素材缺失时没有运行时占位。
+ 
+-**怎么实现**
+-- 二选一：A. 静态，只放“角色永远不该忘的固定设定”；B. 低频更新，在关系阶段切换时异步刷新。
+-- 推荐 B 轻量版：固定设定不动，另加约 50 字“当前关系摘要”，随阶段切换更新，两段分开存储。
+-- `memory/standing.json` 存 `{version, fixed, relation_summary, updated_at}`，读档按版本恢复。
+-- 更新失败保留旧版本，不阻塞对话；更新频率设上限（如每 100 轮或每次阶段切换最多一次）。
++**怎么做**
++- 读缓存前校验「存在 + 大小 > 0 + 能解码」，坏了删掉重生成，记 WARN；连续失败降级占位。
++- 占位策略：立绘用默认表情或剪影 + 角色名；场景用纯色 / 模糊底 + 地点名；语音静音但文字继续推进，提示「语音暂不可用」。
++- 启动 / 导入输出 `asset_report.json`（缺失、命名、尺寸、体积）。
+ 
+-### 4. 关系阶段回退/漂移检测
++**边界**：占位结果不写回缓存；补上素材后下次启动自动恢复。
+ 
+-**是什么**
+-维度轴“只升不降”短期合理，长期不互动或故意冷淡时关系不降会失真。需要允许回退并防抖动。
++---
+ 
+-**怎么实现**
+-- 衰减信号：长时间无交互、连续负面情绪累积、用户明确疏远；不用单条消息判断。
+-- 回退规则：满足信号时降一级，加冷却期（如 3 天）和滞回（降级阈值高于升级阈值）。
+-- `relation_history.json` 记录时间、原因、方向，便于调试和关系回顾。
+-- 边界：回退不删除记忆条目，只影响切片与口吻；用户手动修正优先于自动回退。
++## P1：体验与可维护性
+ 
+-### 5. 存档 schema 版本化 + 自动存档/崩溃恢复
++### #2 演出状态机冲突仲裁
+ 
+-**是什么**
+-存档、`index.json`、记忆书、角色文件夹都有隐式格式，旧存档靠零散兼容易埋雷；崩溃时最近几轮丢失体验很差。
++**现在**：重播、流式输出、浮层、切角色各管各的——`wt-backlog.js` 拿到就播，新消息不会打断重播。
+ 
+-**怎么实现**
+-- 所有持久化文件加 `schema_version`。
+-- 迁移链：`migrations/v1_to_v2.py` 等，读档按版本迁移，迁移前备份，失败回退并提示。
+-- 自动存档：每 N 轮或每 M 分钟写 `autosave.tmp`，正常退出转正式存档；启动时检测未正常关闭会话并提示恢复。
+-- 崩溃时写 `crash_<timestamp>.log` + 会话快照，可导出诊断包。
+-- 边界：自动存档不覆盖手动存档；旧版本程序读新存档应拒绝并提示升级。
++**缺**：统一的状态定义与优先级。
+ 
+-### 6. 缓存完整性与素材缺失占位
++**怎么做**
++- 状态：`IDLE`、`DIALOGUE_STREAMING`、`VOICE_PLAYING`、`REPLAYING`、`OVERLAY_OPEN`、`CHARACTER_SWITCHING`。
++- 所有演出调用先经过 `performance_controller` 仲裁，不让各模块自行判断。
++- 典型规则：新消息打断重播；浮层开着时语音继续但重播禁用或排队；切角色先停语音、关浮层、存会话。
+ 
+-**是什么**
+-缓存可能因断电、磁盘满、手动删除损坏；立绘/场景/语音缺失时不应直接报错或空白。
++**边界**：快速连点、重播中再点重播、浮层叠开时右键只关最上层。
+ 
+-**怎么实现**
+-- 读缓存前校验存在、大小 > 0、可解码；轻量哈希（大小 + mtime + 首尾字节）存 `cache_index.json`。
+-- 校验失败删除坏文件、重新生成，记 WARN；连续失败降级占位。
+-- 占位策略：立绘用默认表情或剪影+角色名；场景用纯色/模糊底+标签；语音静音但文字推进，提示“语音暂不可用”。
+-- 启动/导入输出 `asset_report.json`（缺失、命名、尺寸、体积）。
+-- 边界：占位不缓存为正式结果；补素材后下次启动恢复。
++### #7 多模态过渡（剩余部分）
+ 
+----
++**现在**：场景背景有 0.8s opacity 过渡，立绘有入场淡入上移，页面切换有统一淡入淡出。
++
++**缺**：真正的交叉淡入淡出（新旧两张同时在场）；语音响度归一化；音频设备变化处理。
++
++**怎么做**
++- 立绘 / 场景用双缓冲交叉淡化 200–300ms，可配置关闭。
++- TTS 输出记增益参数、不改原文件（目标如 -16 LUFS）。
++- 监听音频设备变化：暂停 → 重建 → 恢复；失败提示重播。
++
++**边界**：过渡可关（性能 / 无障碍）；归一化离线做。
++
++### #13 调试面板补指标（剩余部分）
++
++**现在**：`debug.js` 有时间线面板（音效 / 界面 / 滚轮 / JS 报错），标题栏「调试」或 Ctrl+Shift+D。
++
++**缺**：提示词分段与 token 估算、命中切片、场景匹配、缓存命中、分类器状态、关系阶段、记忆条目数。
++
++**怎么做**：各模块暴露只读状态接口，面板每轮刷新或手动刷新。
++
++**边界**：默认关闭；只读，不影响行为。
++
++### #12 关键参数与验收指标表
++
++**现在**：数字散在 `memory.py` 的 `DEFAULTS`、`persona_stage.py` 的 `EVERY`、`special_cfg.py`、`pricing.py`。
++
++**缺**：一张表 + 常量尽量集中。
++
++**怎么做**：`other/docs/参数与指标.md`，字段：参数名 / 当前值 / 可调范围 / 影响面 / 修改风险 / 验收方式。
++
++**边界**：每个参数至少一条手工或脚本断言。
++
++### #11 测试三类化（剩余部分）
+ 
+-## P1：体验与演出增强
++**现在**：8 个自测（`test_char_res` / `test_char_wiring` / `test_memory` / `test_memory_flow` / `test_persona_stage` / `test_scene_cg` / `test_char_pack` …）。
+ 
+-### 7. 多模态过渡
++**缺**：`tests/cases.md` 清单 + `run_smoke.py` 一键跑；按「核心 / 边界 / 降级」分类。
+ 
+-**是什么**
+-立绘/场景硬切、语音响度不一、拔耳机后声音跑扬声器，都会让演出“不顺”。
++**怎么做**
++- 核心路径：启动 → 对话 → 存档 → 读档 → 切角色 → 退出。
++- 边界：缓存满、素材缺失、长会话（100 / 500 轮）、快速连点重播。
++- 降级：语音未命中、场景匹配失败、关系判定超时。
+ 
+-**怎么实现**
+-- 立绘/场景 200–300ms 交叉淡入淡出，场景可加短暂黑场或色调过渡；可配置关闭。
+-- 语音响度归一化（目标如 -16 LUFS），缓存记录增益参数，不改原文件。
+-- 监听音频设备变化，暂停→重建→恢复；失败提示重播。
+-- 边界：过渡可关（性能/无障碍）；归一化离线处理。
++**边界**：不追求覆盖率，追求「改完敢发布」。
+ 
+-### 8. 记忆书查看/手动修正界面
++### #15 日志诊断包（剩余部分）
+ 
+-**是什么**
+-记忆书现在是后台机制，用户看不到“她记得什么”。加只读/可编辑界面提升可解释性与掌控感。
++**现在**：`applog.py` 有 INFO / ERROR / DUMP 级别、按天文件、慢请求告警、心跳、线程栈快照；`/api/log/dump` 只是写一份栈快照。
+ 
+-**怎么实现**
+-- 浮层按 `preference/event/progress` 分类展示，标注来源（自动摘要/手动/常驻）。
+-- 先做只读+删除，编辑后置；允许标记“重要”不参与压缩。
+-- 编辑写回 `memory/` 并记版本；手动优先于自动摘要。
+-- 边界：界面操作不阻塞主对话。
++**缺**：保留 N 天滚动；脱敏；真正的诊断包导出。
+ 
+-### 9. 角色切换过渡
++**怎么做**：日志按天清理；导出前过滤对话内容、密钥、绝对路径、用户名；诊断包 = 日志 + 脱敏配置 + 素材报告 + 版本信息。
+ 
+-**是什么**
+-切角色现在是换文件夹，有“重启感”。加轻量过渡，像“换台”。
++**边界**：默认不含对话原文；可选包含最近 N 轮并明确提示风险。
+ 
+-**怎么实现**
+-- 流程：保存当前会话 → 关闭浮层/停止语音 → 加载新角色配置/记忆/缓存索引 → 淡入新舞台。
+-- 视觉：淡出 200ms → 加载态（可选）→ 淡入；慢时显示角色名与进度。
+-- 切换前确认缓存隔离生效；切换后重置临时状态。
+-- 边界：切换失败回退原角色并提示；切换中禁止发消息。
++### #14 像素工具化 + 性能采样（剩余部分）
+ 
++**现在**：`ui_snap.py`（像素回归）、`ui_probe.py`（界面探针）、`界面像素测量方法.md`（手工流程）。
+ 
+-### 10. 角色包导出/导入
++**缺**：输入原图 + 预览图 → 输出偏移量 / 宽高比的脚本；`logs/perf_<date>.csv`。
+ 
+-**是什么**
+-角色即文件夹天然适合打包分享。
++**怎么做**：把测量方法里的步骤写成脚本并接进自测；每 N 轮记录内存、缓存体积、本地耗时、音频句柄。
+ 
+-**怎么实现**
+-- 导出 zip：`manifest.json`（版本、角色名、素材清单、许可）+ 角色文件夹，排除缓存。
+-- 导入校验：manifest、目录结构、命名、大小上限；冲突提示覆盖/重命名/跳过；`index.json` 合并去重。
+-- 安全：拒绝路径穿越、可执行文件、超大文件；先校验，签名后置。
+-- 边界：导入不自动启用；导入后跑素材自检。
++**边界**：采样不影响主循环；日志可关。
+ 
+ ---
+ 
+-## P1：工程可维护性与可观测性
++## P2：长期
+ 
+-### 11. 测试扩成三类
++### #1 缓存分层与淘汰（剩余部分）
+ 
+-**是什么**
+-5 个冒烟测试不够覆盖多角色、缓存、降级。扩成核心路径、边界、降级三类。
++**现在**：启动全清（文字渲染 / TTS / 记忆运行时）+ TTS key 带角色 id 与音色签名——不串音、不涨盘，代价是每次启动重合成。
+ 
+-**怎么实现**
+-- 核心路径：启动→对话→存档→读档→切角色→退出。
+-- 边界：缓存满、分类器不可用、素材缺失、长会话（100/500 轮）、快速连点重播。
+-- 降级：语音未命中、场景匹配失败、关系判定超时，断言不崩溃且提示可预期。
+-- 形式：`tests/cases.md` + `tests/run_smoke.py`；不追求覆盖率，追求“改完敢发布”。
++**缺**：跨启动保留、`cache/<角色id>/<类型>/` 分层、体积上限与 LRU。
+ 
+-### 12. 关键参数与验收指标表
++**怎么做**：按角色分层；`cache_index.json` 记路径 / 大小 / 最后访问；超限按 LRU 删；删角色时同步清。
+ 
+-**是什么**
+-文档里散落大量数字（阈值 60%、8000 token、每 40 轮、像素容差 1%、13.4MB/119 张）。收拢成一张表。
++**边界**：共享素材（全局字体图集）不按角色隔离。
+ 
+-**怎么实现**
+-- 字段：参数名、当前值、可调范围、影响面、修改风险、验收方式。
+-- 位置：`other/docs/参数与指标.md`，常量集中到 `config.py` 或角色级配置。
+-- 每个参数至少一条手工或脚本断言。
++**注意**：只有「每次启动重合成」真的变成问题时才值得做。
+ 
+-### 13. 本地调试面板
++### #3 常驻记忆书更新
+ 
+-**是什么**
+-把“省 token / 角色不崩 / 演出同步”变成可见指标。
++**现在**：`memory/` 是静态文本，每轮注入；长期对话后可能和对话记忆书语义漂移。
+ 
+-**怎么实现**
+-- 显示：提示词分段与 token 估算、命中切片、场景匹配、缓存命中、分类器状态、关系阶段、记忆条目数。
+-- 快捷键或设置项开关，默认关闭；各模块暴露只读状态接口。
+-- 每轮更新或手动刷新；一键导出脱敏诊断包。
++**缺**：固定设定 + 关系摘要两段；随阶段切换低频刷新。
+ 
+-### 14. 像素测量工具化 + 长会话性能采样
++**怎么做**：`memory/standing.json {version, fixed, relation_summary, updated_at}`；阶段切换时异步更新，失败保留旧版，不阻塞对话。
+ 
+-**是什么**
+-像素测量从手工流程变成可重复脚本；长会话性能本地采样。
++**边界**：更新频率设上限（如每次阶段切换最多一次）。
+ 
+-**怎么实现**
+-- 像素脚本：输入原图+预览图，输出偏移量、宽高比、校验结果，集成测试。
+-- 性能采样：每 N 轮记录内存、缓存体积、本地耗时、音频句柄，写 `logs/perf_<date>.csv`。
+-- 边界：采样不影响主循环；日志可关。
++### #19 演出 / 切片规则配置化
+ 
+-### 15. 日志分级 + 诊断包导出
++**现在**：演出与切片规则写死在 JS / Python 里。
+ 
+-**是什么**
+-运行时错误分级留存；崩溃时导出脱敏诊断包。
++**缺**：每角色的 `performance.json`、`persona_slices.json`。
+ 
+-**怎么实现**
+-- INFO/WARN/ERROR，按天滚动，保留 N 天。
+-- 导出前过滤对话内容、密钥、绝对路径、用户名。
+-- 诊断包含日志、脱敏配置、缓存索引、素材报告、版本信息。
+-- 默认不含对话原文；可选包含最近 N 轮并明确提示风险。
++**怎么做**：启动 / 切角色时加载并校验 schema；缺失用默认模板。
+ 
+----
++**边界**：配置错误回退默认并提示。
+ 
+-## P2：安全、隐私与桌面集成
++### #20 素材导入向导 + 热重载（剩余部分）
+ 
+-### 16. 密钥安全与日志脱敏
++**现在**：`check_assets.py` + 按类型的导入面板（立绘 / 提示词 / 世界书 / 记忆书 / 语音）。
+ 
+-- 存储：环境变量优先，其次本地配置文件（权限 600），或系统密钥链（keyring）。
+-- 日志过滤器匹配密钥模式替换为 `***`；对话内容默认不写日志。
+-- 诊断包走同一脱敏管道；示例配置不含真实密钥。
++**缺**：`asset_report.json`、分步向导、`watchdog` 热重载。
+ 
+-### 17. 备份加密与数据清理入口
++**怎么做**：导入 / 启动扫描输出报告；向导提示缺哪些表情 / 场景标签无图，可跳过；监听素材目录变化，失效对应缓存并重载。
+ 
+-- 设置页“清理缓存/导出全部数据/删除角色数据”，删除前二次确认。
+-- 备份可选密码加密 zip，恢复校验完整性。
+-- 删除角色同步清缓存；导出默认脱敏，可选包含对话。
++**边界**：热重载失败回退旧素材并记日志；可关闭。
+ 
++### #17 数据清理入口
+ 
+-### 18. 桌面行为
++**现在**：没有。
+ 
+-- 置顶/透明/点击穿透用系统 API，快捷键切换。
+-- 托盘/全局快捷键用 `pystray`、`keyboard` 等；可配置、冲突提示。
+-- 固定舞台整数倍缩放，多显示器迁移重建渲染。
+-- 监听电源事件，休眠唤醒后重建音频、缓存句柄、网络连接。
+-- 点击穿透时提供快捷键恢复交互；托盘退出走正常存档。
++**缺**：设置页「清理缓存 / 导出全部数据 / 删除角色数据」；备份可选加密。
+ 
+----
++**怎么做**：三个入口 + 删除前二次确认；删除角色同步清 `cache/<角色>/`。
++
++**边界**：导出默认脱敏，可选包含对话。
++
++### #18 桌面行为
++
++**现在**：只有窗口自带的 min / max / fullscreen / drag（`api_window.py`）。
++
++**缺**：置顶 / 透明 / 点击穿透、托盘、全局快捷键、多显示器、电源事件。
++
++**怎么做**：`pystray` + `keyboard`；置顶 / 穿透用系统 API；休眠唤醒后重建音频与网络连接。
++
++**边界**：快捷键冲突要提示；托盘退出走正常存档。
++
++### #21 架构图 + 不要动清单（剩余部分）
++
++**现在**：`架构/00_总览.md` + 自动生成的 `映射表.md`（层级 / 导出 / 依赖 / 被谁调用）；`AGENTS.md` 有「不许动的东西」简版。
++
++**缺**：一张数据流图；独立的 `不要动.md`。
++
++**怎么做**：数据流图说明「输入 → 切片 → 提示词 → 模型 → 演出 → 缓存 / 存档」；清单每条写「为什么不能动 / 动了会怎样 / 正确改法」（`globals()`、字体图集边界、像素系数）。
++
++**边界**：图随架构更新，清单随踩坑记录增补。
++
++### #22 角色包规范 / 示例 / 迁移工具（剩余部分）
++
++**现在**：包格式与 `manifest.json` 已有（`char_pack.py`），界面上的导出 / 导入也通了。
+ 
+-## P2：可配置化、交接与生态
++**缺**：`角色包规范.md`、`examples/minimal_character/`、`tools/migrate_character.py`。
+ 
+-### 19. 演出/切片规则配置化
++**怎么做**：写 schema 与校验清单；做一个最小可跑角色（必需文件 + 1 张立绘 + 1 条语音）；迁移工具先备份、不删原文件。
+ 
+-- 每角色 `performance.json`：时间轴节点、过渡类型、重播范围。
+-- 每角色 `persona_slices.json`：维度、触发关键词、分类器频率、回退规则。
+-- 启动/切角色加载并校验 schema；缺失用默认模板；配置错误回退默认并提示。
++**边界**：规范必须跟 `char_pack.py` 的常量保持一致（改代码要同步改文档）。
+ 
+-### 20. 素材导入向导/校验报告 + 热重载
++### #23 首次启动向导（剩余部分）
+ 
+-- 导入/启动扫描输出 `asset_report.json`（缺失、命名、尺寸、体积、重复）。
+-- 分步向导提示缺哪些表情/场景标签无图，可跳过。
+-- 监听素材目录变化（`watchdog`），失效对应缓存并重载；下轮生效。
+-- 热重载失败回退旧素材并记日志；可关闭。
++**现在**：首次启动若没有 `config.json`，自动生成一份空白模板（`main.py:235`）。
+ 
+-### 21. 模块依赖图 + 数据流图 + “不要动”清单
++**缺**：向导 UI、内置示例对话、聊天导出 / 分享卡片。
+ 
+-- 一张图说明输入→切片→提示词→模型→演出→缓存/存档，放 `other/docs/架构图.md`。
+-- `other/docs/不要动.md` 列出静默失效禁区（`globals()`、字体图集边界、像素系数），每条写“为什么不能动、动了会怎样、正确改法”。
+-- 图随架构更新，清单随踩坑记录增补。
++**怎么做**：分步向导（模型服务 / 语音开关 / 角色选择 / 素材路径 / 快捷键），可跳过、可重跑；导出 Markdown / 图片 / 分享卡片，默认脱敏，分享前预览。
+ 
+-### 22. 角色包规范 + 最小示例角色 + 迁移工具
++**边界**：向导不阻塞已有配置；导出不含密钥和绝对路径。
+ 
+-- `other/docs/角色包规范.md`：manifest schema、目录树、命名约定、校验清单。
+-- `examples/minimal_character/`：只含必需文件 + 1 张立绘 + 1 条语音，可运行。
+-- `tools/migrate_character.py`：旧命名→新命名、旧 `index.json`→新 schema；先备份不删原文件。
++### #24 模型接入抽象层
+ 
+-### 23. 首次启动向导 + 示例对话 + 聊天导出/分享卡片
++**现在**：`api_chat.py` 直接 urllib 调 `/v1/chat/completions`；`tts_client.py` 直接调 GPT-SoVITS；成本显示已有（`wt-cost.js` + `/api/usage` + `pricing.py`）。
+ 
+-- 向导：模型服务、语音开关、角色选择、素材路径、快捷键，分步可跳过、可重跑。
+-- 内置 3 条示例对话，展示开始/退出/存档。
+-- 导出 Markdown/图片/分享卡片，默认脱敏，分享前预览；不含密钥和路径。
++**缺**：`LLMAdapter` / `TTSAdapter` / `ASRAdapter`；限流 / 超时 / 余额不足的统一降级；预算提醒。
+ 
+-### 24. 模型接入抽象层
++**怎么做**：统一 `generate / stream / synthesize`；流式解析容错（角色名前缀、Markdown、不完整 JSON），坏块跳过记日志；成本面板加每会话 / 每日用量与预算。
+ 
+-- `LLMAdapter`、`TTSAdapter`、`ASRAdapter` 统一 `generate/stream/synthesize`。
+-- 限流/超时/余额不足回退本地或纯文字，提示可理解。
+-- 流式解析容错：角色名前缀、Markdown、不完整 JSON；坏块跳过记日志。
+-- 成本面板：每会话/每日 token 与 TTS 用量、预估费用、超预算提醒。
+-- 适配器可插拔；降级路径有测试覆盖。
++**边界**：适配器可插拔；降级路径要有测试覆盖。
+ 
+ ---
+ 
+ ## 执行顺序
+ 
+-1. **P0 1–6**：缓存隔离、状态机仲裁、记忆版本、关系回退、存档迁移、缓存校验。
+-2. **P1 11–15 + 7**：测试、参数表、调试面板、像素工具、日志诊断；多模态过渡与回放。
+-3. **P1 8–10 + P2 16–18**：记忆书界面、角色切换、角色包；安全隐私、桌面集成。
+-4. **P2 19–24**：配置化、交接文档、生态规范、语音深化与模型抽象层。
++1. **P0**：#5 存档版本化 → #16 密钥 → #6 缓存校验。
++2. **P1 体验**：#2 状态机 → #9 切角色过渡 → #8 记忆界面。
++3. **P1 可观测**：#13 调试指标 → #12 参数表 → #11 测试三类 → #15 诊断包 → #14 像素 / 性能。
++4. **P2**：#1 缓存分层 → #3 记忆书更新 → #19 配置化 → #20 素材向导 → #17 清理入口 → #18 桌面行为 → #21 架构图 → #22 角色包规范 → #23 首次向导 → #24 模型抽象层。
+ 
+-**总的来说**：P0 是“不做会串味/丢数据”，P1 是“让系统可见可验、演出更顺”，P2 是“长期运行、分发、交接”。每条都尽量贴着现有架构走，不引入大框架。
++**先做哪条由用户定**，这份只提供优先级参考；不要按顺序自己排期。
+ 
++改代码前仍然先看 `AGENTS.md`（命令、省钱规则、不许动的东西）。
+diff --git a/other/docs/已完成与取舍记录.md b/other/docs/已完成与取舍记录.md
+new file mode 100644
+index 0000000..5e3f046
+--- /dev/null
++++ b/other/docs/已完成与取舍记录.md
+@@ -0,0 +1,144 @@
++# 已完成与取舍记录
++
++> 记录**已经了结**的路线图条目：做完的、换了做法解决的、明确决定不做的。
++> 目的只有一个——以后（包括 AI 接手时）别再问一遍「这个要不要做」。
++>
++> 还在做的部分不在这里，见 [`后续更新路线图.md`](后续更新路线图.md)。
++>
++> 新条目怎么写：**结论 → 依据（文件/行为）→ 代价 / 边界 → 日期**。三五行就够，别写成设计文档。
++
++---
++
++## 已完成
++
++### #10 角色包导出 / 导入（2026-11-04）
++
++**结论**：做完。特别模式 → 配置角色 → 「导出 / 导入」，角色可以打包成 zip 带走。
++
++**依据**
++- `program/src/char_pack.py`：打包、解包、校验、系统窗口
++- `program/src/api_charpack.py`：`POST /api/charpack/export`、`/api/charpack/import`
++- `program/src/ui/sp-pack.js`：两个按钮（底板复用发送按钮的 `btn_3state.png`）
++- `program/tools/test_char_pack.py`：44 项自测
++
++**范围**：只带 `name.txt` + `prompt/ worldbook/ memory/ portrait/ voice/` + `manifest.json`。
++不带 `sessions/`（存档）、`story.json`、`tts.json`、`opening.json`、`pronunciation.json`、缓存。
++
++**代价 / 边界**
++- 不能靠角色包搬家存档（存档留在本机）。
++- 导入不自动切换角色，要自己点「切换角色」。
++- 没有 `tts.json` 的权重路径，换机后音色要靠 `voice/` 参考音频重建。
++
++**验证**：真实角色 360 文件 / 103.6MB，导出 0.2s、导入 0.2s，五类资源数量全部对上。
++
++### #16 密钥安全与日志脱敏（2026-11-04）
++
++**结论**：做完。key 优先读环境变量，日志写之前统一脱敏，界面只显示掩码。
++
++**依据**
++- `program/src/secret.py`：`env_key()`（`WA2_API_KEY` > `DEEPSEEK_API_KEY`）、`apply_env()`、`mask()`、`is_masked()`、`redact()`
++- `main.cloud_cfg()`：环境变量优先于 `config.json`；文件里那份保留，去掉环境变量就回落
++- `main.model_cfg_all()`：key 来自环境变量时只返回 `sk-****abcd` + `key_from_env: true`
++- `main.model_cfg_save()`：收到掩码就保留原 key，不会把 `****` 写进文件（扁平字段和 `models.chat` 两种结构都兜住）
++- `applog.log()` / `main.log()`：写之前过 `redact()`，抹掉 `sk-...`、`Bearer ...`、`"api_key": "..."` 的值
++- `config.example.json`：`api_key` 留空，`_note` 说明可以改用环境变量
++- `program/tools/test_secret.py`：24 项自测
++
++**边界**
++- 只做环境变量，没接系统密钥链（keyring）。
++- 已有的明文 key 不自动迁移（避免写坏配置）。
++- 环境变量只管 key；`base_url` / `model` 仍然来自 `config.json`。
++- 日志里本来就不写对话正文，这次只管「长得像密钥」的东西。
++
++**验证**：24 项自测全绿；起服务设 `WA2_API_KEY` 后 `GET /api/modelcfg` 只回 `sk-****7890` + `key_from_env: true`；用掩码保存不会覆盖文件里的真 key。
++
++### #9 角色切换过渡（2026-11-04）
++
++**结论**：做完。切角色不再是「啪」一下换人，而是**压黑 → 换人 → 淡回**。
++
++**依据**
++- `ui/sp-char.js`：`doSwitchCharacter()` 改成「存会话 → 压黑 → 切换 → 淡回」，新增 `fadeOn/fadeOff/setInputEnabled/saveBeforeSwitch`
++- `ui/index.html`：`#charFade` 整幕黑层（z-index 200，在 `.uiScreen` 120 之上、标题栏之下）
++- `ui/game450.css`：压黑 180ms、淡回 200ms；请求超过 420ms 才在中间显示角色名
++- `ui/wt-session.js`：`sessionSave()` 改为返回 promise —— 切换前必须等这一笔写完，否则会存进新角色的目录
++- `ui/wt-chat.js`：`send()` 在 `__charSwitching` 时直接返回
++
++**边界**
++- 没做进度条：切换是本地改文件，正常 <50ms，只有慢的时候才显示名字。
++- 不关特别模式面板：切换完仍留在面板里，名字与资源已经刷新。
++- 切换失败：淡回原角色 + 提示，不留黑屏。
++
++**验证**：探针记录 `before:"" → t50:on → t200:on → t900:""`，`inputDisabled` 恢复 false、`switching` 清除、`active.json` 从 A 变成 B。
++
++### #8 记忆书查看 / 删除界面（2026-11-04）
++
++**结论**：做完「只读 + 删除」；编辑按路线图后置，没做。
++
++**依据**
++- `program/src/api_memory.py`：`GET /api/memory`、`POST /api/memory/delete`
++- `ui/mem-screen.js` + `#memScreen`：按 偏好 / 事件 / 进度 分类列出，两段式删除（点一次变「确认？」，2.6 秒内再点才真删）
++- 入口：标题栏「系统 → 记忆书」
++- `program/tools/test_memory_view.py`：20 项自测
++
++**范围**
++- **常驻记忆书**：只读展示（文件在 `characters/<角色>/memory/`，要改还是走特别模式导入）。
++- **对话记忆书**：可删。删掉的只是「这一轮不再注入」，存档里的快照不动，读档会回来。
++
++**边界**
++- 没有编辑、没有「标记重要不参与压缩」—— 路线图里本来就写的「编辑后置」。
++- 界面文字走原生 DOM（和回想一样），不烤字模：条目是动态长句，字模换行会被压扁。
++
++**验证**：20 项自测全绿；探针实测 2 条 → 点删除变「确认？」→ 再点变 1 条，常驻 11 字与「共 N 条」提示都在，条目文字确认没被转成字模图。
++
++---
++
++## 换了做法了结
++
++### #1 缓存隔离与淘汰 → 改成「启动全清 + key 带角色」
++
++**结论**：**不按原方案**做 `cache/<角色>/` 分层与 LRU。原方案要解决的问题（切角色串音、硬盘失控）已经用更省事的办法解决。
++
++**实际做法**
++- 启动时清空文字渲染缓存、TTS 缓存、记忆运行时（`main.py` 的 `main()` 开头三连）。
++- TTS 缓存 key 里带角色 id 与参考音频目录签名（`tts_client._char_voice_sig`），换角色必失效。
++
++**解决了的**
++- 切角色不会听到 / 看到上一个角色的内容（这是原方案最在意的点）。
++- 硬盘不会越用越大。
++
++**代价**
++- 每次开程序，第一句语音都要重新合成；第一次进游戏的字模要重渲染。**这是有意的取舍，不是 bug。**
++
++**还没做的**（写在路线图 #1 里）：跨启动保留、按角色分层、体积上限。只有「每次启动重合成」真的变成问题时才值得回头做。
++
++### #4 关系阶段回退 / 漂移检测 → 明确不做
++
++**结论**：**只升不降**，到 4（婚后 / 同居）封顶，不再调用分类。
++
++**理由**
++- 本地关键词判断不准，所以改成每 40 轮云端判一次。
++- 回退容易在「今天冷淡 / 明天热络」之间抖动，反而破坏体验；用户明确选择了「只升不降」。
++
++**依据**：`persona_stage.py` 头部注释（2026-11-02 按用户要求改）；分类在后台线程跑，结果下一轮生效；状态存 `cache/persona_stage.json`，不写存档。
++
++**代价**：长期不互动时关系不会降，可能失真。**接受这个失真。**
++
++**注意**：以后不要再提「加回退」，除非用户明确要。
++
++---
++
++## 明确不做（别再提）
++
++- **关系阶段回退**：见上，只升不降是产品决定。
++- **缓存按角色分层 + LRU**：见上，已被「启动全清」替代；只有重合成变成真问题才重开。
++
++---
++
++## 变更记录
++
++| 日期 | 改动 |
++|---|---|
++| 2026-11-04 | 建立本文件：从 `后续更新路线图.md` 移出已了结的 #1 / #4 / #10 |
++| 2026-11-04 | #16 密钥脱敏做完，从路线图移入「已完成」 |
++| 2026-11-04 | #9 角色切换过渡做完，从路线图移入「已完成」 |
++| 2026-11-04 | #8 记忆书查看 / 删除界面做完，从路线图移入「已完成」 |
+diff --git a/other/docs/更新日志_2026-11-04_16-27-33.md b/other/docs/更新日志_2026-11-04_16-27-33.md
+new file mode 100644
+index 0000000..ff40329
+--- /dev/null
++++ b/other/docs/更新日志_2026-11-04_16-27-33.md
+@@ -0,0 +1,48 @@
++# 更新日志 2026-11-04_16-27-33
++
++> 本轮只改**打包脚本**，不碰运行时逻辑：产物名带版本号与时间戳，安装包不再夹带存档。
++
++## 一、打包产物命名
++
++旧：`release/和纱_本地测试/` + `.zip`
++
++新：`release/和纱_<版本号>_<YYYY-MM-DD_HH-MM-SS>/` + 同名 `.zip`
++
++版本号读自 `program/src/version.py` 的 `VERSION`，时间戳用打包那一刻的时间。
++本次产物：
++
++- `和纱_2026-11-04.2_2026-11-04_16-27-18/`（目录，约 289 MB）
++- `和纱_2026-11-04.2_2026-11-04_16-27-18.zip`（约 248 MB）
++
++## 二、修掉一个泄漏：安装包里带了存档
++
++第一次打包时 zip 里出现了 `characters/和纱/sessions/1.json`、`6.json`、`7.json`、`8.json`、`auto.json` ——
++这些是**用户自己的聊天存档**，不该随安装包发出去。
++
++修复：
++
++- 复制 `characters/` 时按目录过滤：`sessions` / `cache` / `logs` / `text_cache` / `__pycache__` 全部跳过
++- 打 zip 时再加一道兜底：路径里含 `/sessions/` 或文件名是 `config.json` 的一律跳过
++- 顺手跳过测试时新建的占位角色「新角色」（只有默认种子内容，21.7 KB）
++
++验证（解包核对）：
++
++| 项 | 结果 |
++|---|---|
++| zip 条目数 | 1449（原 1464：少 5 个存档 + 10 个占位角色文件） |
++| 含 `sessions/` 的条目 | 无 |
++| 含 `config.json` 的条目 | 无（密钥不外泄） |
++| 含 `cache/`、`logs/` 的条目 | 无 |
++| `和纱.exe` | 在 |
++| `characters/和纱` 的立绘/语音/人设/世界书/记忆书 | 都在（371 条目） |
++
++## 三、变更文件
++
++| 文件 | 改动 |
++|---|---|
++| `program/tools/build_portable.py` | 产物名 = `和纱_<VERSION>_<时间戳>`；复制角色时排除存档与缓存；跳过占位角色；打 zip 兜底过滤 |
++
++## 四、发布流程
++
++- 补丁：`other/docs/patches/2026-11-04_16-27-33_更新补丁.patch`（基线 `d9ca59c`，只含工具脚本）
++- 版本号未变（仍是 `2026-11-04.2`）：本轮不改运行时代码，客户端更新提示逻辑不受影响
+diff --git a/other/docs/更新日志_2026-11-04_17-09-45.md b/other/docs/更新日志_2026-11-04_17-09-45.md
+new file mode 100644
+index 0000000..339647c
+--- /dev/null
++++ b/other/docs/更新日志_2026-11-04_17-09-45.md
+@@ -0,0 +1,126 @@
++# 更新日志 2026-11-04 17:09:45 · 角色包导出 / 导入
++
++> 版本不变（仍是 `2026-11-04.2`，没发版）· 基线 `648207a`
++> 一句话：特别模式的角色配置区多了「导出 / 导入」两个按钮，角色可以打包成 zip 带走、换台机器直接导入。
++
++## 做了什么
++
++| 功能 | 说明 |
++|---|---|
++| 导出 | 点「导出」→ 弹出角色列表（复用切换面板，标题变成「选择要导出的角色」）→ 选一个角色 → 选保存目录 → 生成 `<角色名>.zip` |
++| 导入 | 点「导入」→ 系统选文件窗口（只列 `.zip`）→ 确定 → 自动解成 `characters/` 下的新角色，**不自动切换** |
++| 按钮 | 底板直接复用对话界面发送按钮的三态图 `btn_3state.png`，标签走 `/api/text` 字模，和「切换角色 / 新建角色」同一套 |
++
++## 包里有什么
++
++只带「换台机器也能直接演」的东西：
++
++```
++manifest.json      格式名 / 版本 / 角色名 / 导出时间 / 文件数 / 字节数
++name.txt           显示名
++prompt/            提示词（base + stage1~4 + persona_*）
++worldbook/         世界书
++memory/            常驻记忆书
++portrait/          立绘 + index.json
++voice/             参考音频（TTS 音色）
++```
++
++**不带**（都是有意的）：
++
++- `sessions/` —— 对话存档不跟着包到处跑
++- `story.json` —— 剧情索引是本机生成的，别人拿了也用不了
++- `tts.json` —— 权重是绝对路径，换机必失效
++- `opening.json` / `pronunciation.json` —— 可选小配置，不算角色本体
++- 任何缓存
++
++## 导入是怎么处理的
++
++1. 先解到 `characters/.importing_<毫秒>`（和角色目录同一个盘，最后一步是原子改名）
++2. 校验：只认 `name.txt` / `prompt/` / `worldbook/` / `memory/` / `portrait/` / `voice/`，其它条目跳过并在返回里报告
++3. 角色 id：`manifest.id` > 包里的 `name.txt` > 压缩包文件名；重名自动加序号（和纱 → 和纱2）
++4. 落盘后：没有 `name.txt` 就补一个；`prompt/` 是空的就用自带模板铺一份（免得导入后是个空角色）
++5. 失败不会在 `characters/` 里留下半个角色（临时目录在 `finally` 里清掉）
++
++支持两种包：正规包（`prompt/` 在根）和「把整个角色文件夹压进去」的包（`和纱/prompt/...`，会自动剥掉包装层）。
++
++## 安全
++
++- 路径穿越（`../../x`）、绝对路径（`/x`）、盘符（`C:/x`）条目一律丢弃
++- 总量 2GB、单文件 512MB、条目 2 万上限（防解压炸弹）
++- 不是 zip / 空包 / 坏包都给明确报错
++- 导出时 PNG / JPG / WAV 等已压过的媒体用 `STORED`，不再白压一遍（实测 104MB 角色包 0.2 秒）
++
++## 接口
++
++| 方法 | 路径 | 说明 |
++|---|---|---|
++| POST | `/api/charpack/export` | body `{"id": "和纱"}`；弹选目录窗口 → 打包。取消返回 `{"ok": false, "cancelled": true}` |
++| POST | `/api/charpack/import` | 弹选文件窗口 → 导入。同上 |
++
++两个接口都是**阻塞式**的：系统窗口开着的时候前端那个 `fetch` 一直等着，关掉才返回。放在 `ThreadingHTTPServer` 的独立线程里，界面不卡。
++
++## 验证
++
++```
++python tools/test_char_pack.py       # 44 项，全绿
++python tools/test_char_res.py        # 原有 6 个自测，全绿
++python tools/arch_map.py --check     # 映射表最新
++python tools/check_split.py          # 新模块 0 告警（sp-pack.js 无 eval / 无未定义引用）
++```
++
++真实数据实测（和纱：360 个文件 / 103.6MB）：
++
++| 项 | 结果 |
++|---|---|
++| 导出 | 0.2 秒，zip 103.7MB，`testzip` 无坏块 |
++| 导入 | 0.2 秒，prompt 7/7、worldbook 1/1、memory 1/1、voice 71/71、portrait 279/279 全部对上 |
++| 存档 / tts.json | 确认没进包、也没被导进来 |
++
++界面探针（`ui_probe.py`，读数字不截图）：
++
++```
++exportBox [49,15]  importBox [49,15]        ← 四个按钮同宽，行宽 210 < 栏宽 275，不溢出
++exportLabelH 8.6                            ← 和烤好的 8.5px 标签一样高
++pickerTitleTextH 14                         ← 和「切换角色」标题一样高
++pickerTitleImgHidden true / TextShown true  ← 导出模式标题切换生效
++itemCount 2  wa2Pack true
++```
++
++## 怎么用
++
++1. 进「特别模式」→ 右边「配置角色」→ 点 **导出** → 选角色 → 选目录
++2. 把 `<角色名>.zip` 发给别人 / 拷到另一台机器
++3. 对方点 **导入** → 选这个 zip → 角色列表里就多一个（要切过去自己点「切换角色」）
++
++## 边界 / 已知取舍
++
++- **不打包存档**：分享角色不会把聊天记录带出去，但反过来也不能靠角色包搬家存档。
++- **不打包 `tts.json`**：对方的权重路径和你不一样，导过去也是错的；要换音色就自己重新导参考音频。
++- **立绘靠 `portrait/index.json`**：包里有它就能正确认衣服 / 表情；手工做的裸包缺它时，立绘会落到「其他」。
++- **导入不自动切换**：避免正在聊天时被换人；要立刻用就再点一下「切换角色」。
++- 导出目录会记住（`char_pack.json`，和 `prefs.json` 一个位置），下次直接落在那儿。
++
++## 改动文件
++
++```
++新增  program/src/char_pack.py            角色包导出/导入（zip、校验、系统窗口）
++新增  program/src/api_charpack.py         /api/charpack/* 的 mixin
++新增  program/src/ui/sp-pack.js           导出/导入按钮（WA2.spPack）
++新增  program/tools/test_char_pack.py     44 项自测
++改    program/src/main.py                 注册 CharPackApi + 两条 POST 路由
++改    program/src/ui/index.html           两个按钮 + 导出模式标题 + sp-pack.js + ?v= 全量 bump
++改    program/src/ui/special.css          .spRoleBtn 46px / 8.5px，导出模式标题样式
++改    program/src/ui/sp-char.js           openCharPicker 支持 export 模式
++改    program/tools/arch_map.py           登记 3 个新文件
++改    other/docs/架构/映射表.md            重新生成
++改    other/docs/架构/01_后端与接口.md      接口表补一行
++改    other/docs/架构/04_角色与资源.md      补「角色包」一节
++```
++
++## 回滚
++
++```powershell
++git apply -R "other/docs/patches/2026-11-04_17-09-45_更新补丁.patch"
++```
++
++只回代码，不动 `characters/` 里的数据（导出的包和导入的角色都还在）。
+diff --git a/other/docs/更新日志_2026-11-05_01-57-07.md b/other/docs/更新日志_2026-11-05_01-57-07.md
+new file mode 100644
+index 0000000..1205f9d
+--- /dev/null
++++ b/other/docs/更新日志_2026-11-05_01-57-07.md
+@@ -0,0 +1,54 @@
++# 更新日志 2026-11-05 01:57:07 · 角色包 / 密钥脱敏 / 记忆书 / 改名
++
++> 版本 `2026-11-04.2` → **`2026-11-05.1`** · 基线 `648207a`
++> 一句话：角色可以打包带走、密钥不再落进日志、记忆书能看能删，程序改名为「WHITE ALBUM2 Extension~ どこまでも続く道~」。
++
++## 做了什么
++
++| 功能 | 说明 |
++|---|---|
++| 角色包导出 / 导入 | 特别模式多了两个按钮。导出：选角色 → 选目录 → 生成 `<角色名>.zip`；导入：选 zip → 自动解成 `characters/` 下的新角色，**不自动切换** |
++| 密钥脱敏 | 支持 `WA2_API_KEY` / `DEEPSEEK_API_KEY` 环境变量；设置页显示 `sk-****abcd` 掩码，回存不会把掩码写进 `config.json`；日志统一过脱敏 |
++| 切角色过渡 | 压黑 → 换人 → 淡回；期间禁用输入，存档先写完再切，避免存进新角色目录 |
++| 记忆书界面 | 系统菜单「记忆书」：看常驻记忆书，也能查看 / 删除运行时记忆条目（两段式确认） |
++| 改名 | 窗口标题、页面标题、README 统一为 `WHITE ALBUM2 Extension~ どこまでも続く道~` |
++| 打包 | `build_portable.py` 支持拆包体检；README 补了打包说明 |
++
++## 包里带什么
++
++角色包只带「换台机器也能直接演」的东西：
++
++```
++name.txt     显示名
++prompt/      提示词
++worldbook/   世界书
++memory/      常驻记忆书
++portrait/    立绘 + index.json
++voice/       参考音频
++manifest.json
++```
++
++不带 `sessions/`、`story.json`、`tts.json`、缓存——那些换机必失效或不该跟着跑。
++
++## 怎么升级
++
++1. 下载 `other/docs/patches/2026-11-05_01-57-07_更新补丁.patch`
++2. 在仓库根目录执行：`git apply other/docs/patches/2026-11-05_01-57-07_更新补丁.patch`
++3. 重启程序，版本号会显示 `2026-11-05.1`
++
++> 上一版的两个补丁（`2026-11-04_16-27-33`、`2026-11-04_17-09-45`）已经合进 master，文件也保留在 `patches/` 里，不用再单独打。
++
++## 自测
++
++新增三份自测，都是纯本地、不联网：
++
++```
++python program/tools/test_char_pack.py      # 44 项
++python program/tools/test_secret.py         # 24 项
++python program/tools/test_memory_view.py    # 20 项
++```
++
++## 注意
++
++- 角色内容（提示词 / 世界书 / 常驻记忆书）属于本机数据，**不入库、不随补丁发布**；换机器请用「导出 / 导入角色包」。
++- 本版没有破坏性改动，存档格式不变。
+diff --git a/other/docs/架构/01_后端与接口.md b/other/docs/架构/01_后端与接口.md
+index 52e596d..6a736ad 100644
+--- a/other/docs/架构/01_后端与接口.md
++++ b/other/docs/架构/01_后端与接口.md
+@@ -28,6 +28,7 @@
+ | `/api/session/{list,load,save,thumb}` | 存读档（目录 = `characters/<角色>/sessions/`） |
+ | `/api/special/{cfg,name,open,status,upload}` | 特别模式：参数、角色名、打开文件、状态、导入素材 |
+ | `/api/character/{list,switch,pick,new,opening,sprite/index.json}` | 多角色 |
++| `/api/charpack/{export,import}` | 角色包导出 / 导入（zip，会弹系统窗口） |
+ | `/api/scene/{list,match}` | 场景 CG 匹配 |
+ | `/api/window` | 窗口控制（close/min/max/move/dragbegin/state） |
+ | `/api/modelcfg`、`/api/ollama`、`/api/prefs`、`/api/price*`、`/api/usage`、`/api/voice/ok`、`/api/ping`、`/api/log/dump` | 杂项 |
+@@ -39,6 +40,12 @@
+ 3. 返回统一走 `self._json({...})`；
+ 4. 前端在 `game.js` / `special.js` 里 `fetch`，记得把接口写进本文件表格。
+ 
++## 密钥
++
++- 读 key 的顺序：`WA2_API_KEY` → `DEEPSEEK_API_KEY` → `config.json` 的 `api_key`（`secret.env_key()`，由 `cloud_cfg()` 注入）。
++- 环境变量优先时，`/api/modelcfg` 只返回掩码 `sk-****abcd` + `key_from_env`；界面回传掩码时 `model_cfg_save()` 保留原 key，不会把 `****` 写进文件。
++- 日志（`applog.log()` / `main.log()`）写之前统一过 `secret.redact()`，抹掉 `sk-...`、`Bearer ...`、`"api_key": "..."`。
++
+ ## 坑
+ 
+ - **只起后端**必须 `WA2_ASSETS_DIR`，否则 `/game/assets/**` 404。
+diff --git a/other/docs/架构/04_角色与资源.md b/other/docs/架构/04_角色与资源.md
+index ed7d67f..6850435 100644
+--- a/other/docs/架构/04_角色与资源.md
++++ b/other/docs/架构/04_角色与资源.md
+@@ -44,6 +44,16 @@ characters/
+ - 权重：`tts.json` 有就用，没有走默认；`_char_voice_sig` 变了才切（同进程不重启）
+ - 读音替换：`pronunciation.json` → 送 TTS 前替换，界面文字不变
+ 
++## 角色包（`char_pack.py`）
++
++- 导出：只挑 `name.txt` + `prompt/ worldbook/ memory/ portrait/ voice/` → `<角色名>.zip`
++  （不带 `sessions/`、`story.json`、`tts.json`、`opening.json`、`pronunciation.json`、缓存）
++- zip 里带 `manifest.json`（格式名 / 版本 / 角色名 / 导出时间 / 文件数 / 字节数）
++- 导入：先解到 `characters/.importing_*` → 校验 → 改名落盘（**不自动切换**），重名加序号；
++  没有 manifest 的裸包也认（用 `name.txt` 或压缩包文件名当角色名）
++- 界面：特别模式 → 配置角色 → 导出 / 导入（底板就是发送按钮的三态图 `btn_3state.png`）
++- 安全：路径穿越 / 绝对路径 / 盘符条目丢弃；总量 2GB、单文件 512MB、条目 2 万上限
++
+ ## 坑
+ 
+ - `ensure()`/`switch()`/`create()` 会灌种子（把自带 `persona/`、`worldbook/` 复制进角色文件夹），别绕过。
+diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
+index 9369d98..7897ac0 100644
+--- a/other/docs/架构/映射表.md
++++ b/other/docs/架构/映射表.md
+@@ -19,7 +19,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/menubar.js` | 523 | 顶部菜单：场景/服装/时期/窗口 | __applyTextScale, __lockScene, __nextOutfit, __nextScene, applyRes, closeAll | <script 全局> | — |
++| `src/ui/menubar.js` | 526 | 顶部菜单：场景/服装/时期/窗口 | __applyTextScale, __lockScene, __nextOutfit, __nextScene, applyRes, closeAll | <script 全局> | — |
+ 
+ ## 一级 · 前端/设置
+ 
+@@ -31,7 +31,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/main.py` | 1327 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | api_char, api_chat, api_modelcfg, api_text, api_tts, api_update | — |
++| `src/main.py` | 1365 | 主入口（HTTP 服务 + 窗口 + 启动） | res_dir, prefs_load, prefs_save, cloud_cfg, probe_endpoint, ensure_cloud_cfg | api_char, api_charpack, api_chat, api_memory, api_modelcfg, api_text | — |
+ 
+ ## 二级 · 前端/回想
+ 
+@@ -57,13 +57,13 @@
+ |---|---|---|---|---|---|
+ | `src/ui/savepages.js` | 373 | 存档网格/缩略图/页签 | __renderSaveSlots, __renderSaveSlotsNow, __savePage, dateHTML, fillContent, numHTML | <script 全局> | — |
+ | `src/ui/savetabs4.js` | 69 | 存档页签资源 | __savePage, __saveTabsPaint, __setSavePage, activeImg, boxEl, hoverImg | <script 全局> | — |
+-| `src/ui/wt-session.js` | 159 | 存读档与缩略图（WA2.session） | __bgThumb, __history, __loadSession, __saveMeta, applyHistory, sessionRestore | <script 全局> | — |
++| `src/ui/wt-session.js` | 161 | 存读档与缩略图（WA2.session） | __bgThumb, __history, __loadSession, __saveMeta, applyHistory, sessionRestore | <script 全局> | — |
+ 
+ ## 二级 · 前端/对话
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/wt-chat.js` | 101 | 发送与分析回复（WA2.chat） | __history, __lastEmo, __nextOutfit, __nextScene | <script 全局> | — |
++| `src/ui/wt-chat.js` | 102 | 发送与分析回复（WA2.chat） | __history, __lastEmo, __nextOutfit, __nextScene | <script 全局> | — |
+ 
+ ## 二级 · 前端/导航
+ 
+@@ -105,7 +105,8 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/sp-char.js` | 183 | 角色切换/新建（WA2.spChar） | afterCharacter, closeCharPicker, openCharPicker, postCharacter | <script 全局> | — |
++| `src/ui/sp-char.js` | 276 | 角色切换/新建（WA2.spChar） | __charSwitching, afterCharacter, openCharPicker, postCharacter, setPickerTitle | <script 全局> | — |
++| `src/ui/sp-pack.js` | 96 | 角色包导出/导入按钮（WA2.spPack） | flash, pickCharacterForExport, post, setBusy | <script 全局> | — |
+ 
+ ## 二级 · 前端/特别面板
+ 
+@@ -126,6 +127,12 @@
+ |---|---|---|---|---|---|
+ | `src/ui/wt-sprite.js` | 153 | 立绘/服装/表情（WA2.sprite） | __reloadSprites, __spriteSummary, loadIndex, outfitOf, resolveOutfit, spritePath | <script 全局> | — |
+ 
++## 二级 · 前端/记忆书
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/ui/mem-screen.js` | 136 | 记忆书界面：查看 + 删除（WA2.memoryScreen） | __openMemory, clearArm, el, paint, setHint | <script 全局> | — |
++
+ ## 二级 · 前端/设置控件
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+@@ -136,7 +143,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/opt-model.js` | 340 | 模型/连接配置（WA2.optModel） | bindModelFields, modelApi, setConnLabel, txtUrl | <script 全局> | — |
++| `src/ui/opt-model.js` | 344 | 模型/连接配置（WA2.optModel） | bindModelFields, modelApi, setConnLabel, txtUrl | <script 全局> | — |
+ 
+ ## 二级 · 前端/语音
+ 
+@@ -216,7 +223,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/api_modelcfg.py` | 75 | /api/modelcfg | ModelCfgApi | tts_client | main |
++| `src/api_modelcfg.py` | 81 | /api/modelcfg | ModelCfgApi | secret, tts_client | main |
+ 
+ ## 二级 · 接口/窗口
+ 
+@@ -229,6 +236,13 @@
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+ | `src/api_char.py` | 60 | 角色查询与切换后处理 | CharApi | characters, persona_stage, special_cfg | main |
++| `src/api_charpack.py` | 35 | 角色包导出/导入 /api/charpack/* | CharPackApi | char_pack | main |
++
++## 二级 · 接口/记忆
++
++| 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
++|---|---|---|---|---|---|
++| `src/api_memory.py` | 113 | 记忆书查看与删除 /api/memory* | view, delete, MemoryApi | char_res, memory | main |
+ 
+ ## 二级 · 接口/语音
+ 
+@@ -240,8 +254,9 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/applog.py` | 150 | 日志文件 | path, log, error, dump_stacks, start_heartbeat, stop | — | api_tts, api_window, main |
++| `src/applog.py` | 162 | 日志文件 | path, log, error, dump_stacks, start_heartbeat, stop | — | api_tts, api_window, main |
+ | `src/pricing.py` | 241 | 价格与用量估算 | table, currency, prices_for, is_peak, cost, estimate | — | main |
++| `src/secret.py` | 96 | 密钥来源（环境变量优先）与日志脱敏 | env_key, apply_env, mask, is_masked, redact, source | — | api_modelcfg, main |
+ | `src/text_parse.py` | 94 | 回复标签解析、日文清理（纯函数） | split_scene, split_emotion, split_action, split_thinking, ja_clean, ja_ok | — | main |
+ | `src/version.py` | 19 | 版本号与 GitHub 仓库地址 | ver_key | — | api_update |
+ | `src/winutil.py` | 76 | Windows 窗口 API | — | — | main |
+@@ -250,8 +265,9 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/char_res.py` | 234 | 角色资源定位与状态 | char_file, prompt_path, prompt_text, worldbook, worldbook_text, memory_path | special_files | api_chat, main, persona_ctx, tts_client |
+-| `src/characters.py` | 528 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | api_char, api_chat, main, persona_ctx, special_cfg, special_files |
++| `src/char_pack.py` | 482 | 角色包导出/导入（zip） | pick_export_dir, pick_pack_file, export_pack, export_with_dialog, import_pack, import_with_dialog | characters | api_charpack |
++| `src/char_res.py` | 234 | 角色资源定位与状态 | char_file, prompt_path, prompt_text, worldbook, worldbook_text, memory_path | special_files | api_chat, api_memory, main, persona_ctx, tts_client |
++| `src/characters.py` | 528 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | api_char, api_chat, char_pack, main, persona_ctx, special_cfg |
+ | `src/special_cfg.py` | 132 | 角色名读写 | name_file, defaults, current, ensure, save, get_name | characters, memory | api_char, main |
+ | `src/special_files.py` | 404 | 特别模式导入/打开/立绘落盘 | char_dir, set_assets_dir, save_upload, set_default_paths, kind_dir, portrait_dir | characters | char_res, main |
+ | `src/tts_client.py` | 624 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | char_res | api_chat, api_modelcfg, api_tts, main |
+@@ -260,7 +276,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/memory.py` | 405 | 对话记忆书：阈值/打包/条目 | cfg, ctx_for, budget, est_text, est_msg, est_messages | — | main, persona_stage, special_cfg |
++| `src/memory.py` | 405 | 对话记忆书：阈值/打包/条目 | cfg, ctx_for, budget, est_text, est_msg, est_messages | — | api_memory, main, persona_stage, special_cfg |
+ | `src/persona_ctx.py` | 282 | 人设正文、世界书命中、时期 | set_logger, prompt_dir, worldbook_file, default_paths, period_of, persona_text | char_res, characters, persona_stage | api_chat, main |
+ | `src/persona_stage.py` | 188 | 关系阶段分类 | set_logger, set_llm, detect_local, classify_now, current, reset | memory | api_char, main, persona_ctx |
+ | `src/story_rag.py` | 223 | 原作检索（BM25） | tokenize, StoryIndex, enabled, active_index, get_index, preload | — | — |
+@@ -275,11 +291,11 @@
+ 
+ | 文件 | 行数 | 建议 |
+ |---|---|---|
+-| `src/main.py` | 1327 | 超过 800 行，必须拆 |
++| `src/main.py` | 1365 | 超过 800 行，必须拆 |
+ | `src/tts_client.py` | 624 | 超过 400 行，建议拆 |
+ | `src/characters.py` | 528 | 超过 400 行，建议拆 |
+-| `src/ui/menubar.js` | 523 | 超过 400 行，建议拆 |
++| `src/ui/menubar.js` | 526 | 超过 400 行，建议拆 |
+ | `src/ui/game.js` | 522 | 超过 400 行，建议拆 |
++| `src/char_pack.py` | 482 | 超过 400 行，建议拆 |
+ | `src/memory.py` | 405 | 超过 400 行，建议拆 |
+ | `src/special_files.py` | 404 | 超过 400 行，建议拆 |
+-| `src/ui/opt-widgets.js` | 390 | 可接受 |
+diff --git a/program/src/api_charpack.py b/program/src/api_charpack.py
+new file mode 100644
+index 0000000..480e63a
+--- /dev/null
++++ b/program/src/api_charpack.py
+@@ -0,0 +1,34 @@
++# -*- coding: utf-8 -*-
++"""/api/charpack/* 的实现：角色包导出 / 导入
++
++和 api_char.py 一个套路 —— 只是 Handler 的一个 mixin，路由在 main.py 的 do_POST 里。
++
++两个接口都会**弹系统窗口**（选目录 / 选文件），所以是阻塞式 HTTP 请求：
++窗口开着的时候前端那个 fetch 就一直等着，关掉才返回。取消返回
++{"ok": false, "cancelled": true}，前端按「已取消」提示，不当成错误。
++"""
++
++import char_pack
++
++
++class CharPackApi:
++    """见 main.Handler。"""
++
++    def _charpack_export(self):
++        """POST /api/charpack/export  {"id": "和纱"} → 选目录 → 打包 zip"""
++        try:
++            body = self._body()
++        except Exception as e:
++            return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
++        cid = ((body or {}).get("id") or "").strip()
++        try:
++            return self._json(char_pack.export_with_dialog(cid))
++        except Exception as e:
++            return self._json({"ok": False, "error": "导出失败：%s" % e})
++
++    def _charpack_import(self):
++        """POST /api/charpack/import  → 选 zip → 解成新角色（不自动切换）"""
++        try:
++            return self._json(char_pack.import_with_dialog())
++        except Exception as e:
++            return self._json({"ok": False, "error": "导入失败：%s" % e})
+diff --git a/program/src/api_memory.py b/program/src/api_memory.py
+new file mode 100644
+index 0000000..4e15543
+--- /dev/null
++++ b/program/src/api_memory.py
+@@ -0,0 +1,112 @@
++# -*- coding: utf-8 -*-
++"""/api/memory：记忆书查看 / 删除条目
++
++记忆书分两半，界面上也分两块显示：
++
++  · **常驻记忆书**（`characters/<角色>/memory/*.txt`）——角色设定，只读。
++    要改就回「特别模式 → 记忆书 → 导入文件」，这里不碰文件。
++  · **对话记忆书**（`memory.runtime()` 的 entries）——对话超阈值后自动压出来的短句。
++    这里可以删：删掉的只是「这一轮不再注入」，存档里那份快照不动，下次读档会回来。
++
++条目结构见 memory.py：`{"text": ..., "kind": "preference|event|progress", "from": [起, 止]}`
++`from` 是它在对话里的覆盖区间，界面上只用来提示「这条概括了哪几句」。
++"""
++
++import memory
++import char_res
++
++KIND_LABEL = {"preference": "偏好", "event": "事件", "progress": "进度"}
++
++
++def _entry(i, e):
++    if not isinstance(e, dict):
++        return None
++    text = (e.get("text") or "").strip()
++    if not text:
++        return None
++    kind = (e.get("kind") or "").strip()
++    return {
++        "i": i,
++        "text": text,
++        "kind": kind,
++        "label": KIND_LABEL.get(kind, "其他"),
++        "from": e.get("from") or [],
++    }
++
++
++def view():
++    """给界面用的一份快照（只读，不改任何状态）"""
++    r = memory.runtime()
++    entries = []
++    for i, e in enumerate(r.get("entries") or []):
++        v = _entry(i, e)
++        if v:
++            entries.append(v)
++
++    standing_text = ""
++    standing_file = ""
++    try:
++        standing_text = (char_res.memory_text() or "").strip()
++        st = (char_res.status() or {}).get("memory") or {}
++        standing_file = st.get("file") or ""
++    except Exception:
++        pass
++
++    hint = ""
++    if not entries:
++        hint = "还没有自动摘要。对话变长、超过阈值之后才会生成记忆条目；现在发给模型的还是原文。"
++
++    return {
++        "ok": True,
++        "entries": entries,
++        "count": len(entries),
++        "covered": int(r.get("covered") or 0),
++        "turns": int(r.get("turns") or 0),
++        "updated_at": r.get("updated_at") or "",
++        "hint": hint,
++        "standing": {
++            "file": standing_file,
++            "chars": len(standing_text),
++            "text": standing_text,
++        },
++    }
++
++
++def delete(index):
++    """删掉运行时记忆书里的第 index 条（只影响这一轮注入，不改存档）"""
++    try:
++        i = int(index)
++    except Exception:
++        return {"ok": False, "error": "索引不对"}
++    r = memory.runtime()
++    ents = list(r.get("entries") or [])
++    if i < 0 or i >= len(ents):
++        return {"ok": False, "error": "没有这一条（可能已经被删了）"}
++    gone = ents.pop(i)
++    memory.runtime_set(entries=ents)
++    try:
++        import applog
++        applog.log("记忆书：删掉第 %d 条，剩 %d 条" % (i, len(ents)), "MEM")
++    except Exception:
++        pass
++    return {"ok": True, "left": len(ents),
++            "text": (gone or {}).get("text", "") if isinstance(gone, dict) else ""}
++
++
++class MemoryApi:
++    """见 main.Handler。"""
++
++    def _memory_get(self):
++        """GET /api/memory"""
++        try:
++            return self._json(view())
++        except Exception as e:
++            return self._json({"ok": False, "error": "读记忆书失败：%s" % e})
++
++    def _memory_delete(self):
++        """POST /api/memory/delete  {"index": 0}"""
++        try:
++            body = self._body()
++        except Exception as e:
++            return self._json({"ok": False, "error": "bad body: %s" % e}, 400)
++        return self._json(delete((body or {}).get("index")))
+diff --git a/program/src/api_modelcfg.py b/program/src/api_modelcfg.py
+index 3970f31..77bdb05 100644
+--- a/program/src/api_modelcfg.py
++++ b/program/src/api_modelcfg.py
+@@ -2,6 +2,7 @@
+ "ModelCfgApi 的 mixin：从 main.py 拆出，方法体未改动。"
+ 
+ import json
++import secret
+ import tts_client
+ 
+ 
+@@ -32,8 +33,13 @@ class ModelCfgApi:
+         key = (body.get("key") or "").strip()
+         model = (body.get("model") or "").strip()
+ 
++        # key 来自环境变量时界面拿到的是掩码：探测要用真 key，保存仍交给掩码保护
++        probe_key = key
++        if sec == "chat" and (not key or secret.is_masked(key)):
++            probe_key = secret.env_key() or key
++
+         if body.get("probe"):
+-            ok, latency, models = probe_endpoint(sec, endpoint, key, model)
++            ok, latency, models = probe_endpoint(sec, endpoint, probe_key, model)
+             # 语音板块：端点没起来就顺手把本地 GPT-SoVITS 拉起来再探一次
+             if (not ok) and sec == "voice":
+                 ep = (endpoint or "").lower()
+diff --git a/program/src/applog.py b/program/src/applog.py
+index 6f12f66..2e8cb74 100644
+--- a/program/src/applog.py
++++ b/program/src/applog.py
+@@ -10,6 +10,8 @@
+   · 线程栈快照（手动触发或检测到长时间无响应时）
+ 
+ 日志位置: <项目>/logs/app-YYYYMMDD.log
++
++写之前统一过一遍 `secret.redact()`：日志里不该出现 `sk-...` / `Bearer ...` 这类东西。
+ """
+ import datetime
+ import os
+@@ -18,6 +20,11 @@ import threading
+ import time
+ import traceback
+ 
++try:
++    import secret as _secret
++except Exception:                      # 极端情况下（单文件跑）也不能让日志挂掉
++    _secret = None
++
+ _LOCK = threading.Lock()
+ _FILE = None
+ _T0 = time.time()
+@@ -67,6 +74,11 @@ def path():
+ 
+ def log(msg, level="INFO"):
+     f = _open()
++    if _secret is not None:
++        try:
++            msg = _secret.redact(msg)
++        except Exception:
++            pass
+     t = time.time() - _T0
+     line = "[%s] [+%7.2fs] [%-5s] [%s] %s\n" % (
+         datetime.datetime.now().strftime("%H:%M:%S"), t, level,
+diff --git a/program/src/char_pack.py b/program/src/char_pack.py
+new file mode 100644
+index 0000000..4613cba
+--- /dev/null
++++ b/program/src/char_pack.py
+@@ -0,0 +1,481 @@
++# -*- coding: utf-8 -*-
++"""角色包导出 / 导入（zip）
++
++一个角色 = `characters/<角色>/` 一个文件夹。角色包只带走「换台机器也能直接演」的东西：
++
++    name.txt          显示名
++    prompt/           提示词（base + stage1~4 + persona_*）
++    worldbook/        世界书
++    memory/           常驻记忆书
++    portrait/         立绘（含 index.json）
++    voice/            参考音频（TTS 音色）
++
++**不带**（都是有意的）：
++
++    sessions/         存档 —— 对话记录不该跟着包到处跑
++    story.json        剧情索引开关（索引文件是本机生成的，别人拿了也用不了）
++    tts.json          权重路径（绝对路径，换机必失效）
++    opening.json / pronunciation.json   可选小配置，不属于「角色本体」
++    任何缓存
++
++zip 里多放一份 `manifest.json`：格式名、版本、角色名、导出时间、文件数、字节数。
++导入时优先用它拿角色名；没有 manifest 的裸包也认（用压缩包文件名当角色名）。
++
++导入是「先解到临时目录 → 校验 → 改名落盘」：中途失败不会在 characters/ 里留下半个角色。
++防路径穿越 / 绝对路径 / 盘符 / 超大文件 / 条目爆炸；只认上面那几个目录，其它条目跳过并报告。
++"""
++import json
++import os
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++import time
++import zipfile
++
++import characters
++
++FORMAT = "wa2-char-pack"
++FORMAT_VERSION = 1
++
++# 包里的「角色本体」：5 个资源目录 + 显示名
++PACK_DIRS = ("prompt", "worldbook", "memory", "portrait", "voice")
++PACK_FILES = ("name.txt",)
++MANIFEST = "manifest.json"
++
++# 上限（防解压炸弹；正常角色包 ~100MB，立绘 279 张 + 参考音频 71 个）
++MAX_TOTAL = 2 * 1024 ** 3          # 解压后总量 2GB
++MAX_ENTRY = 512 * 1024 ** 2        # 单个文件 512MB
++MAX_ENTRIES = 20000
++
++# 已经压过的媒体用 STORED：省掉白花的 CPU（实测 87MB 立绘 + 16MB 参考音频）
++_STORE_EXT = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif",
++              ".wav", ".mp3", ".ogg", ".flac", ".m4a")
++
++# 记住上次导出到哪儿（下次选目录直接落在那儿）；和 prefs.json 一个规矩，放用户目录
++CFG_NAME = "char_pack.json"
++
++
++def _log(msg):
++    try:
++        import applog
++        applog.log(msg, "PACK")
++    except Exception:
++        pass
++
++
++# ------------------------------------------------------------------ 小工具
++def _safe_rel(rel):
++    """压缩包条目 → 安全的相对路径；不安全返回空串"""
++    rel = (rel or "").replace("\\", "/").strip()
++    if not rel or rel.endswith("/"):
++        return ""
++    if rel.startswith("/") or re.match(r"^[A-Za-z]:", rel):
++        return ""
++    parts = [p for p in rel.split("/") if p not in ("", ".")]
++    if not parts or any(p == ".." for p in parts):
++        return ""
++    return "/".join(parts)
++
++
++def _top_dir(rel):
++    return rel.split("/")[0] if "/" in rel else ""
++
++
++def _wrapper_dir(names):
++    """用户常常把整个角色文件夹压进去（条目是 `和纱/prompt/...`）。
++
++    所有带目录的条目都在同一个顶层目录下、且那个名字不是 prompt/worldbook/...
++    就把它当包装层剥掉。返回要剥掉的目录名，没有就是空串。
++    """
++    tops = set()
++    for n in names:
++        t = _top_dir(n)
++        if t:
++            tops.add(t)
++    if len(tops) == 1:
++        t = next(iter(tops))
++        if t not in PACK_DIRS:
++            return t
++    return ""
++
++
++def _cfg_path():
++    return os.path.join(characters.user_dir(), CFG_NAME)
++
++
++def _last_dir():
++    try:
++        with open(_cfg_path(), encoding="utf-8") as f:
++            d = json.load(f)
++        p = (d or {}).get("last_export_dir") or ""
++        return p if p and os.path.isdir(p) else ""
++    except Exception:
++        return ""
++
++
++def _save_last_dir(path):
++    try:
++        tmp = _cfg_path() + ".tmp"
++        with open(tmp, "w", encoding="utf-8") as f:
++            json.dump({"last_export_dir": path}, f, ensure_ascii=False, indent=1)
++        os.replace(tmp, _cfg_path())
++    except Exception:
++        pass
++
++
++# ------------------------------------------------------------------ 系统对话框
++# 和 characters.pick_folder() 同一套：PowerShell 独立进程 + 1x1 置顶 Owner，
++# 路径经 UTF-8 临时文件传回来（走 stdout 会被 GBK 转坏中文路径）。
++_OWNER = (
++    "$ErrorActionPreference='Stop';"
++    "Add-Type -AssemblyName System.Windows.Forms;"
++    "Add-Type -AssemblyName System.Drawing;"
++    "$f=New-Object System.Windows.Forms.Form;"
++    "$f.TopMost=$true;$f.ShowInTaskbar=$false;$f.FormBorderStyle='None';"
++    "$f.StartPosition='Manual';$f.Size=New-Object System.Drawing.Size(1,1);"
++    "$f.Location=New-Object System.Drawing.Point(-3000,-3000);$f.Show();"
++)
++
++
++def _q(s):
++    return (s or "").replace("'", "''")
++
++
++def _run_ps(ps, tmp_out):
++    """跑 PowerShell 对话框，返回它写进临时文件的路径（没选就是空串）
++
++    打包版是窗口程序，不带控制台：加 CREATE_NO_WINDOW 免得多闪一个黑框
++    （对话框本身是 WinForms 窗口，不受影响）。
++    """
++    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
++    try:
++        subprocess.run(["powershell", "-NoProfile", "-STA", "-Command", ps],
++                       capture_output=True, text=True, encoding="utf-8",
++                       errors="replace", timeout=600, creationflags=flags)
++    except subprocess.TimeoutExpired:
++        return ""
++    except Exception as e:
++        _log("角色包：选择窗口打不开 %s" % e)
++        return ""
++    try:
++        with open(tmp_out, encoding="utf-8-sig", errors="replace") as f:
++            return f.read().strip()
++    except OSError:
++        return ""
++
++
++def _tmp_out():
++    fd, p = tempfile.mkstemp(prefix="wa2_pack_", suffix=".txt")
++    os.close(fd)
++    try:
++        os.remove(p)                  # 让脚本自己创建；没选就还是不存在
++    except OSError:
++        pass
++    return p
++
++
++def pick_export_dir(title="选择角色包导出到哪个文件夹", default=""):
++    """系统「选择文件夹」窗口。返回 {ok, dir} 或 {ok:False, cancelled:True}"""
++    if os.name != "nt":
++        return {"ok": False, "error": "只有 Windows 支持文件夹选择窗口"}
++    tmp = _tmp_out()
++    ps = (
++        "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" + _OWNER +
++        "$d=New-Object System.Windows.Forms.FolderBrowserDialog;"
++        "$d.Description='%s';"
++        "$d.SelectedPath='%s';"
++        "$d.ShowNewFolderButton=$true;"
++        "$ok=($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK);"
++        "$f.Close();"
++        "if($ok){[System.IO.File]::WriteAllText('%s', $d.SelectedPath, "
++        "(New-Object System.Text.UTF8Encoding $false))}"
++    ) % (_q(title), _q(default or characters.user_dir()), _q(tmp))
++    picked = _run_ps(ps, tmp)
++    try:
++        os.remove(tmp)
++    except OSError:
++        pass
++    if not picked:
++        return {"ok": False, "cancelled": True}
++    picked = os.path.normpath(picked)
++    if not os.path.isdir(picked):
++        return {"ok": False, "error": "选的不是文件夹：%s" % picked}
++    return {"ok": True, "dir": picked}
++
++
++def pick_pack_file(title="选择角色包（.zip）", default=""):
++    """系统「选择文件」窗口，只列 zip。返回 {ok, path} 或 cancelled"""
++    if os.name != "nt":
++        return {"ok": False, "error": "只有 Windows 支持文件选择窗口"}
++    tmp = _tmp_out()
++    ps = (
++        "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" + _OWNER +
++        "$d=New-Object System.Windows.Forms.OpenFileDialog;"
++        "$d.Title='%s';"
++        "$d.Filter='角色包 (*.zip)|*.zip|所有文件 (*.*)|*.*';"
++        "$d.CheckFileExists=$true;$d.Multiselect=$false;"
++        "%s"
++        "$ok=($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK);"
++        "$f.Close();"
++        "if($ok){[System.IO.File]::WriteAllText('%s', $d.FileName, "
++        "(New-Object System.Text.UTF8Encoding $false))}"
++    ) % (_q(title),
++         ("$d.InitialDirectory='%s';" % _q(default)) if default and os.path.isdir(default) else "",
++         _q(tmp))
++    picked = _run_ps(ps, tmp)
++    try:
++        os.remove(tmp)
++    except OSError:
++        pass
++    if not picked:
++        return {"ok": False, "cancelled": True}
++    picked = os.path.normpath(picked)
++    if not os.path.isfile(picked):
++        return {"ok": False, "error": "选的文件不存在：%s" % picked}
++    return {"ok": True, "path": picked}
++
++
++# ------------------------------------------------------------------ 导出
++def _members(cid):
++    """要打包的文件 [(绝对路径, 包内相对路径)]"""
++    root = os.path.join(characters.root(), cid)
++    out = []
++    for fn in PACK_FILES:
++        p = os.path.join(root, fn)
++        if os.path.isfile(p):
++            out.append((p, fn))
++    for d in PACK_DIRS:
++        base = os.path.join(root, d)
++        if not os.path.isdir(base):
++            continue
++        for dirpath, _dirs, files in os.walk(base):
++            for fn in sorted(files):
++                p = os.path.join(dirpath, fn)
++                if not os.path.isfile(p):
++                    continue
++                rel = os.path.relpath(p, root).replace("\\", "/")
++                out.append((p, rel))
++    return out
++
++
++def _unique_zip(out_dir, base):
++    name = characters._sanitize(base) or "角色"
++    p = os.path.join(out_dir, name + ".zip")
++    i = 2
++    while os.path.exists(p):
++        p = os.path.join(out_dir, "%s_%d.zip" % (name, i))
++        i += 1
++    return p
++
++
++def export_pack(cid, out_dir):
++    """把 characters/<cid>/ 打包成 <out_dir>/<角色名>.zip"""
++    cid = characters._sanitize(cid or "")
++    if not cid:
++        return {"ok": False, "error": "角色名不对"}
++    src = os.path.join(characters.root(), cid)
++    if not os.path.isdir(src):
++        return {"ok": False, "error": "没有这个角色文件夹：%s" % cid}
++    if not out_dir or not os.path.isdir(out_dir):
++        return {"ok": False, "error": "导出目录不存在：%s" % out_dir}
++
++    members = _members(cid)
++    if not members:
++        return {"ok": False, "error": "这个角色文件夹是空的（没有提示词 / 立绘 / 语音可导出）"}
++
++    parts = {}
++    total = 0
++    for p, rel in members:
++        top = _top_dir(rel) or rel
++        parts[top] = parts.get(top, 0) + 1
++        try:
++            total += os.path.getsize(p)
++        except OSError:
++            pass
++
++    target = _unique_zip(out_dir, characters.display_name(cid) or cid)
++    manifest = {
++        "format": FORMAT,
++        "version": FORMAT_VERSION,
++        "id": cid,
++        "name": characters.display_name(cid),
++        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
++        "app": "WA2-Kazusa-Bot",
++        "parts": parts,
++        "files": len(members),
++        "bytes": total,
++    }
++    tmp = target + ".tmp"
++    try:
++        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
++            z.writestr(MANIFEST, json.dumps(manifest, ensure_ascii=False, indent=1))
++            for p, rel in members:
++                ext = os.path.splitext(rel)[1].lower()
++                kind = zipfile.ZIP_STORED if ext in _STORE_EXT else zipfile.ZIP_DEFLATED
++                z.write(p, rel, compress_type=kind)
++        os.replace(tmp, target)          # 原子替换：写一半断电不会留半个包
++    except Exception as e:
++        try:
++            os.remove(tmp)
++        except OSError:
++            pass
++        _log("角色包：导出失败 %s" % e)
++        return {"ok": False, "error": "打包失败：%s" % e}
++
++    _save_last_dir(out_dir)
++    _log("角色包：导出 %s → %s（%d 个文件）" % (cid, target, len(members)))
++    return {"ok": True, "path": target, "file": os.path.basename(target),
++            "dir": out_dir, "files": len(members), "bytes": total, "parts": parts}
++
++
++def export_with_dialog(cid):
++    """导出按钮：先选目录再打包（目录窗口取消就什么都不做）"""
++    cid = characters._sanitize(cid or "")
++    if not cid:
++        return {"ok": False, "error": "角色名不对"}
++    if not os.path.isdir(os.path.join(characters.root(), cid)):
++        return {"ok": False, "error": "没有这个角色文件夹：%s" % cid}
++    d = pick_export_dir(default=_last_dir() or os.path.dirname(characters.root()))
++    if not d.get("ok"):
++        return d
++    return export_pack(cid, d["dir"])
++
++
++# ------------------------------------------------------------------ 导入
++def _read_manifest(z, prefix):
++    """读 manifest.json（可能在根，也可能在包装目录里）；坏了就当没有"""
++    for name in ((prefix + "/" + MANIFEST) if prefix else "", MANIFEST):
++        if not name:
++            continue
++        try:
++            with z.open(name) as f:
++                d = json.loads(f.read().decode("utf-8"))
++            if isinstance(d, dict):
++                return d
++        except Exception:
++            continue
++    return {}
++
++
++def _plan_entries(infos, prefix):
++    """把条目分成「要的」和「跳过的」，顺便做安全与体积校验"""
++    plan, skipped = [], []
++    for i in infos:
++        if i.is_dir():
++            continue
++        rel = _safe_rel(i.filename)
++        if not rel:
++            skipped.append(i.filename)
++            continue
++        if prefix:
++            if not rel.startswith(prefix + "/"):
++                # 包装层外的散文件（manifest.json 之类）单独处理
++                if rel != MANIFEST:
++                    skipped.append(rel)
++                continue
++            rel = rel[len(prefix) + 1:]
++        if rel == MANIFEST:
++            continue
++        if rel in PACK_FILES or _top_dir(rel) in PACK_DIRS:
++            plan.append((i, rel))
++        else:
++            skipped.append(rel)
++    return plan, skipped
++
++
++def _check_limits(infos):
++    if len(infos) > MAX_ENTRIES:
++        return "压缩包条目太多（%d 个，上限 %d）" % (len(infos), MAX_ENTRIES)
++    total = 0
++    for i in infos:
++        if i.file_size > MAX_ENTRY:
++            return "包里有超大文件：%s（%d MB）" % (i.filename, i.file_size // (1024 * 1024))
++        total += i.file_size
++        if total > MAX_TOTAL:
++            return "解压后太大（超过 2GB）"
++    return ""
++
++
++def import_pack(zip_path):
++    """把一个角色包解成 characters/ 下的新角色（不自动切换）"""
++    if not zip_path or not os.path.isfile(zip_path):
++        return {"ok": False, "error": "找不到文件：%s" % zip_path}
++    if not zipfile.is_zipfile(zip_path):
++        return {"ok": False, "error": "这不是有效的 zip 文件"}
++
++    tmp_root = ""
++    try:
++        with zipfile.ZipFile(zip_path) as z:
++            infos = z.infolist()
++            bad = _check_limits(infos)
++            if bad:
++                return {"ok": False, "error": bad}
++
++            names = [_safe_rel(i.filename) for i in infos if not i.is_dir()]
++            names = [n for n in names if n]
++            prefix = _wrapper_dir(names)
++            manifest = _read_manifest(z, prefix)
++            plan, skipped = _plan_entries(infos, prefix)
++            if not plan:
++                return {"ok": False,
++                        "error": "包里没有角色内容（要 prompt/ worldbook/ memory/ portrait/ voice/）"}
++
++            # 先解到 characters/ 下的临时目录：同一个盘，最后一步是原子改名
++            tmp_root = os.path.join(characters.root(),
++                                    ".importing_%d" % int(time.time() * 1000))
++            os.makedirs(tmp_root, exist_ok=True)
++            total = 0
++            for i, rel in plan:
++                dst = os.path.join(tmp_root, *rel.split("/"))
++                os.makedirs(os.path.dirname(dst), exist_ok=True)
++                with z.open(i) as srcf, open(dst, "wb") as outf:
++                    shutil.copyfileobj(srcf, outf, 1024 * 1024)
++                total += i.file_size
++
++        # 角色 id：manifest 里的 > 包里的 name.txt > 压缩包文件名；重名自动加序号
++        nm_text = ""
++        try:
++            with open(os.path.join(tmp_root, "name.txt"), encoding="utf-8") as f:
++                nm_text = f.read().strip()
++        except Exception:
++            pass
++        raw = (manifest.get("id") or manifest.get("name") or nm_text
++               or os.path.splitext(os.path.basename(zip_path))[0])
++        base = characters._sanitize(raw) or "导入角色"
++        cid = characters._unique(base)
++        final = os.path.join(characters.root(), cid)
++        os.replace(tmp_root, final)          # 目录改名，失败会抛异常
++        tmp_root = ""
++
++        characters._make_dirs(final)
++        if not os.path.isfile(os.path.join(final, "name.txt")):
++            nm = (manifest.get("name") or base or cid).strip()[:12] or cid
++            characters._write(os.path.join(final, "name.txt"), nm)
++        # 提示词是空的（裸包/手工包）→ 用自带模板铺一份，免得导入后是个空角色
++        if not characters._has_prompt(os.path.join(final, "prompt")):
++            characters.seed_character(cid)
++
++        name = characters.display_name(cid)
++        _log("角色包：导入 %s → %s（%d 个文件）" % (zip_path, cid, len(plan)))
++        return {"ok": True, "id": cid, "name": name, "files": len(plan),
++                "bytes": total, "skipped": skipped[:20],
++                "skipped_count": len(skipped),
++                "manifest": {k: manifest.get(k) for k in ("format", "version", "name", "created_at")}}
++    except zipfile.BadZipFile:
++        return {"ok": False, "error": "压缩包损坏，读不出来"}
++    except Exception as e:
++        _log("角色包：导入失败 %s" % e)
++        return {"ok": False, "error": "导入失败：%s" % e}
++    finally:
++        if tmp_root and os.path.isdir(tmp_root):
++            shutil.rmtree(tmp_root, ignore_errors=True)
++
++
++def import_with_dialog():
++    """导入按钮：弹选文件窗口 → 导入（取消就什么都不做）"""
++    f = pick_pack_file(default=_last_dir() or os.path.dirname(characters.root()))
++    if not f.get("ok"):
++        return f
++    return import_pack(f["path"])
+diff --git a/program/src/main.py b/program/src/main.py
+index 962e8e5..d66b79c 100644
+--- a/program/src/main.py
++++ b/program/src/main.py
+@@ -30,6 +30,7 @@ import os
+ import sys
+ import shutil
+ import applog
++import secret
+ import tts_client
+ import json
+ import time
+@@ -54,7 +55,7 @@ import urllib.error
+ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+ 
+ BUILD_TAG = time.strftime("%H%M%S")
+-APP_NAME = "WHITE ALBUM 2"
++APP_NAME = "WHITE ALBUM2 Extension~ どこまでも続く道~"
+ WINDOW_TITLE = APP_NAME
+ OLLAMA = "http://127.0.0.1:11434"
+ # 安全模式: 存在 模型开关.txt(或环境变量 WA2_NO_MODELS=1) 时不加载任何模型
+@@ -162,12 +163,20 @@ def prefs_save(d):
+ 
+ 
+ def cloud_cfg():
++    """云端配置：**环境变量里的 key 优先**于 config.json。
++
++    这样设了 WA2_API_KEY / DEEPSEEK_API_KEY 就完全不用往文件里写 key；
++    文件里那份仍然保留，方便「临时去掉环境变量」时回落，不会被覆盖掉。
++    """
+     try:
+         d = json.load(open(CLOUD_CFG_FILE, encoding="utf-8"))
+-        if d.get("api_key") and d.get("model"):
+-            return d
+     except Exception:
+-        pass
++        d = {}
++    if not isinstance(d, dict):
++        d = {}
++    d = secret.apply_env(d)
++    if d.get("api_key") and d.get("model"):
++        return d
+     return {}
+ 
+ def _http_ok(url, headers=None, timeout=4):
+@@ -300,11 +309,17 @@ def model_cfg_all():
+     chat_ep = d.get("base_url") or OLLAMA
+     chat_key = d.get("api_key") or ""
+     chat_model = d.get("model") or DEFAULT_MODEL
+-    return {
++    out = {
+         "chat": pick("chat", chat_ep, chat_key, chat_model),
+         "voice": pick("voice", TTS_ENDPOINT_HINT, "", "GPT-SoVITS"),
+         "mt": pick("mt", OLLAMA, "", TRANSLATE_MODEL),
+     }
++    # key 来自环境变量时，界面只拿到掩码：真 key 不出后端，也不会被保存回去
++    env = secret.env_key()
++    if env:
++        out["chat"]["key"] = secret.mask(env)
++        out["chat"]["key_from_env"] = True
++    return out
+ 
+ 
+ def model_cfg_save(sec, endpoint, key, model, connected):
+@@ -313,6 +328,13 @@ def model_cfg_save(sec, endpoint, key, model, connected):
+     except Exception:
+         d = {}
+     m = d.get("models") or {}
++    key = key or ""
++    # 界面回填的是掩码（key 来自环境变量）时，别把 `sk-****abcd` 写进 config.json
++    if secret.is_masked(key):
++        old = (m.get(sec) or {}).get("key") or ""
++        if sec == "chat" and not old:          # 老配置只有扁平字段，也要留住
++            old = d.get("api_key") or ""
++        key = old
+     m[sec] = {"endpoint": endpoint, "key": key,
+               "model": model, "connected": bool(connected)}
+     d["models"] = m
+@@ -358,6 +380,8 @@ from api_modelcfg import ModelCfgApi
+ from api_tts import TtsApi
+ from api_text import TextApi
+ from api_chat import ChatApi
++from api_charpack import CharPackApi
++from api_memory import MemoryApi
+ from api_update import UpdateApi
+ from text_parse import (
+     ACTION_RE, split_scene, split_emotion, split_action, split_thinking,
+@@ -442,12 +466,13 @@ _TEXT_CACHE_MAX = 2000
+ 
+ 
+ def log(msg):
+-    """轻量日志: 打包后没有控制台, 写文件方便排查"""
++    """轻量日志: 打包后没有控制台, 写文件方便排查（写之前先脱敏）"""
+     try:
+         import datetime
+         p = os.path.join(os.environ.get("TEMP", "."), "wa2_app.log")
+         with open(p, "a", encoding="utf-8") as f:
+-            f.write("[%s] %s\n" % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
++            f.write("[%s] %s\n" % (datetime.datetime.now().strftime("%H:%M:%S"),
++                                   secret.redact(msg)))
+     except Exception:
+         pass
+ 
+@@ -729,7 +754,8 @@ def _repack_async(msgs, a, b):
+ # ---------------- HTTP 服务 ----------------
+ 
+ 
+-class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
++class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
++              ModelCfgApi, TtsApi, TextApi, SimpleHTTPRequestHandler):
+     def __init__(self, *a, **kw):
+         super().__init__(*a, directory=UI_DIR, **kw)
+ 
+@@ -957,6 +983,9 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextA
+                 return self._json({"ok": False, "error": str(e)})
+         if self.path == "/api/prefs":
+             return self._json({"ok": True, "prefs": prefs_load()})
++        if self.path == "/api/memory":
++            # 记忆书查看（常驻设定 + 自动摘要条目）
++            return self._memory_get()
+         if self.path == "/api/modelcfg":
+             return self._json(model_cfg_all())
+         if self.path.startswith("/api/session/load"):
+@@ -1047,6 +1076,15 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, ModelCfgApi, TtsApi, TextA
+                 body = {}
+             res = characters.create((body or {}).get("name") or "")
+             return self._json(self._after_switch(res))
++        if self.path == "/api/charpack/export":
++            # 角色包导出：先弹「选目录」，再打包（都在这一个请求里做完）
++            return self._charpack_export()
++        if self.path == "/api/charpack/import":
++            # 角色包导入：弹「选文件」，解成 characters/ 下的新角色（不自动切换）
++            return self._charpack_import()
++        if self.path == "/api/memory/delete":
++            # 删掉运行时记忆书里的一条（不动存档里的快照）
++            return self._memory_delete()
+         if self.path.startswith("/api/special/upload"):
+             # 特别模式的角色资源：原始字节流，文件名走 query（前端 encodeURIComponent）
+             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+diff --git a/program/src/secret.py b/program/src/secret.py
+new file mode 100644
+index 0000000..803b04f
+--- /dev/null
++++ b/program/src/secret.py
+@@ -0,0 +1,95 @@
++# -*- coding: utf-8 -*-
++"""密钥：环境变量优先 + 日志脱敏
++
++为什么要这个：
++  `config.json` 里的 `api_key` 是明文。自己用没事，但只要**分享配置、发诊断包、
++  录屏、备份到网盘**，key 就跟着出去了。设一个环境变量就能完全不往文件里写。
++
++读 key 的顺序（`main.cloud_cfg()` 里调用）：
++    1. 环境变量 `WA2_API_KEY`
++    2. 环境变量 `DEEPSEEK_API_KEY`
++    3. `config.json` 里的 `api_key`
++
++界面：key 来自环境变量时，`/api/modelcfg` 只返回掩码（`sk-****abcd`）+ `key_from_env`，
++所以界面上永远看不到真 key；用户点了保存也不会把掩码写回文件（`main.model_cfg_save` 里挡着）。
++
++日志：`applog.log()` 与 `main.log()` 写之前都过一遍 `redact()`，
++把 `sk-...` / `Bearer ...` / `"api_key": "..."` 换成 `***`。对话正文本来就不写日志
++（applog 只记请求路径），这里只管「长得像密钥」的东西。
++"""
++import os
++import re
++
++# 按顺序找：先认本项目自己的名字，再认 DeepSeek 官方的习惯名
++ENV_KEYS = ("WA2_API_KEY", "DEEPSEEK_API_KEY")
++
++MASK = "****"
++
++# 只认「看起来像密钥」的形状，别把普通单词也抹了
++_RE_SK = re.compile(r"\bsk-[A-Za-z0-9_\-]{6,}")
++_RE_BEARER = re.compile(r"(Bearer\s+)[A-Za-z0-9_\-\.=]{8,}", re.I)
++_RE_KV = re.compile(
++    r"(\"?(?:api_key|access_token|secret_key|token)\"?\s*[:=]\s*\"?)([A-Za-z0-9_\-\.=]{12,})",
++    re.I)
++
++
++def env_key():
++    """环境变量里的 key（没有就是空串）。文件里的那份不会被它覆盖写回。"""
++    for name in ENV_KEYS:
++        v = (os.environ.get(name) or "").strip()
++        if v:
++            return v
++    return ""
++
++
++def apply_env(cfg):
++    """把环境变量里的 key 盖到配置 dict 上（不改原对象）。
++
++    没有环境变量就原样返回——文件里那份照旧生效，不会被清空。
++    """
++    k = env_key()
++    if not k:
++        return cfg
++    d = dict(cfg or {})
++    d["api_key"] = k
++    d["key_from_env"] = True
++    return d
++
++
++def mask(key):
++    """给界面看的掩码：`sk-****abcd`（留前缀 3 位 + 末 4 位）"""
++    k = (key or "").strip()
++    if not k:
++        return ""
++    if len(k) <= 8:
++        return MASK
++    return k[:3] + MASK + k[-4:]
++
++
++def is_masked(key):
++    """这个值是不是已经打码了（掩码被当成真 key 写回文件是这里要防的事）"""
++    k = key or ""
++    return MASK in k or "\u2022" in k          # **** 或界面上的 ••••
++
++
++def redact(text):
++    """把文本里像密钥的部分替换掉；不是字符串就原样返回"""
++    if text is None:
++        return text
++    try:
++        s = str(text)
++    except Exception:
++        return text
++    if not s:
++        return s
++    s = _RE_SK.sub(MASK, s)
++    s = _RE_BEARER.sub(lambda m: m.group(1) + MASK, s)
++    s = _RE_KV.sub(lambda m: m.group(1) + MASK, s)
++    return s
++
++
++def source():
++    """当前 key 从哪儿来：`env` / `file` / ``（只给日志和排查用，不带 key 本身）"""
++    if env_key():
++        return "env"
++    return "file"
+diff --git a/program/src/ui/game450.css b/program/src/ui/game450.css
+index 8e7740a..0cc6d97 100644
+--- a/program/src/ui/game450.css
++++ b/program/src/ui/game450.css
+@@ -519,3 +519,31 @@ body.histOpen #toolbar { display:none !important; }
+ #costBar .num { display: inline-flex; align-items: center; margin: 0 1px; }
+ #costBar .row img.lb { margin: 0 .5px; }
+ #costBar .num img { height: 12px; width: auto; display: block; margin: 0 .4px; }
++
++/* ===== 切角色过渡：整幕压黑 =====
++   层级：.uiScreen 是 120，这里 200，标题栏 2147483000 —— 只盖舞台，不盖窗口按钮。
++   流程见 sp-char.js：压黑 180ms → 换人 → 淡回 200ms；慢的时候中间显示角色名。 */
++#charFade {
++  position: absolute; inset: 0;
++  background: #000;
++  opacity: 0;
++  pointer-events: none;
++  transition: opacity .18s ease;
++  z-index: 200;
++}
++#charFade.on {
++  opacity: 1;
++  pointer-events: auto;      /* 过渡期间挡住点击，别在换人的时候发消息 */
++}
++#charFadeName {
++  position: absolute; left: 0; right: 0; top: 50%;
++  transform: translateY(-50%);
++  text-align: center;
++  font-size: 14px;
++  color: #dff6ff;
++  opacity: 0;
++  transition: opacity .15s ease;
++  text-shadow: 0 1px 4px rgba(0,0,0,.9);
++}
++#charFade.slow #charFadeName { opacity: 1; }
++#charFadeName img { height: 14px; width: auto; display: block; margin: 0 auto; }
+diff --git a/program/src/ui/index.html b/program/src/ui/index.html
+index 0fad560..1581928 100644
+--- a/program/src/ui/index.html
++++ b/program/src/ui/index.html
+@@ -3,15 +3,15 @@
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-<title>WHITE ALBUM 2</title>
+-<link rel="stylesheet" href="screens-base.css?v=202611040400">
+-<link rel="stylesheet" href="opt-screen.css?v=202611040400">
+-<link rel="stylesheet" href="save-screen.css?v=202611040400">
+-<link rel="stylesheet" href="game450.css?v=202611040400">
+-<link rel="stylesheet" href="unifont.css?v=202611040400">
+-<link rel="stylesheet" href="opt.css?v=202611040400">
+-  <link rel="stylesheet" href="menubar.css?v=202611040400">
+-<link rel="stylesheet" href="special.css?v=202611040400">
++<title>WHITE ALBUM2 Extension~ どこまでも続く道~</title>
++<link rel="stylesheet" href="screens-base.css?v=202611042110">
++<link rel="stylesheet" href="opt-screen.css?v=202611042110">
++<link rel="stylesheet" href="save-screen.css?v=202611042110">
++<link rel="stylesheet" href="game450.css?v=202611042110">
++<link rel="stylesheet" href="unifont.css?v=202611042110">
++<link rel="stylesheet" href="opt.css?v=202611042110">
++  <link rel="stylesheet" href="menubar.css?v=202611042110">
++<link rel="stylesheet" href="special.css?v=202611042110">
+ </head>
+ <body>
+ <div id="stage">
+@@ -126,6 +126,8 @@
+         <div class="spRoleBtns">
+           <button class="spRoleBtn" id="spSwitch" type="button" title="从总角色资源文件夹里选一个角色"><img src="assets/ui/text/sp_btn_switch.png" alt=""></button>
+           <button class="spRoleBtn" id="spNew" type="button" title="在总角色资源文件夹里新建一个角色"><img src="assets/ui/text/sp_btn_new.png" alt=""></button>
++          <button class="spRoleBtn" id="spExport" type="button" title="把角色打包成 zip（提示词 / 世界书 / 记忆书 / 立绘 / 语音）">导出</button>
++          <button class="spRoleBtn" id="spImport" type="button" title="从 zip 角色包导入一个新角色">导入</button>
+         </div>
+       </div>
+ 
+@@ -178,7 +180,8 @@
+     <!-- 角色切换：直接列出现有角色，一键切换（标题在框外，列表可滚动） -->
+     <div id="spCharPick" class="spCharPick" data-no-uitext="1" role="dialog" aria-hidden="true">
+       <div class="spcpWrap">
+-        <img class="spcpTitle" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
++        <img class="spcpTitle" id="spcpTitleImg" src="assets/ui/text/sp_switch_title.png" alt="切换角色">
++        <span class="spcpTitle spcpTitleText" id="spcpTitleText" style="display:none"></span>
+         <div class="spcpBox">
+           <div id="spcpList" class="spcpList"></div>
+         </div>
+@@ -200,6 +203,19 @@
+     <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
+   </div>
+ 
++  <!-- ===== 记忆书：常驻设定（只读）+ 自动摘要条目（可删） =====
++       文字走原生 DOM（和回想一样），不用字模：条目是动态长句，字模换行会压扁。 -->
++  <div id="memScreen" class="uiScreen">
++    <div class="memWrap">
++      <div class="memTitle" data-no-uitext="1">记忆书</div>
++      <div class="memStanding" id="memStanding" data-no-uitext="1"></div>
++      <div class="memList" id="memList" data-no-uitext="1"></div>
++      <div class="memHint" id="memHint" data-no-uitext="1"></div>
++    </div>
++    <div class="uiFoot"><img src="assets/ui/sys_09000.png" alt=""></div>
++    <div class="uiExit" role="button" title="返回"><img class="s1" src="assets/ui/save/exit_0.png" alt=""><img class="s2" src="assets/ui/save/exit_1.png" alt=""><img class="s3" src="assets/ui/save/exit_2.png" alt=""></div>
++  </div>
++
+ 
+ 
+ <!-- ================= 场景 / 服装手动选择 ================= -->
+@@ -269,41 +285,47 @@
+   </div>
+ </div>
+ 
++<!-- 切角色过渡：整幕压黑 → 换人 → 淡回。层级在浮层之上、标题栏之下；
++     只有切换慢（>420ms）时才在中间显示目标角色名。 -->
++<div id="charFade" aria-hidden="true"><span id="charFadeName"></span></div>
++
+ </div>
+ 
+ <script>function fitStage(){var st=document.getElementById("stage");if(!st)return;var sx=innerWidth/800, sy=innerHeight/450;st.style.transform="translate(-50%,-50%) scale("+sx+","+sy+")";}window.fitStage=fitStage;addEventListener("resize",fitStage);fitStage();</script>
+-<script src="wt-core.js?v=202611040400"></script>
+-<script src="wt-update.js?v=202611040400"></script>
+-<script src="wt-audio.js?v=202611040400"></script>
+-<script src="wt-sprite.js?v=202611040400"></script>
+-<script src="wt-voice.js?v=202611040400"></script>
+-<script src="wt-text.js?v=202611040400"></script>
+-<script src="wt-backlog.js?v=202611040400"></script>
+-<script src="wt-choices.js?v=202611040400"></script>
+-<script src="wt-chat.js?v=202611040400"></script>
+-<script src="wt-session.js?v=202611040400"></script>
+-<script src="wt-cost.js?v=202611040400"></script>
+-<script src="wt-mood.js?v=202611040400"></script>
+-<script src="wt-gdi.js?v=202611040400"></script>
+-<script src="wt-nav.js?v=202611040400"></script>
+-<script src="config.js?v=202611040400"></script>
+-<script src="opt-widgets.js?v=202611040400"></script>
+-<script src="opt-model.js?v=202611040400"></script>
+-<script src="opt.js?v=202611040400"></script>
+-  <script src="savetabs4.js?v=202611040400"></script>
+-  <script src="savepages.js?v=202611040400"></script>
+-  <script src="screens.js?v=202611040400"></script>
+-  <script src="sp-sliders.js?v=202611040400"></script>
+-<script src="sp-char.js?v=202611040400"></script>
+-<script src="sp-panels.js?v=202611040400"></script>
+-<script src="special.js?v=202611040400"></script>
+-<script src="game.js?v=202611040400"></script>
+-<script src="sound.js?v=202611040400"></script>
+-<script src="zoom.js?v=202611040400"></script>
+-<script src="debug.js?v=202611040400"></script>
+-<script src="scale.js?v=202611040400"></script>
+-<script src="menubar.js?v=202611040400"></script>
+-<script src="uitext.js?v=202611040400"></script>
++<script src="wt-core.js?v=202611042110"></script>
++<script src="wt-update.js?v=202611042110"></script>
++<script src="wt-audio.js?v=202611042110"></script>
++<script src="wt-sprite.js?v=202611042110"></script>
++<script src="wt-voice.js?v=202611042110"></script>
++<script src="wt-text.js?v=202611042110"></script>
++<script src="wt-backlog.js?v=202611042110"></script>
++<script src="wt-choices.js?v=202611042110"></script>
++<script src="wt-chat.js?v=202611042110"></script>
++<script src="wt-session.js?v=202611042110"></script>
++<script src="wt-cost.js?v=202611042110"></script>
++<script src="wt-mood.js?v=202611042110"></script>
++<script src="wt-gdi.js?v=202611042110"></script>
++<script src="wt-nav.js?v=202611042110"></script>
++<script src="config.js?v=202611042110"></script>
++<script src="opt-widgets.js?v=202611042110"></script>
++<script src="opt-model.js?v=202611042110"></script>
++<script src="opt.js?v=202611042110"></script>
++  <script src="savetabs4.js?v=202611042110"></script>
++  <script src="savepages.js?v=202611042110"></script>
++  <script src="screens.js?v=202611042110"></script>
++<script src="mem-screen.js?v=202611042110"></script>
++  <script src="sp-sliders.js?v=202611042110"></script>
++<script src="sp-char.js?v=202611042110"></script>
++<script src="sp-panels.js?v=202611042110"></script>
++<script src="sp-pack.js?v=202611042110"></script>
++<script src="special.js?v=202611042110"></script>
++<script src="game.js?v=202611042110"></script>
++<script src="sound.js?v=202611042110"></script>
++<script src="zoom.js?v=202611042110"></script>
++<script src="debug.js?v=202611042110"></script>
++<script src="scale.js?v=202611042110"></script>
++<script src="menubar.js?v=202611042110"></script>
++<script src="uitext.js?v=202611042110"></script>
+ <script>
+ /* __hashRoute: 用 #opt / #save / #blog / #special 直接打开界面(调试/对比用) */
+ window.addEventListener("load", function () {
+diff --git a/program/src/ui/mem-screen.js b/program/src/ui/mem-screen.js
+new file mode 100644
+index 0000000..741ddf4
+--- /dev/null
++++ b/program/src/ui/mem-screen.js
+@@ -0,0 +1,135 @@
++/* mem-screen.js —— 记忆书界面（查看 + 删除）
++ *
++ * 数据：GET  /api/memory            → { standing:{file,chars,text}, entries:[{i,text,label,...}], hint }
++ * 删除：POST /api/memory/delete     → { index }
++ *
++ * 入口：标题栏「系统 → 记忆书」（menubar.js 调 window.__openMemory）。
++ *
++ * 文字走原生 DOM（和回想一样），不用字模：条目是动态长句，字模换行会被压扁。
++ * 删除做成两段式（点一次变「确认？」2.6 秒，再点才删），不弹确认框。
++ */
++(function () {
++  var WA2 = window.WA2 = window.WA2 || {};
++  var $ = function (id) { return document.getElementById(id); };
++
++  var armed = null;        // 正在等第二次确认的那一条
++  var armTimer = null;
++  var busy = false;
++
++  function el(tag, cls, text) {
++    var d = document.createElement(tag);
++    /* 整屏走原生 DOM：不让 uitext 把文字换成字模图（长句换行会被压扁） */
++    d.dataset.noUitext = "1";
++    if (cls) d.className = cls;
++    if (text != null) d.textContent = text;
++    return d;
++  }
++
++  function clearArm() {
++    if (armTimer) { clearTimeout(armTimer); armTimer = null; }
++    armed = null;
++    var list = $("memList");
++    if (!list) return;
++    Array.prototype.forEach.call(list.querySelectorAll(".memDel.arm"), function (b) {
++      b.classList.remove("arm");
++      b.textContent = "删除";
++    });
++  }
++
++  function setHint(text) {
++    var h = $("memHint");
++    if (h) h.textContent = text || "";
++  }
++
++  function paint(d) {
++    var list = $("memList");
++    var stand = $("memStanding");
++    if (!list || !stand) return;
++    list.innerHTML = "";
++    stand.innerHTML = "";
++    setHint("");
++
++    /* 常驻记忆书：角色设定，只读 */
++    var st = (d && d.standing) || {};
++    stand.appendChild(el("span", "lbl",
++      "常驻记忆书（角色设定，只读）" + (st.chars ? " · " + st.chars + " 字" : "")));
++    if (st.text) {
++      stand.appendChild(el("div", "", st.text));
++    } else {
++      stand.appendChild(el("div", "memEmpty", "还没有常驻记忆书，可以在「特别模式 → 记忆书」导入。"));
++    }
++
++    /* 自动摘要条目：可删 */
++    var entries = (d && d.entries) || [];
++    if (!entries.length) {
++      list.appendChild(el("div", "memEmpty", "还没有自动摘要条目。"));
++    } else {
++      entries.forEach(function (e) {
++        var row = el("div", "memRow");
++        row.appendChild(el("span", "memKind", e.label || "其他"));
++        var t = el("div", "memText", e.text || "");
++        t.dataset.noUitext = "1";
++        row.appendChild(t);
++        var btn = el("button", "memDel", "删除");
++        btn.type = "button";
++        btn.dataset.noUitext = "1";
++        btn.addEventListener("click", function () { onDelete(e, btn); });
++        row.appendChild(btn);
++        list.appendChild(row);
++      });
++    }
++
++    if (d && d.hint) {
++      setHint(d.hint);
++    } else if (entries.length) {
++      setHint("共 " + entries.length + " 条" +
++        (d.covered ? "，覆盖到第 " + d.covered + " 句" : "") +
++        "。删掉的条目只影响这一轮注入，存档里的快照不动。");
++    }
++  }
++
++  function onDelete(entry, btn) {
++    if (busy) return;
++    if (armed !== entry.i) {          // 第一次点：进入确认态
++      clearArm();
++      armed = entry.i;
++      btn.classList.add("arm");
++      btn.textContent = "确认？";
++      armTimer = setTimeout(clearArm, 2600);
++      return;
++    }
++    clearArm();
++    busy = true;
++    fetch("/api/memory/delete", {
++      method: "POST",
++      headers: { "Content-Type": "application/json" },
++      body: JSON.stringify({ index: entry.i })
++    }).then(function (r) { return r.json(); })
++      .then(function (res) {
++        busy = false;
++        if (res && res.ok) load();
++        else setHint((res && res.error) || "删除失败");
++      })
++      .catch(function () { busy = false; setHint("删除失败（后端没响应）"); });
++  }
++
++  function load() {
++    return fetch("/api/memory", { cache: "no-store" })
++      .then(function (r) { return r.json(); })
++      .then(function (d) { paint(d); })
++      .catch(function () { paint({ ok: false }); });
++  }
++
++  function open() {
++    var s = window.__showUIScreen ? window.__showUIScreen("memScreen") : $("memScreen");
++    if (!s) return;
++    clearArm();
++    load();
++  }
++
++  window.__openMemory = open;
++
++  var _exp = { open: open, load: load, paint: paint };
++  WA2.memoryScreen = _exp;
++  WA2.register("memoryScreen", _exp);
++})();
+diff --git a/program/src/ui/menubar.js b/program/src/ui/menubar.js
+index be17d73..dcb543d 100644
+--- a/program/src/ui/menubar.js
++++ b/program/src/ui/menubar.js
+@@ -331,6 +331,9 @@
+       { label: "系统设置", action: function () {
+           if (window.__openOptions) window.__openOptions();
+       } },
++      { label: "记忆书", action: function () {
++          if (window.__openMemory) window.__openMemory();
++      } },
+       { label: "返回标题", action: function () { location.reload(); } }
+     ]));
+ 
+diff --git a/program/src/ui/opt-model.js b/program/src/ui/opt-model.js
+index 7b629ce..77284f7 100644
+--- a/program/src/ui/opt-model.js
++++ b/program/src/ui/opt-model.js
+@@ -306,6 +306,10 @@
+             if (!inp) return;
+             wrap._inp = inp;
+             inp.value = got[f] || "";
++            if (f === "key" && got.key_from_env) {
++              // key 来自环境变量：界面上只有掩码，真 key 不出后端
++              inp.title = "密钥来自环境变量，不会写进 config.json";
++            }
+             commitField(wrap);
+           });
+           setModelName(sec, got.model);
+diff --git a/program/src/ui/screens-base.css b/program/src/ui/screens-base.css
+index cd819dd..a73e81b 100644
+--- a/program/src/ui/screens-base.css
++++ b/program/src/ui/screens-base.css
+@@ -45,3 +45,47 @@
+   pointer-events:none; opacity:.97;
+   filter:drop-shadow(0 1px 3px rgba(0,15,35,.85));
+ }
++
++/* ---------- 记忆书 ----------
++   和回想同一套壳；文字走原生 DOM（条目是动态长句，字模换行会被压扁）。 */
++.memWrap {
++  position:absolute; left:44px; right:52px; top:34px; bottom:32px;
++  background:linear-gradient(180deg, rgba(6,34,60,.94), rgba(3,18,34,.96));
++  border:1px solid rgba(120,205,250,.35);
++  overflow-y:auto; padding:10px 20px 12px 16px;
++  font-family:"Microsoft YaHei","Droid Sans Fallback",sans-serif;
++  color:#eaf7ff;
++}
++.memWrap::-webkit-scrollbar { width:5px; }
++.memWrap::-webkit-scrollbar-thumb { background:rgba(120,210,255,.5); border-radius:3px; }
++.memTitle { font-size:13px; letter-spacing:4px; color:#dff6ff; margin-bottom:8px; }
++.memStanding {
++  font-size:10px; line-height:1.55; color:#bfe6f7;
++  border-bottom:1px dashed rgba(120,205,250,.3);
++  padding-bottom:8px; margin-bottom:8px;
++  white-space:pre-wrap;
++}
++.memStanding .lbl { display:block; font-size:9px; letter-spacing:2px; color:#7fd4ff; margin-bottom:3px; }
++.memRow {
++  display:flex; align-items:flex-start; gap:8px;
++  padding:5px 0; border-bottom:1px solid rgba(120,205,250,.12);
++}
++.memKind {
++  flex:0 0 auto; font-size:8.5px; line-height:1.4; color:#9fd8ff;
++  border:1px solid rgba(120,205,250,.45); border-radius:2px;
++  padding:0 4px; margin-top:1px;
++}
++.memText {
++  flex:1 1 auto; min-width:0;
++  font-size:10px; line-height:1.55; color:#fff;
++  text-shadow:0 1px 2px rgba(0,10,24,.85);
++}
++.memDel {
++  flex:0 0 auto; font-size:9px; line-height:1.4; color:#ffd0d0;
++  background:none; border:1px solid rgba(255,150,150,.45); border-radius:2px;
++  padding:0 6px; cursor:pointer; font-family:inherit;
++}
++.memDel:hover { background:rgba(255,120,120,.16); }
++.memDel.arm { color:#fff; background:rgba(255,120,120,.3); }
++.memEmpty { font-size:10px; color:#9fc6dd; padding:8px 0; }
++.memHint { font-size:9px; color:#8fb6cc; margin-top:8px; line-height:1.5; }
+diff --git a/program/src/ui/sp-char.js b/program/src/ui/sp-char.js
+index 47a720b..c7da4d5 100644
+--- a/program/src/ui/sp-char.js
++++ b/program/src/ui/sp-char.js
+@@ -25,10 +25,29 @@
+ 
+     var charBusy = false;
+ 
+-    function openCharPicker() {
++    /* 面板标题：切换模式用烤好的「切换角色」图；导出模式换成动态文字 */
++    function setPickerTitle(mode) {
++      var img = $("spcpTitleImg");
++      var txt = $("spcpTitleText");
++      var isExport = (mode === "export");
++      if (img) img.style.display = isExport ? "none" : "";
++      if (txt) {
++        txt.style.display = isExport ? "" : "none";
++        if (isExport) {
++          var s = "选择要导出的角色";
++          try { setGlyph(txt, s); } catch (e) { txt.textContent = s; }
++        }
++      }
++    }
++
++    /* opts.mode = "switch"（默认，点了就切过去）| "export"（点了交给 onPick） */
++    function openCharPicker(opts) {
++      var mode = (opts && opts.mode) || "switch";
++      var onPick = (opts && opts.onPick) || null;
+       var panel = $("spCharPick");
+       var list = $("spcpList");
+       if (!panel || !list) return;
++      setPickerTitle(mode);
+       list.innerHTML = "";
+       var loading = document.createElement("div");
+       loading.className = "spcpMsg";
+@@ -58,8 +77,13 @@
+             name.textContent = display;
+             b.appendChild(name);
+             b.addEventListener("click", function () {
++              if (mode === "export") {          // 导出：选中即打包，不切换
++                closeCharPicker();
++                if (onPick) onPick(c);
++                return;
++              }
+               if (c.active) { closeCharPicker(); return; }
+-              doSwitchCharacter(c.id);
++              doSwitchCharacter(c.id, display);
+             });
+             list.appendChild(b);
+             try { setGlyph(name, display); } catch (e) {}
+@@ -81,24 +105,93 @@
+       panel.setAttribute("aria-hidden", "true");
+     }
+ 
+-    function doSwitchCharacter(id) {
++    /* ---------- 切角色过渡 ----------
++       顺序：存当前会话 → 压黑 → 换人 → 淡回。
++       · 存档要等写完再换：后端一切换就把存档目录指到新角色了，
++         这一笔写晚了会落到别人名下。
++       · 压黑至少留 180+100ms，太快就成了"闪一下"，反而像卡了。
++       · 请求超过 420ms 才在中间显示目标角色名（正常切换根本看不到）。 */
++    var FADE_OUT = 180, HOLD = 100, SLOW_MS = 420;
++
++    function fadeEl() { return $("charFade"); }
++
++    function fadeOn(name) {
++      var el = fadeEl();
++      if (!el) return;
++      var nm = $("charFadeName");
++      if (nm) {
++        nm.textContent = "";
++        if (name) {
++          try { setGlyph(nm, name); } catch (e) { nm.textContent = name; }
++        }
++      }
++      el.classList.remove("slow");
++      el.classList.add("on");
++      setTimeout(function () {
++        if (el.classList.contains("on")) el.classList.add("slow");
++      }, SLOW_MS);
++    }
++
++    function fadeOff() {
++      var el = fadeEl();
++      if (!el) return;
++      el.classList.remove("on");
++      el.classList.remove("slow");
++    }
++
++    function setInputEnabled(on) {
++      var inp = $("input");
++      if (inp) inp.disabled = !on;
++      var sb = $("sendBtn");
++      if (sb) { sb.disabled = !on; sb.style.opacity = on ? "" : "0.5"; }
++    }
++
++    function saveBeforeSwitch() {
++      try {
++        if (!window.sessionSave) return Promise.resolve();
++        if (!(window.__history && window.__history.length)) return Promise.resolve();
++        var p = window.sessionSave();
++        if (!p || typeof p.then !== "function") return Promise.resolve();
++        /* 存档卡住也不能把切换卡死 */
++        return Promise.race([p, new Promise(function (r) { setTimeout(r, 800); })]);
++      } catch (e) {
++        return Promise.resolve();
++      }
++    }
++
++    function doSwitchCharacter(id, name) {
+       if (charBusy || !id) return;
+       charBusy = true;
+-      postCharacter("/api/character/switch", { id: id })
+-        .then(function (d) {
++      closeCharPicker();
++      window.__charSwitching = true;       // send() 会看这个标志
++      setInputEnabled(false);
++      fadeOn(name || id);
++      var t0 = Date.now();
++
++      saveBeforeSwitch().then(function () {
++        return postCharacter("/api/character/switch", { id: id });
++      }).then(function (d) {
++        var wait = Math.max(0, FADE_OUT + HOLD - (Date.now() - t0));
++        setTimeout(function () {
+           charBusy = false;
++          window.__charSwitching = false;
++          setInputEnabled(true);
+           if (d && d.ok) {
+-            closeCharPicker();
+             afterCharacter(d);
++            fadeOff();
+             flash("已切换到 " + (d.name || d.id));
+           } else {
++            fadeOff();                     // 失败就退回原角色，画面不留黑
+             flash((d && d.error) || "切换失败");
+           }
+-        })
+-        .catch(function () {
+-          charBusy = false;
+-          flash("切换失败");
+-        });
++        }, wait);
++      }).catch(function () {
++        charBusy = false;
++        window.__charSwitching = false;
++        setInputEnabled(true);
++        fadeOff();
++        flash("切换失败");
++      });
+     }
+ 
+     function switchCharacter() {
+@@ -169,7 +262,7 @@
+ 
+     /* 平时：字模显示，输入框藏起来 */
+   var _exp = {};
+-  var _names = ["afterCharacter", "bindCharacters", "bindSave", "closeCharPicker", "doSwitchCharacter", "newCharacter", "openCharPicker", "postCharacter", "switchCharacter"];
++  var _names = ["afterCharacter", "bindCharacters", "bindSave", "closeCharPicker", "doSwitchCharacter", "newCharacter", "openCharPicker", "postCharacter", "setPickerTitle", "switchCharacter"];
+   for (var _i = 0; _i < _names.length; _i++) {
+     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
+   }
+diff --git a/program/src/ui/sp-pack.js b/program/src/ui/sp-pack.js
+new file mode 100644
+index 0000000..c15750b
+--- /dev/null
++++ b/program/src/ui/sp-pack.js
+@@ -0,0 +1,95 @@
++/* sp-pack.js —— 角色包导出 / 导入（特别模式 → 配置角色 → 导出 / 导入）
++ *
++ * 导出：先选角色（复用角色切换面板，export 模式，点了不切换），再选目录 → 后端打包 zip
++ * 导入：后端弹系统选文件窗口（.zip）→ 校验 → 解成 characters/ 下的新角色（不自动切换）
++ *
++ * 两个按钮的底板就是对话界面发送按钮的三态图（.spRoleBtn → btn_3state.png），
++ * 标签是动态文字，由 uitext.js 转成字模，和界面其它文字同一套。
++ *
++ * 打包 / 解包都在后端做，前端只等结果；窗口开着的时候 fetch 会一直挂着，
++ * 取消时后端返回 {ok:false, cancelled:true}，这里按「已取消」提示。
++ */
++(function () {
++  var WA2 = window.WA2 = window.WA2 || {};
++  var $ = function (id) { return document.getElementById(id); };
++
++  var busy = false;
++
++  function flash(msg) {
++    if (typeof window.flash === "function") window.flash(msg);
++  }
++
++  function post(url, body) {
++    return fetch(url, {
++      method: "POST",
++      headers: { "Content-Type": "application/json" },
++      body: JSON.stringify(body || {})
++    }).then(function (r) { return r.json(); });
++  }
++
++  function setBusy(on) {
++    busy = on;
++    ["spExport", "spImport"].forEach(function (id) {
++      var b = $(id);
++      if (!b) return;
++      b.disabled = !!on;
++      b.style.opacity = on ? "0.55" : "";
++    });
++  }
++
++  /* ---------- 导出：选角色 → 选目录 → 打包 ---------- */
++  function pickCharacterForExport() {
++    if (busy) return;
++    var spChar = WA2.spChar || {};
++    if (typeof spChar.openCharPicker !== "function") { flash("角色面板没加载"); return; }
++    spChar.openCharPicker({ mode: "export", onPick: doExport });
++  }
++
++  function doExport(c) {
++    if (busy || !c || !c.id) return;
++    setBusy(true);
++    flash("正在打包 " + (c.name || c.id) + " …");
++    post("/api/charpack/export", { id: c.id })
++      .then(function (d) {
++        setBusy(false);
++        if (d && d.ok) flash("已导出 " + (d.file || ""));
++        else if (d && d.cancelled) flash("已取消导出");
++        else flash((d && d.error) || "导出失败");
++      })
++      .catch(function () { setBusy(false); flash("导出失败"); });
++  }
++
++  /* ---------- 导入：选 zip → 解成新角色 ---------- */
++  function doImport() {
++    if (busy) return;
++    setBusy(true);
++    flash("正在导入 …");
++    post("/api/charpack/import", {})
++      .then(function (d) {
++        setBusy(false);
++        if (d && d.ok) flash("已导入 " + (d.name || d.id || ""));
++        else if (d && d.cancelled) flash("已取消导入");
++        else flash((d && d.error) || "导入失败");
++      })
++      .catch(function () { setBusy(false); flash("导入失败"); });
++  }
++
++  function bind() {
++    var ex = $("spExport");
++    var im = $("spImport");
++    if (ex) ex.addEventListener("click", function (e) {
++      e.stopPropagation();
++      pickCharacterForExport();
++    });
++    if (im) im.addEventListener("click", function (e) {
++      e.stopPropagation();
++      doImport();
++    });
++  }
++
++  bind();                                  // 脚本在 body 末尾，元素已经在了
++
++  var _exp = { bind: bind, doExport: doExport, doImport: doImport, pickCharacterForExport: pickCharacterForExport };
++  WA2.spPack = _exp;
++  WA2.register("spPack", _exp);
++})();
+diff --git a/program/src/ui/special.css b/program/src/ui/special.css
+index 27c20c6..7e8fd89 100644
+--- a/program/src/ui/special.css
++++ b/program/src/ui/special.css
+@@ -340,7 +340,7 @@
+ }
+ #specialScreen .spRoleBtn {
+   position: relative;
+-  width: 62px;
++  width: 46px;
+   height: 15px;
+   padding: 0;
+   border: 0;
+@@ -350,6 +350,12 @@
+   align-items: center;
+   justify-content: center;
+   isolation: isolate;
++  /* 导出 / 导入是动态文字（走 /api/text 字模），字号直接就是字模高度：
++     8.5px 和「切换角色 / 新建角色」那两张烤好的标签一样高 */
++  font-size: 8.5px;
++  letter-spacing: 1px;
++  color: #f4fcff;
++  text-shadow: 0 1px 2px rgba(0, 18, 36, .95);
+ }
+ #specialScreen .spRoleBtn::before {
+   content: "";
+@@ -434,6 +440,14 @@
+   margin: 0 auto 6px;
+   filter: drop-shadow(0 1px 2px rgba(0,0,0,.8));
+ }
++/* 导出模式下标题换成动态文字（「选择要导出的角色」），由 sp-char.js 用字模渲染。
++   字号 14px = 字模高度，和烤好的「切换角色」标题（14px）一样高 */
++#specialScreen .spcpTitleText {
++  font-size: 14px;
++}
++#specialScreen .spcpTitleText img {
++  height: 14px; width: auto; display: block; margin: 0 auto;
++}
+ #specialScreen .spcpList {
+   display: flex; flex-direction: column; gap: 4px; align-items: center;
+   justify-content: safe center;   /* 少角色时居中，多角色时从顶部开始滚 */
+diff --git a/program/src/ui/wt-chat.js b/program/src/ui/wt-chat.js
+index 9f6b310..4f6e317 100644
+--- a/program/src/ui/wt-chat.js
++++ b/program/src/ui/wt-chat.js
+@@ -6,6 +6,7 @@
+   var $ = (WA2.util && WA2.util.$) || function (id) { return document.getElementById(id); };
+ 
+   async function send() {
++    if (window.__charSwitching) return;      // 切角色过渡中：先别发，等新角色就位
+     const inp = $("input");
+     const text = inp.value.trim();
+     if (!text || typing) return;
+diff --git a/program/src/ui/wt-session.js b/program/src/ui/wt-session.js
+index 824c218..13f560e 100644
+--- a/program/src/ui/wt-session.js
++++ b/program/src/ui/wt-session.js
+@@ -7,7 +7,9 @@
+ 
+   function sessionSave() {
+     try {
+-      fetch("/api/session/save", {
++      /* 返回 promise：切角色前要等这一笔写完再换人，
++         否则后端已经把存档目录切到新角色，这一笔会落到别人名下 */
++      return fetch("/api/session/save", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+@@ -16,7 +18,7 @@
+           meta: { bg: currentBg || "", outfit: (WA2.state.outfit || ""), at: Date.now() }
+         })
+       }).catch(function () {});
+-    } catch (e) {}
++    } catch (e) { return null; }
+   }
+ 
+   /* 读档：保持 history 是同一个数组（别的模块持有引用），只换内容 */
+diff --git a/program/src/version.py b/program/src/version.py
+index 025edf6..30df181 100644
+--- a/program/src/version.py
++++ b/program/src/version.py
+@@ -1,7 +1,7 @@
+ # -*- coding: utf-8 -*-
+ """版本号与更新检查的常量（发布时改这里 + 仓库根目录 version.json）。"""
+ 
+-VERSION = "2026-11-04.2"                     # 本机版本：YYYY-MM-DD.N
++VERSION = "2026-11-05.1"                     # 本机版本：YYYY-MM-DD.N
+ REPO = "yiyusen1229-eng/ai-chat-ui-arch"     # GitHub 仓库
+ RAW_VERSION_URL = "https://raw.githubusercontent.com/%s/master/version.json" % REPO
+ REPO_URL = "https://github.com/%s" % REPO
+diff --git a/program/tools/arch_map.py b/program/tools/arch_map.py
+index 7dc8b61..efa5584 100644
+--- a/program/tools/arch_map.py
++++ b/program/tools/arch_map.py
+@@ -26,6 +26,7 @@ LEVELS = {
+     "main.py": ("一级 · 后端服务", "主入口（HTTP 服务 + 窗口 + 启动）"),
+     "text_parse.py": ("二级 · 核心", "回复标签解析、日文清理（纯函数）"),
+     "applog.py": ("二级 · 核心", "日志文件"),
++    "secret.py": ("二级 · 核心", "密钥来源（环境变量优先）与日志脱敏"),
+     "winutil.py": ("二级 · 核心", "Windows 窗口 API"),
+     "pricing.py": ("二级 · 核心", "价格与用量估算"),
+     "memory.py": ("二级 · 记忆", "对话记忆书：阈值/打包/条目"),
+@@ -35,6 +36,7 @@ LEVELS = {
+     "sessions.py": ("二级 · 存档", "存读档读写"),
+     "characters.py": ("二级 · 角色", "角色文件夹/切换/立绘索引"),
+     "char_res.py": ("二级 · 角色", "角色资源定位与状态"),
++    "char_pack.py": ("二级 · 角色", "角色包导出/导入（zip）"),
+     "special_files.py": ("二级 · 角色", "特别模式导入/打开/立绘落盘"),
+     "special_cfg.py": ("二级 · 角色", "角色名读写"),
+     "tts_client.py": ("二级 · 角色", "语音合成与参考音频"),
+@@ -46,6 +48,8 @@ LEVELS = {
+     "api_tts.py": ("二级 · 接口/语音", "/api/tts 语音合成"),
+     "api_text.py": ("二级 · 接口/字模", "/api/text 字模渲染"),
+     "api_chat.py": ("二级 · 接口/对话", "/api/chat 对话入口"),
++    "api_charpack.py": ("二级 · 接口/角色", "角色包导出/导入 /api/charpack/*"),
++    "api_memory.py": ("二级 · 接口/记忆", "记忆书查看与删除 /api/memory*"),
+     "api_update.py": ("二级 · 接口/更新", "版本检查 /api/update、打开链接 /api/open_url"),
+     "version.py": ("二级 · 核心", "版本号与 GitHub 仓库地址"),
+     "wt-update.js": ("二级 · 前端/更新", "启动查新版本 + 标题栏通知（WA2.update）"),
+@@ -70,6 +74,8 @@ UI_LEVELS = {
+     "opt-model.js": ("二级 · 前端/设置模型", "模型/连接配置（WA2.optModel）"),
+     "sp-sliders.js": ("二级 · 前端/特别参数", "滑条与配置读写（WA2.spSliders）"),
+     "sp-char.js": ("二级 · 前端/特别角色", "角色切换/新建（WA2.spChar）"),
++    "sp-pack.js": ("二级 · 前端/特别角色", "角色包导出/导入按钮（WA2.spPack）"),
++    "mem-screen.js": ("二级 · 前端/记忆书", "记忆书界面：查看 + 删除（WA2.memoryScreen）"),
+     "sp-panels.js": ("二级 · 前端/特别面板", "角色面板/立绘/语音（WA2.spPanels）"),
+     "game.js": ("一级 · 前端/对话", "对话演出：请求/解析/打字机/立绘/回想/音量"),
+     "menubar.js": ("一级 · 前端/菜单", "顶部菜单：场景/服装/时期/窗口"),
+diff --git a/program/tools/build_portable.py b/program/tools/build_portable.py
+index d7d2d0c..6ca2ad4 100644
+--- a/program/tools/build_portable.py
++++ b/program/tools/build_portable.py
+@@ -24,7 +24,19 @@ SRC = os.path.join(BASE, "src")
+ RES = os.path.join(BASE, "res")
+ APP = os.path.join(BASE, "build_env")
+ UI2 = os.path.join(BASE, "ui2")
+-OUTNAME = "和纱_本地测试"
++# 产物名：和纱_<版本号>_<时间戳>（版本号取 src/version.py，时间戳带时分秒）
++def _read_version():
++    try:
++        t = io.open(os.path.join(SRC, "version.py"), encoding="utf-8").read()
++        m = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', t)
++        return m.group(1) if m else "dev"
++    except Exception:
++        return "dev"
++
++
++_VER = _read_version()
++_STAMP = time.strftime("%Y-%m-%d_%H-%M-%S")
++OUTNAME = "和纱_%s_%s" % (_VER, _STAMP)
+ OUTDIR = os.path.join(os.path.dirname(BASE), "release", OUTNAME)
+ ZIP = os.path.join(os.path.dirname(BASE), "release", OUTNAME + ".zip")
+ PY = os.path.join(APP, "venv", "Scripts", "python.exe")
+@@ -103,7 +115,25 @@ def _copy_into(src, name):
+ # 用户数据：fewshot / 界面偏好 / 上下文设置 / 导入的角色资源（不复制存档、缓存、日志）
+ for f in ("fewshot.json", "prefs.json", "memory.json"):
+     _copy_into(os.path.join(APP, f), f)
+-_copy_into(os.path.join(APP, "characters"), "characters")
++def _copy_characters(src, dst):
++    """角色文件夹要带上，但**不能带存档 / 缓存**（用户的聊天记录不该进安装包）"""
++    skip_dirs = {"sessions", "cache", "logs", "text_cache", "__pycache__"}
++    skip_chars = {"新角色"}          # 测试时新建的占位角色，不进包
++    for dp, dns, fns in os.walk(src):
++        dns[:] = [d for d in dns if d not in skip_dirs]
++        if os.path.normpath(dp) == os.path.normpath(src):
++            dns[:] = [d for d in dns if d not in skip_chars]
++        rel = os.path.relpath(dp, src)
++        target = dst if rel == "." else os.path.join(dst, rel)
++        os.makedirs(target, exist_ok=True)
++        for f in fns:
++            if f.endswith((".log", ".tmp")):
++                continue
++            shutil.copy2(os.path.join(dp, f), os.path.join(target, f))
++
++
++if os.path.isdir(os.path.join(APP, "characters")):
++    _copy_characters(os.path.join(APP, "characters"), os.path.join(OUTDIR, "characters"))
+ # 空配置模板（不含密钥）
+ cfg = os.path.join(OUTDIR, "config.example.json")
+ if not os.path.exists(cfg):
+@@ -123,6 +153,8 @@ with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+         for f in fs:
+             if f == "config.json":
+                 continue
++            if "/sessions/" in os.path.join(dp, f).replace("\\", "/") + "/":
++                continue
+             full = os.path.join(dp, f)
+             rel = os.path.join(OUTNAME, os.path.relpath(full, OUTDIR))
+             z.write(full, rel)
+diff --git a/program/tools/test_char_pack.py b/program/tools/test_char_pack.py
+new file mode 100644
+index 0000000..0da58ad
+--- /dev/null
++++ b/program/tools/test_char_pack.py
+@@ -0,0 +1,198 @@
++# -*- coding: utf-8 -*-
++"""角色包导出 / 导入的自测（不联网、不弹窗）。
++
++跑法：
++    cd program
++    build_env/venv/Scripts/python.exe tools/test_char_pack.py
++
++验的是这条链路：
++  1. 导出只带 5 类资源 + name.txt + manifest.json；sessions/、story.json、tts.json 不带
++  2. 导出 → 导入 内容一致（提示词 / 世界书 / 记忆书 / 立绘 / 语音）
++  3. 重名自动加序号；导入不切换当前角色
++  4. 包装层（和纱/prompt/...）能剥掉
++  5. 路径穿越、绝对路径、盘符条目被丢掉，不会写到 characters/ 外面
++  6. 不是 zip / 空包 / 超大条目 有明确报错，且不在 characters/ 里留半个角色
++"""
++import json
++import os
++import sys
++import tempfile
++import zipfile
++
++sys.stdout.reconfigure(encoding="utf-8", errors="replace")
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++PROGRAM = os.path.dirname(HERE)
++sys.path.insert(0, os.path.join(PROGRAM, "src"))
++
++FAILS = []
++
++
++def check(name, cond, extra=""):
++    print(("  ok   " if cond else "  FAIL ") + name +
++          (("  " + str(extra)[:300]) if extra and not cond else ""))
++    if not cond:
++        FAILS.append(name)
++
++
++def write(path, text, binary=False):
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++    mode = "wb" if binary else "w"
++    with open(path, mode, **({} if binary else {"encoding": "utf-8"})) as f:
++        f.write(text)
++    return path
++
++
++def make_character(root, cid, name="和纱"):
++    """造一个「全都有」的角色：5 类资源 + 存档 + story.json + tts.json"""
++    d = os.path.join(root, cid)
++    write(os.path.join(d, "name.txt"), name)
++    write(os.path.join(d, "prompt", "base.txt"), "人设 base")
++    write(os.path.join(d, "prompt", "stage1.txt"), "阶段一")
++    write(os.path.join(d, "worldbook", "worldbook.json"),
++          json.dumps({"entries": [{"keys": ["冬天"], "text": "很冷"}]}, ensure_ascii=False))
++    write(os.path.join(d, "memory", "standing.txt"), "常驻记忆")
++    write(os.path.join(d, "portrait", "index.json"),
++          json.dumps({"outfits": {"礼服": {"code": "001"}}}, ensure_ascii=False))
++    write(os.path.join(d, "portrait", "礼服", "微笑.png"), b"\x89PNG\r\n\x1a\nfake", binary=True)
++    write(os.path.join(d, "voice", "soft", "a.wav"), b"RIFFfakewav", binary=True)
++    # 这些不该进包
++    write(os.path.join(d, "sessions", "auto.json"), "{}")
++    write(os.path.join(d, "story.json"), '{"enabled": false}')
++    write(os.path.join(d, "tts.json"), '{"gpt": "D:/secret/model.ckpt"}')
++    write(os.path.join(d, "opening.json"), '{"zh": "开场"}')
++    return d
++
++
++def names(zpath):
++    with zipfile.ZipFile(zpath) as z:
++        return sorted(i.filename for i in z.infolist() if not i.is_dir())
++
++
++def main():
++    tmp = tempfile.mkdtemp(prefix="wa2_pack_")
++    user1 = os.path.join(tmp, "user1")
++    user2 = os.path.join(tmp, "user2")
++    out = os.path.join(tmp, "out")
++    os.makedirs(out)
++    os.makedirs(user1)
++    os.makedirs(user2)
++
++    # characters.py 用 WA2_USER_DIR 定位角色总目录（和自测/便携版一个规矩）
++    os.environ["WA2_USER_DIR"] = user1
++    import characters  # noqa: E402
++    import char_pack   # noqa: E402
++
++    root1 = characters.root()
++    make_character(root1, "和纱")
++    write(os.path.join(tmp, "tpl", "base.txt"), "模板人设")
++    characters.set_seed_sources(os.path.join(tmp, "tpl"), "")
++
++    print("== 1. 导出 ==")
++    res = char_pack.export_pack("和纱", out)
++    check("导出成功", res.get("ok"), res)
++    zp = res.get("path") or ""
++    check("zip 落在导出目录", os.path.isfile(zp), zp)
++    check("文件名是角色名", os.path.basename(zp) == "和纱.zip", zp)
++    got = names(zp)
++    check("带 name.txt", "name.txt" in got, got)
++    check("带 manifest.json", "manifest.json" in got, got)
++    check("带提示词", "prompt/base.txt" in got and "prompt/stage1.txt" in got, got)
++    check("带世界书", "worldbook/worldbook.json" in got, got)
++    check("带记忆书", "memory/standing.txt" in got, got)
++    check("带立绘 + index", "portrait/index.json" in got and "portrait/礼服/微笑.png" in got, got)
++    check("带参考音频", "voice/soft/a.wav" in got, got)
++    check("不带存档", not any(n.startswith("sessions/") for n in got), got)
++    check("不带 story.json", "story.json" not in got, got)
++    check("不带 tts.json", "tts.json" not in got, got)
++    check("不带 opening.json", "opening.json" not in got, got)
++    with zipfile.ZipFile(zp) as z:
++        man = json.loads(z.read("manifest.json").decode("utf-8"))
++        png = z.getinfo("portrait/礼服/微笑.png")
++    check("manifest 格式对", man.get("format") == "wa2-char-pack", man)
++    check("manifest 记了角色名", man.get("name") == "和纱", man)
++    check("png 用 STORED（不再压一遍）", png.compress_type == zipfile.ZIP_STORED,
++          png.compress_type)
++
++    print("== 2. 导入（换一个用户目录）==")
++    os.environ["WA2_USER_DIR"] = user2
++    check("导入前角色总目录是空的", not os.path.isdir(characters.root()) or
++          not os.listdir(characters.root()))
++    res2 = char_pack.import_pack(zp)
++    check("导入成功", res2.get("ok"), res2)
++    check("id = 和纱", res2.get("id") == "和纱", res2)
++    check("name.txt 回来了", os.path.isfile(os.path.join(characters.root(), "和纱", "name.txt")))
++    check("提示词回来了", os.path.isfile(
++        os.path.join(characters.root(), "和纱", "prompt", "base.txt")))
++    check("世界书回来了", os.path.isfile(
++        os.path.join(characters.root(), "和纱", "worldbook", "worldbook.json")))
++    check("立绘回来了", os.path.isfile(
++        os.path.join(characters.root(), "和纱", "portrait", "礼服", "微笑.png")))
++    check("语音回来了", os.path.isfile(
++        os.path.join(characters.root(), "和纱", "voice", "soft", "a.wav")))
++    check("没带存档进来", not os.path.isdir(
++        os.path.join(characters.root(), "和纱", "sessions")))
++    check("没带 tts.json 进来", not os.path.isfile(
++        os.path.join(characters.root(), "和纱", "tts.json")))
++    check("没自动切换（active.json 没写）", not os.path.isfile(
++        os.path.join(characters.root(), "active.json")))
++    check("临时目录没留下", not any(n.startswith(".importing_")
++                                  for n in os.listdir(characters.root())))
++
++    print("== 3. 重名自动加序号 ==")
++    res3 = char_pack.import_pack(zp)
++    check("第二次导入成功", res3.get("ok"), res3)
++    check("id 变成 和纱2", res3.get("id") == "和纱2", res3)
++    check("两个角色都在", len(characters.list_characters()) == 2,
++          characters.list_characters())
++
++    print("== 4. 包装层（整个角色文件夹压进去）==")
++    wrap = os.path.join(tmp, "wrap.zip")
++    with zipfile.ZipFile(wrap, "w") as z:
++        z.writestr("和纱/name.txt", "包了一层")
++        z.writestr("和纱/prompt/base.txt", "包里的提示词")
++        z.writestr("和纱/portrait/index.json", "{}")
++    res4 = char_pack.import_pack(wrap)
++    check("包装层导入成功", res4.get("ok"), res4)
++    check("没有 manifest 时用包里的 name.txt 当角色名", res4.get("id") == "包了一层", res4)
++    d4 = os.path.join(characters.root(), res4.get("id") or "")
++    check("包装层被剥掉", os.path.isfile(os.path.join(d4, "prompt", "base.txt")), d4)
++    check("包装层没被当成子目录", not os.path.isdir(os.path.join(d4, "和纱")), d4)
++
++    print("== 5. 路径穿越 / 绝对路径被丢掉 ==")
++    evil = os.path.join(tmp, "evil.zip")
++    with zipfile.ZipFile(evil, "w") as z:
++        z.writestr("../../evil.txt", "x")
++        z.writestr("C:/Windows/evil.txt", "x")
++        z.writestr("/abs/evil.txt", "x")
++        z.writestr("prompt/ok.txt", "ok")
++    res5 = char_pack.import_pack(evil)
++    check("恶意包也能导入（只收安全的）", res5.get("ok"), res5)
++    check("报出了被跳过的条目", res5.get("skipped_count", 0) >= 3, res5.get("skipped"))
++    outside = os.path.join(tmp, "evil.txt")
++    check("没写到 characters/ 外面", not os.path.isfile(outside), outside)
++
++    print("== 6. 坏包 / 空包 ==")
++    notzip = write(os.path.join(tmp, "notzip.zip"), "hello")
++    check("不是 zip 会报错", not char_pack.import_pack(notzip).get("ok"))
++    empty = os.path.join(tmp, "empty.zip")
++    with zipfile.ZipFile(empty, "w") as z:
++        z.writestr("readme.txt", "nothing")
++    r6 = char_pack.import_pack(empty)
++    check("空包会报错", not r6.get("ok"), r6)
++    check("空包没留下角色", len(characters.list_characters()) == 4,
++          characters.list_characters())
++    check("不存在的文件会报错", not char_pack.import_pack(
++        os.path.join(tmp, "nope.zip")).get("ok"))
++    check("导出不存在的角色会报错", not char_pack.export_pack("没有这个", out).get("ok"))
++
++    print()
++    if FAILS:
++        print("失败 %d 项：%s" % (len(FAILS), ", ".join(FAILS)))
++        return 1
++    print("全部通过")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/program/tools/test_memory_view.py b/program/tools/test_memory_view.py
+new file mode 100644
+index 0000000..52889de
+--- /dev/null
++++ b/program/tools/test_memory_view.py
+@@ -0,0 +1,107 @@
++# -*- coding: utf-8 -*-
++"""记忆书查看 / 删除的自测（不联网、不开界面）。
++
++跑法：
++    cd program
++    build_env/venv/Scripts/python.exe tools/test_memory_view.py
++
++验的是：
++  1. view() 把运行时条目按 kind 翻成中文标签，常驻记忆书一起带出来
++  2. delete() 删掉指定条目并落盘；删完索引重新编号
++  3. 越界 / 非法索引有明确报错，且不会把别的条目删掉
++  4. 没有条目时给「还没有自动摘要」的提示
++"""
++import json
++import os
++import sys
++import tempfile
++
++sys.stdout.reconfigure(encoding="utf-8", errors="replace")
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++PROGRAM = os.path.dirname(HERE)
++sys.path.insert(0, os.path.join(PROGRAM, "src"))
++
++FAILS = []
++
++
++def check(name, cond, extra=""):
++    print(("  ok   " if cond else "  FAIL ") + name +
++          (("  " + str(extra)[:300]) if extra and not cond else ""))
++    if not cond:
++        FAILS.append(name)
++
++
++def write(path, text):
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++    with open(path, "w", encoding="utf-8") as f:
++        f.write(text)
++
++
++def main():
++    tmp = tempfile.mkdtemp(prefix="wa2_memview_")
++    os.environ["WA2_USER_DIR"] = tmp
++    os.environ["WA2_CACHE_DIR"] = os.path.join(tmp, "cache")
++    os.environ.pop("WA2_SESS_DIR", None)
++
++    # 造一个角色 + 常驻记忆书
++    write(os.path.join(tmp, "characters", "active.json"), '{"id": "A"}')
++    write(os.path.join(tmp, "characters", "A", "name.txt"), "甲")
++    write(os.path.join(tmp, "characters", "A", "memory", "standing.txt"), "她喜欢冬天。")
++
++    import memory      # noqa: E402
++    import api_memory  # noqa: E402
++
++    print("== 1. 空记忆书 ==")
++    v = api_memory.view()
++    check("view ok", v.get("ok") is True, v)
++    check("没有条目", v.get("count") == 0, v)
++    check("有提示语", "自动摘要" in (v.get("hint") or ""), v.get("hint"))
++    check("常驻记忆书读到了", "她喜欢冬天" in (v.get("standing") or {}).get("text", ""), v.get("standing"))
++    check("常驻字数对得上", (v.get("standing") or {}).get("chars") == 6, v.get("standing"))
++
++    print("== 2. 有条目 ==")
++    memory.runtime_set(entries=[
++        {"text": "她讨厌被人迟到", "kind": "preference", "from": [0, 4]},
++        {"text": "上周一起去了咖啡厅", "kind": "event", "from": [4, 9]},
++        {"text": "关系已经确认", "kind": "progress", "from": [9, 12]},
++    ], covered=12, turns=3)
++    v = api_memory.view()
++    check("三条都在", v.get("count") == 3, v.get("count"))
++    labels = [e["label"] for e in v["entries"]]
++    check("标签翻成中文", labels == ["偏好", "事件", "进度"], labels)
++    check("covered 带出来", v.get("covered") == 12, v.get("covered"))
++    check("没有提示语了", not (v.get("hint") or ""), v.get("hint"))
++
++    print("== 3. 删除 ==")
++    r = api_memory.delete(1)
++    check("删成功", r.get("ok") is True, r)
++    check("剩两条", r.get("left") == 2, r)
++    check("返回被删的文本", r.get("text") == "上周一起去了咖啡厅", r.get("text"))
++    v = api_memory.view()
++    texts = [e["text"] for e in v["entries"]]
++    check("删的是第 1 条", texts == ["她讨厌被人迟到", "关系已经确认"], texts)
++    check("索引重新编号", [e["i"] for e in v["entries"]] == [0, 1], v["entries"])
++
++    print("== 4. 落盘 ==")
++    saved = json.load(open(os.path.join(tmp, "cache", "memory_runtime.json"), encoding="utf-8"))
++    check("文件里也少了一条", len(saved.get("entries") or []) == 2, saved.get("entries"))
++
++    print("== 5. 非法索引 ==")
++    check("越界报错", api_memory.delete(99).get("ok") is False)
++    check("负数报错", api_memory.delete(-1).get("ok") is False)
++    check("非数字报错", api_memory.delete("x").get("ok") is False)
++    check("None 报错", api_memory.delete(None).get("ok") is False)
++    v = api_memory.view()
++    check("没误删", v.get("count") == 2, v.get("count"))
++
++    print()
++    if FAILS:
++        print("失败 %d 项：%s" % (len(FAILS), ", ".join(FAILS)))
++        return 1
++    print("全部通过")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/program/tools/test_secret.py b/program/tools/test_secret.py
+new file mode 100644
+index 0000000..bdb1db9
+--- /dev/null
++++ b/program/tools/test_secret.py
+@@ -0,0 +1,118 @@
++# -*- coding: utf-8 -*-
++"""密钥与日志脱敏的自测（不联网、不启动程序）。
++
++跑法：
++    cd program
++    build_env/venv/Scripts/python.exe tools/test_secret.py
++
++验的是：
++  1. 环境变量优先级：WA2_API_KEY > DEEPSEEK_API_KEY > config.json
++  2. 掩码：只露前缀 3 位 + 末 4 位；短 key 全遮
++  3. redact：sk- / Bearer / "api_key": "..." 都被抹掉，普通文本不动
++  4. applog 写日志时自动脱敏
++  5. apply_env 不改原 dict；没有环境变量时原样返回（文件里的 key 不被清掉）
++"""
++import io
++import os
++import sys
++
++sys.stdout.reconfigure(encoding="utf-8", errors="replace")
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++PROGRAM = os.path.dirname(HERE)
++sys.path.insert(0, os.path.join(PROGRAM, "src"))
++
++import secret          # noqa: E402
++import applog          # noqa: E402
++
++FAILS = []
++
++
++def check(name, cond, extra=""):
++    print(("  ok   " if cond else "  FAIL ") + name +
++          (("  " + str(extra)[:300]) if extra and not cond else ""))
++    if not cond:
++        FAILS.append(name)
++
++
++def clean_env():
++    for k in secret.ENV_KEYS:
++        os.environ.pop(k, None)
++
++
++def main():
++    print("== 1. 环境变量优先级 ==")
++    clean_env()
++    check("都没有 → 空串", secret.env_key() == "")
++    os.environ["DEEPSEEK_API_KEY"] = "sk-from-deepseek-env"
++    check("DEEPSEEK_API_KEY 生效", secret.env_key() == "sk-from-deepseek-env", secret.env_key())
++    os.environ["WA2_API_KEY"] = "sk-from-wa2-env"
++    check("WA2_API_KEY 优先", secret.env_key() == "sk-from-wa2-env", secret.env_key())
++    os.environ["WA2_API_KEY"] = "   "
++    check("空白环境变量不算数", secret.env_key() == "sk-from-deepseek-env", secret.env_key())
++
++    print("== 2. apply_env ==")
++    clean_env()
++    base = {"api_key": "sk-file-key", "model": "deepseek-flash"}
++    same = secret.apply_env(base)
++    check("没有环境变量 → 原样返回", same is base and same["api_key"] == "sk-file-key")
++    os.environ["WA2_API_KEY"] = "sk-env-key-123456"
++    got = secret.apply_env(base)
++    check("有环境变量 → 覆盖", got["api_key"] == "sk-env-key-123456", got)
++    check("标了 key_from_env", got.get("key_from_env") is True, got)
++    check("原 dict 没被改", base["api_key"] == "sk-file-key", base)
++
++    print("== 3. 掩码 ==")
++    check("长 key 留前 3 后 4",
++          secret.mask("sk-abcdefghijklmnop") == "sk-****mnop",
++          secret.mask("sk-abcdefghijklmnop"))
++    check("短 key 全遮", secret.mask("short") == "****", secret.mask("short"))
++    check("空 key 还是空", secret.mask("") == "")
++    check("认出掩码", secret.is_masked("sk-****mnop") is True)
++    check("认出界面上的圆点", secret.is_masked("\u2022\u2022\u2022\u2022") is True)
++    check("真 key 不算掩码", secret.is_masked("sk-abcdefghijklmnop") is False)
++
++    print("== 4. redact ==")
++    check("sk- 抹掉",
++          secret.redact("key=sk-abcdef1234567890") == "key=****",
++          secret.redact("key=sk-abcdef1234567890"))
++    check("Bearer 抹掉值",
++          secret.redact("Authorization: Bearer abcdefgh12345678") ==
++          "Authorization: Bearer ****",
++          secret.redact("Authorization: Bearer abcdefgh12345678"))
++    check("json 里的 api_key 抹掉",
++          secret.redact('{"api_key": "abcdef1234567890xyz"}') ==
++          '{"api_key": "****"}',
++          secret.redact('{"api_key": "abcdef1234567890xyz"}'))
++    check("普通文本不动",
++          secret.redact("今天很冷，她说「走吧」") == "今天很冷，她说「走吧」")
++    check("task-master 不被误伤",
++          secret.redact("task-master 跑完了") == "task-master 跑完了",
++          secret.redact("task-master 跑完了"))
++    check("None 原样返回", secret.redact(None) is None)
++
++    print("== 5. applog 自动脱敏 ==")
++    old = applog._FILE
++    buf = io.StringIO()
++    applog._FILE = buf
++    try:
++        applog.log("调用失败 Authorization: Bearer abcdefgh12345678", "ERROR")
++        applog.log("key=sk-abcdef1234567890")
++        text = buf.getvalue()
++    finally:
++        applog._FILE = old
++    check("日志里没有 sk-", "sk-abcdef" not in text, text)
++    check("日志里没有 Bearer 真值", "abcdefgh12345678" not in text, text)
++    check("日志行还在", "调用失败" in text and "key=" in text, text)
++
++    clean_env()
++    print()
++    if FAILS:
++        print("失败 %d 项：%s" % (len(FAILS), ", ".join(FAILS)))
++        return 1
++    print("全部通过")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/version.json b/version.json
+index 9bd02dc..dcfe6cb 100644
+--- a/version.json
++++ b/version.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "2026-11-04.2",
++  "version": "2026-11-05.1",
+   "url": "https://github.com/yiyusen1229-eng/ai-chat-ui-arch/tree/master/other/docs/patches",
+-  "notes": "拆包体检、成本显示与读档修复"
++  "notes": "角色包导出/导入、密钥脱敏、记忆书界面、改名"
+ }
