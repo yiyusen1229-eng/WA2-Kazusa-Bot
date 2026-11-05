@@ -20,6 +20,42 @@
 
   function stopSpeak() {
     if (ttsAudio) { try { ttsAudio.pause(); } catch (e) {} ttsAudio = null; }
+    _devState = null;
+  }
+
+  /* ---------- 音频设备变化（#7）----------
+     拔耳机 / 切蓝牙之后，正在播的 <audio> 还挂在已经不存在的设备上：
+     记下位置、暂停；设备重建完再从原位置续播。续不上由调用方提示「重播这句」。 */
+  var _devState = null;
+
+  function suspendForDevice() {
+    if (!ttsAudio) return false;
+    try {
+      _devState = { t: ttsAudio.currentTime || 0, playing: !ttsAudio.paused };
+      ttsAudio.pause();
+    } catch (e) {
+      _devState = null;
+      return false;
+    }
+    return !!(_devState && _devState.playing);
+  }
+
+  function resumeAfterDevice() {
+    var st = _devState;
+    _devState = null;
+    if (!st || !ttsAudio) return Promise.resolve(false);
+    var a = ttsAudio;
+    return new Promise(function (resolve) {
+      try {
+        if (st.t > 0) { try { a.currentTime = st.t; } catch (e) {} }
+        try { a.volume = voiceVolume(); } catch (e) {}
+        var p = a.play();
+        if (p && p.then) p.then(function () { resolve(true); }).catch(function () { resolve(false); });
+        else resolve(true);
+      } catch (e) {
+        resolve(false);
+      }
+    });
   }
 
   /** 合成语音并返回 Audio（失败或超时返回 null） */
@@ -94,7 +130,8 @@
     });
   }
   var _exp = {};
-  var _names = ["_tts", "currentVoiceLang", "fetchVoice", "speakLineJa", "speakReply", "stopSpeak", "waitTtsReady"];
+  var _names = ["_tts", "currentVoiceLang", "fetchVoice", "speakLineJa", "speakReply", "stopSpeak",
+                "suspendForDevice", "resumeAfterDevice", "waitTtsReady"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }

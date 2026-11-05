@@ -40,6 +40,7 @@ LEVELS = {
     "special_files.py": ("二级 · 角色", "特别模式导入/打开/立绘落盘"),
     "special_cfg.py": ("二级 · 角色", "角色名读写"),
     "tts_client.py": ("二级 · 角色", "语音合成与参考音频"),
+    "audio_gain.py": ("二级 · 音频", "响度归一化（BS.1770 近似，记增益不改原文件）"),
     "scene_cg.py": ("二级 · 场景", "场景 CG 标签与匹配"),
     "sub_render.py": ("二级 · 字模", "中文→字体图集渲染"),
     "api_window.py": ("二级 · 接口/窗口", "窗口控制 /api/window"),
@@ -59,6 +60,7 @@ LEVELS = {
 UI_LEVELS = {
     "wt-core.js": ("二级 · 前端/核心", "window.WA2 命名空间、公共小函数、功能登记"),
     "wt-audio.js": ("二级 · 前端/音频", "BGM / SE / 语音音量（WA2.audio）"),
+    "wt-fade.js": ("二级 · 前端/演出", "双缓冲交叉淡化：背景/立绘（WA2.fade）"),
     "wt-sprite.js": ("二级 · 前端/立绘", "立绘/服装/表情（WA2.sprite）"),
     "wt-voice.js": ("二级 · 前端/语音", "TTS 播放与参考音频（WA2.voice）"),
     "wt-text.js": ("二级 · 前端/文字", "分页/打字机/翻页图标（WA2.text）"),

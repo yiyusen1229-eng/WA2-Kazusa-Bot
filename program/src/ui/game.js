@@ -190,25 +190,34 @@ function openingLine() { return OPENING_LINE; }
 function setBg(name) {
   if (currentBg === name) return;
   currentBg = name;
-  const l = $("bgLayer");
-  l.style.opacity = "0.25";
-  setTimeout(() => {
-    const bgUrl = bgSrc(name);
-    /* 背景缺图时留个纯色底 + 提示一次，别让画面空成黑的 */
-    const probe = new Image();
-    probe.onerror = function () {
+  const bgUrl = bgSrc(name);
+  window.__curBg = new Image();
+  window.__curBg.src = bgUrl;
+  /* 背景缺图时留个纯色底 + 提示一次，别让画面空成黑的 */
+  const missing = function () {
+    const l = $("bgLayer");
+    if (l) {
       l.style.backgroundImage = "none";
       l.style.backgroundColor = "#1b2430";
-      if (!window.__bgWarned) {
-        window.__bgWarned = true;
-        (window.__toast || function () {})("背景缺失，先用纯色底继续", 2500);
-      }
-    };
+    }
+    if (!window.__bgWarned) {
+      window.__bgWarned = true;
+      (window.__toast || function () {})("背景缺失，先用纯色底继续", 2500);
+    }
+  };
+  /* 双缓冲交叉淡化（200~300ms，设置里可关）；wt-fade 没加载时才走老办法 */
+  try {
+    if (WA2.fade && WA2.fade.crossBg) { WA2.fade.crossBg(bgUrl, null, missing); return; }
+  } catch (e) {}
+  const l = $("bgLayer");
+  if (!l) return;
+  l.style.opacity = "0.25";
+  setTimeout(() => {
+    const probe = new Image();
+    probe.onerror = missing;
     probe.src = bgUrl;
     l.style.backgroundImage = `url("${bgUrl}")`;
     l.style.opacity = "1";
-    window.__curBg = new Image();
-    window.__curBg.src = bgUrl;
   }, 260);
 }
 

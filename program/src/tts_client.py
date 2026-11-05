@@ -18,6 +18,8 @@ import urllib.parse
 import urllib.request
 
 import char_res
+import audio_gain
+import cache_io
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 def _find_gsv():
@@ -496,6 +498,58 @@ def clear_tts_cache():
         pass
 
 
+def _gain_path(wav_path):
+    """增益侧车：wav 旁边一个 .gain.json，wav 本身永远不改。"""
+    return wav_path + ".gain.json"
+
+
+def _record_gain(wav_path, data):
+    """量一次响度，把「到 -16 LUFS 要几个 dB」记在侧车 json 里。
+
+    同一段音频（字节数没变、目标没变）就沿用旧记录，不重复量。
+    量不出来（格式不认识 / 静音 / 出错）就返回 None，不影响播放。
+    """
+    if not wav_path or not data:
+        return None
+    side = _gain_path(wav_path)
+    try:
+        old = cache_io.read_json(side, None)
+    except Exception:
+        old = None
+    if (isinstance(old, dict) and old.get("target") == audio_gain.TARGET_LUFS
+            and old.get("bytes") == len(data)):
+        return old
+    try:
+        info = dict(audio_gain.probe(data))
+    except Exception as e:
+        applog.log("响度测量失败：%s" % e, "WARN")
+        return None
+    info["bytes"] = len(data)
+    info["at"] = int(time.time())
+    try:
+        os.makedirs(os.path.dirname(side), exist_ok=True)
+        with open(side, "w", encoding="utf-8") as f:
+            json.dump(info, f, ensure_ascii=False)
+    except Exception:
+        pass
+    try:
+        applog.log("TTS 响度：%.1f LUFS / 峰值 %.1f dBFS → 增益 %+.1f dB"
+                   % (info.get("lufs") or -99.0, info.get("peak_db") or -99.0,
+                      info.get("gain_db") or 0.0), "TTS")
+    except Exception:
+        pass
+    return info
+
+
+def gain_of_cache(wav_path):
+    """读侧车（没有就 None）；给自测 / 调试用。"""
+    try:
+        d = cache_io.read_json(_gain_path(wav_path), None)
+        return d if isinstance(d, dict) else None
+    except Exception:
+        return None
+
+
 
 # 角色名的中文写法 → 日文读音。数据放当前角色文件夹的 pronunciation.json，
 # 代码里不写死具体角色；没有这个文件就原样送 TTS。
@@ -562,7 +616,10 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
             try:
                 if os.path.exists(_cp):
                     with open(_cp, 'rb') as _f:
-                        return _f.read()
+                        _cached = _f.read()
+                    if _cached:
+                        _record_gain(_cp, _cached)      # 侧车缺了就补一份，下次直接读
+                        return _cached
             except Exception:
                 pass
         # 按情绪挑参考音频；参数也跟着情绪走（一条都没有就别合成，交给上层回报）
@@ -591,6 +648,7 @@ def synthesize(text, lang="zh", timeout=60, emo="neutral"):
                     os.makedirs(os.path.dirname(_cp), exist_ok=True)
                     with open(_cp, 'wb') as _f:
                         _f.write(_data)
+                    _record_gain(_cp, _data)            # 增益记在侧车，wav 不动
             except Exception:
                 pass
             return _data

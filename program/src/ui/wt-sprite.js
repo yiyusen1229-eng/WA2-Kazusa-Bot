@@ -92,19 +92,30 @@
     if (WA2.state) WA2.state.outfit = outfit;
     var sp = $("sprite");
     if (!sp) return;
+    currentSprite = key;
+
+    /* 立绘缺图时别让画面留个破图标：藏起来（还在淡入的旧图保留）、提示一次 */
+    var onMissing = function () {
+      var fading = false;
+      try { fading = !!(WA2.fade && WA2.fade.enabled()); } catch (e) {}
+      if (!fading) sp.classList.remove("show");
+      if (!window.__spriteWarned) {
+        window.__spriteWarned = true;
+        (window.__toast || function () {})("立绘缺失，先用文字继续", 2500);
+      }
+    };
+
+    /* 双缓冲交叉淡化：新图先预载，载完叠一层淡入，淡完把主图换掉（见 wt-fade.js） */
+    try {
+      if (WA2.fade && WA2.fade.crossSprite) { WA2.fade.crossSprite(spritePath(outfit, mood), null, onMissing); return; }
+    } catch (e) {}
+
+    /* 兜底（wt-fade 没加载时）：一藏一换的老做法 */
     sp.classList.remove("show");
     setTimeout(function () {
-      /* 立绘缺图时别让画面留个破图标：藏起来、保留名字，提示一次 */
-      sp.onerror = function () {
-        sp.classList.remove("show");
-        if (!window.__spriteWarned) {
-          window.__spriteWarned = true;
-          (window.__toast || function () {})("立绘缺失，先用文字继续", 2500);
-        }
-      };
+      sp.onerror = onMissing;
       sp.src = spritePath(outfit, mood);
       sp.classList.add("show");
-      currentSprite = key;
     }, 180);
   }
 

@@ -3,6 +3,7 @@
 
 import time
 import applog
+import audio_gain
 import tts_client
 
 
@@ -56,9 +57,20 @@ class TtsApi:
                        % (len(data or b""), time.time() - t_s0), "TTS")
             if not data:
                 return self._json({"error": tts_client.status()}, 500)
+            # 响度归一化（#7）：量一次响度，把增益应用到**发出去的字节**上；
+            # 缓存里的 wav 一个字节不改，增益另外记在 .gain.json 侧车里。
+            gain = {}
+            try:
+                data, gain = audio_gain.apply(data)
+            except Exception as e:
+                applog.log("响度归一化失败（照原样播）：%s" % e, "WARN")
             self.send_response(200)
             self.send_header("Content-Type", "audio/wav")
             self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Voice-Gain-DB", "%.2f" % (gain.get("gain_db") or 0.0))
+            if gain.get("lufs") is not None:
+                self.send_header("X-Voice-Lufs", "%.1f" % gain["lufs"])
             self.end_headers()
             self.wfile.write(data)
         except Exception as e:

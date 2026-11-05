@@ -70,6 +70,7 @@
           sr.dataset.res = s.w + "x" + s.h;
           sr.addEventListener("click", function (ev) {
             ev.stopPropagation();
+            if (s.run) { try { s.run(); } catch (e) {} closeAll(); return; }
             if (s.act) {
               localStorage.setItem("app_voiceLang", s.act);
               window.voiceLang = s.act;
@@ -133,6 +134,18 @@
         })
         .catch(function () {});
     } catch (e) {}
+  }
+
+  /* 演出过渡开关：写进 prefs（xfade），下一次换背景 / 立绘就按新设置走 */
+  function fadeToggle(on) {
+    try {
+      if (window.WA2 && WA2.fade && WA2.fade.set) WA2.fade.set(on);
+      else if (window.App && window.App.setPref) window.App.setPref("xfade", !!on);
+    } catch (e) {}
+    try {
+      if (window.__toast) window.__toast(on ? "演出过渡：交叉淡化" : "演出过渡：已关闭", 1800);
+    } catch (e) {}
+    try { if (window.__dbg) window.__dbg("FADE", on ? "on/" + (window.WA2 && WA2.fade ? WA2.fade.ms() : "?") + "ms" : "off"); } catch (e) {}
   }
 
   // 窗口控制（无边框窗口需要自己实现）
@@ -324,6 +337,11 @@
       { label: "配音语言", sub: [
           { label: "日文（贴近原版声线）", w: 0, h: 0, act: "ja" },
           { label: "中文", w: 0, h: 0, act: "zh" },
+        ] },
+      /* 演出过渡：双缓冲交叉淡化的开关（性能 / 无障碍：关掉就是直接切） */
+      { label: "演出过渡", sub: [
+          { label: "交叉淡化（240ms）", w: 0, h: 0, run: function () { fadeToggle(true); } },
+          { label: "直接切换（关）", w: 0, h: 0, run: function () { fadeToggle(false); } }
         ] }
     ]));
     bar.appendChild(makeSceneMenu());
