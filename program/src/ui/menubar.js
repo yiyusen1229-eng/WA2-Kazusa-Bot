@@ -362,7 +362,12 @@
       { label: "演出过渡", sub: [
           { label: "交叉淡化（240ms）", w: 0, h: 0, run: function () { fadeToggle(true); } },
           { label: "直接切换（关）", w: 0, h: 0, run: function () { fadeToggle(false); } }
-        ] }
+        ] },
+      /* #20：素材检查 / 向导（缺哪些表情、哪些场景没图，一次说清） */
+      { label: "素材检查", action: function () {
+          if (window.__openAssetWizard) window.__openAssetWizard();
+          else alert("素材向导没加载（asset-wizard.js）");
+        } }
     ]));
     bar.appendChild(makeSceneMenu());
     bar.appendChild(makeMenu("系统", [

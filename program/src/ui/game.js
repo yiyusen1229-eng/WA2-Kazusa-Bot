@@ -33,9 +33,13 @@ fetch("assets/cg/index.json", { cache: "no-store" })
 
 /* 场景名 → 图片地址。认三种：CG 的 id / 旧的四张背景 / 都没有就用教室 */
 function bgSrc(name) {
-  if (name && CG_URL[name]) return CG_URL[name];
-  if (name && BGS[name]) return BGS[name];
-  return BGS.classroom;
+  var url = "";
+  if (name && CG_URL[name]) url = CG_URL[name];
+  else if (name && BGS[name]) url = BGS[name];
+  else url = BGS.classroom;
+  /* #20 热重载：素材换了之后加 ?v= 强制重新取图 */
+  if (WA2.assetsVer) url += (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + WA2.assetsVer;
+  return url;
 }
 
 
@@ -222,6 +226,13 @@ function setBg(name) {
 }
 
 /* ---------- 立绘：实现搬到 wt-sprite.js（WA2.sprite） ---------- */
+/* 热重载（#20）：素材变了之后强制重画一次当前背景（setBg 同名的会早退） */
+window.__reapplyBg = function () {
+  var name = currentBg;
+  if (!name) return false;
+  currentBg = null;
+  try { setBg(name); return true; } catch (e) { return false; }
+};
 /* 切换/新建角色后重拉索引：带上当前场景，交给 wt-sprite 处理 */
 window.__reloadSprites = function () {
   try { WA2.sprite.reload(currentBg || "classroom", window.__lastEmo || ""); } catch (e) {}

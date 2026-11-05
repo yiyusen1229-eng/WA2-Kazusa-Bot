@@ -91,7 +91,10 @@
     if (!o) return "assets/kaz_cold.png";
     var emo = emotion ? (mergeMap(MOOD_TO_EMO, cfgOverride("moodMap"))[emotion] || emotion) : "";
     var u = function (name) {
-      return "/api/character/sprite/" + encodeURIComponent(outfit) + "/" + encodeURIComponent(name);
+      var url = "/api/character/sprite/" + encodeURIComponent(outfit) + "/" + encodeURIComponent(name);
+      /* #20 热重载：换了图之后靠 ?v= 让 WebView2 重新取，不然还吃旧缓存 */
+      if (WA2.assetsVer) url += "?v=" + WA2.assetsVer;
+      return url;
     };
     if (emo && o.emotions && o.emotions[emo]) return u(o.emotions[emo]);
     // 该套衣服没有这个情绪 → 退到「认真」，再退到默认
@@ -154,12 +157,26 @@
     return outfits ? (outfits + " 套衣服 · " + files + " 张") : "";
   }
 
+  /* #20 热重载：素材变了就按「当前这套衣服 + 当前情绪」重画一次（URL 带 ?v= 绕过缓存） */
+  function refreshCurrent() {
+    if (!currentSprite) return false;
+    var parts = String(currentSprite).split("|");
+    var scene = (WA2.state && WA2.state.scene) || "";
+    try {
+      setSpriteByScene(scene, parts[1] || "", true, parts[0] || "");
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   WA2.sprite = {
     resolveOutfit: resolveOutfit,
     outfitOf: outfitOf,
     spritePath: spritePath,
     setSpriteByScene: setSpriteByScene,
     reload: reload,
+    refreshCurrent: refreshCurrent,
     summary: summary,
     index: SPRITE_INDEX
   };
@@ -167,7 +184,7 @@
   // 兼容老调用点（game.js / menubar.js 直接用了这些全局名）
   window.__reloadSprites = function () { reload(window.__curBg || "classroom", window.__lastEmo || ""); };
   var _exp = {};
-  var _names = ["loadIndex", "outfitOf", "reload", "resolveOutfit", "setSpriteByScene", "spritePath", "summary"];
+  var _names = ["loadIndex", "outfitOf", "reload", "refreshCurrent", "resolveOutfit", "setSpriteByScene", "spritePath", "summary"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }

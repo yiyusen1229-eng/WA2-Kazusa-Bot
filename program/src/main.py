@@ -44,6 +44,7 @@ import special_files
 import characters
 import char_res
 import diag
+import hotreload
 import logpack
 import persona_ctx
 import persona_stage
@@ -391,6 +392,8 @@ from api_chat import ChatApi
 from api_charpack import CharPackApi
 from api_log import LogApi
 from api_perfcfg import PerfCfgApi
+from api_hotreload import HotReloadApi
+from api_wizard import WizardApi
 from api_memory import MemoryApi
 from api_update import UpdateApi
 from text_parse import (
@@ -508,6 +511,28 @@ def _write_asset_report():
     except Exception as e:
         log("素材自检失败：%s" % e)
         return None
+
+
+def _hot_reload_setup():
+    """素材热重载（#20）：素材 / 角色文件夹一变，就让字模缓存和立绘索引失效、重写素材报告。"""
+
+    def _on_text(kinds):
+        _clear_text_cache()            # 字体或素材变了，旧字模不能再用
+
+    def _on_char(kinds):
+        try:
+            import char_res
+            char_res._CACHE.clear()    # 立绘索引 / 人设按 mtime 缓存，清掉就会重读
+        except Exception:
+            pass
+
+    def _on_assets(kinds):
+        _write_asset_report()
+
+    hotreload.watch(ASSETS_DIR, "")
+    hotreload.set_hooks({"text_cache": _on_text, "char_res": _on_char,
+                         "asset_report": _on_assets})
+    hotreload.start()
 
 
 def _log_maintenance():
@@ -798,7 +823,8 @@ def _repack_async(msgs, a, b):
 
 
 class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
-              ModelCfgApi, TtsApi, TextApi, LogApi, PerfCfgApi, SimpleHTTPRequestHandler):
+              ModelCfgApi, TtsApi, TextApi, LogApi, PerfCfgApi, HotReloadApi, WizardApi,
+              SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
 
@@ -930,8 +956,11 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             path = self.path[:120]
             if "/api/text?" in path or "/api/tts?" in path:
                 path = path.split("?", 1)[0] + "?<已隐藏>"
-            applog.log("%s %s -> %s  %.0fms" % (getattr(self, "command", "?"),
-                       path, status or "", dur), lvl)
+            # 热重载轮询（#20）每 4 秒一次，别把日志刷满
+            quiet = path.startswith("/api/hotreload")
+            if not quiet or lvl == "SLOW":
+                applog.log("%s %s -> %s  %.0fms" % (getattr(self, "command", "?"),
+                                                    path, status or "", dur), lvl)
         except Exception:
             pass
 
@@ -948,6 +977,10 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             return self._tts()
         if self.path.startswith("/api/performance"):
             return self._performance_get()
+        if self.path.startswith("/api/hotreload"):
+            return self._hotreload_get()
+        if self.path.startswith("/api/assets/wizard"):
+            return self._wizard_get()
         if self.path.startswith("/api/debug/state"):
             # 调试面板要的只读状态包（#13）：提示词分段 / 命中 / 缓存 / 分类器 / 阶段
             try:
@@ -1103,6 +1136,8 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
 
     def do_POST(self):
         self._req_start = time.time()
+        if self.path.startswith("/api/hotreload"):
+            return self._hotreload_post()
         if self.path == "/api/prefs":
             try:
                 body = self._body()
@@ -1276,6 +1311,7 @@ def serve_only(prefer_port=None):
     runstate.begin(APP_NAME, _VERSION)
     _log_maintenance()
     _write_asset_report()
+    _hot_reload_setup()
     _memory.clear_runtime()          # 后端模式也当作一次"新启动"
 
     port_holder = []
@@ -1318,6 +1354,8 @@ def main():
     runstate.begin(APP_NAME, _VERSION)
     _log_maintenance()
     _clear_text_cache()
+    _write_asset_report()
+    _hot_reload_setup()
     _memory.clear_runtime()          # 记忆缓存只活这一次运行
     try:
         import tts_client as _tc
