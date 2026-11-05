@@ -403,6 +403,7 @@ from api_log import LogApi
 from api_perfcfg import PerfCfgApi
 from api_hotreload import HotReloadApi
 from api_wizard import WizardApi
+from api_cleanup import CleanupApi
 from api_memory import MemoryApi
 from api_update import UpdateApi
 from text_parse import (
@@ -839,6 +840,7 @@ def _repack_async(msgs, a, b):
 
 class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
               ModelCfgApi, TtsApi, TextApi, LogApi, PerfCfgApi, HotReloadApi, WizardApi,
+              CleanupApi,
               SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
@@ -996,6 +998,9 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             return self._hotreload_get()
         if self.path.startswith("/api/assets/wizard"):
             return self._wizard_get()
+        if self.path.split("?")[0] == "/api/cleanup":
+            # #17 数据清理入口：概览（各项体积 + 角色列表），只读不删
+            return self._cleanup_get()
         if self.path.startswith("/api/debug/state"):
             # 调试面板要的只读状态包（#13）：提示词分段 / 命中 / 缓存 / 分类器 / 阶段
             try:
@@ -1153,6 +1158,14 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
         self._req_start = time.time()
         if self.path.startswith("/api/hotreload"):
             return self._hotreload_post()
+        if self.path.startswith("/api/cleanup/"):
+            # #17 数据清理入口：清缓存 / 导出数据 / 删角色（删角色要二次确认）
+            if self.path.startswith("/api/cleanup/cache"):
+                return self._cleanup_cache()
+            if self.path.startswith("/api/cleanup/export"):
+                return self._cleanup_export()
+            if self.path.startswith("/api/cleanup/character"):
+                return self._cleanup_character()
         if self.path == "/api/prefs":
             try:
                 body = self._body()

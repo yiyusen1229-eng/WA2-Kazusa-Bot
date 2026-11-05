@@ -367,6 +367,11 @@
       { label: "素材检查", action: function () {
           if (window.__openAssetWizard) window.__openAssetWizard();
           else alert("素材向导没加载（asset-wizard.js）");
+        } },
+      /* #17：数据清理入口（清缓存 / 导出数据 / 删角色，删前二次确认） */
+      { label: "数据清理", action: function () {
+          if (window.__openCleanup) window.__openCleanup();
+          else alert("数据清理没加载（cleanup.js）");
         } }
     ]));
     bar.appendChild(makeSceneMenu());
