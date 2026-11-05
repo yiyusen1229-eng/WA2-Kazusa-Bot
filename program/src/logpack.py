@@ -39,6 +39,7 @@ CRASH_KEEP = 10
 MAX_LOG_CHARS = 400000          # 单个日志在包里最多留 40 万字（尾部）
 
 _RE_APP = re.compile(r"^app-(\d{8})\.log$")
+_RE_PERF = re.compile(r"^perf-(\d{4}-\d{2}-\d{2})\.csv$")
 _RE_CRASH = re.compile(r"^crash-?(\d{4}-\d{2}-\d{2})[_-](\d{2}-\d{2}-\d{2})")
 _RE_QUERY = re.compile(r"(/api/(?:text|tts)\?)[^\s\"'<>]*")
 _RE_WINUSER = re.compile(r"[A-Za-z]:\\Users\\[^\\/:*?\"'<>|\r\n]+", re.I)
@@ -138,6 +139,20 @@ def _app_logs(d=None):
     return sorted(out)
 
 
+def _perf_files(d=None):
+    """[(日期, 路径)]，性能采样 csv（#14），按日期升序"""
+    d = d or log_dir()
+    out = []
+    try:
+        for fn in os.listdir(d):
+            m = _RE_PERF.match(fn)
+            if m:
+                out.append((m.group(1), os.path.join(d, fn)))
+    except OSError:
+        pass
+    return sorted(out)
+
+
 def _crash_logs(d=None):
     """[(时间串, 路径)]，按时间升序"""
     d = d or log_dir()
@@ -188,6 +203,22 @@ def prune(keep_days=KEEP_DAYS, dry=False, d=None):
     crashes = _crash_logs(d)
     if len(crashes) > CRASH_KEEP:
         for _key, path in crashes[:-CRASH_KEEP]:
+            try:
+                size = os.path.getsize(path)
+                if not dry:
+                    os.remove(path)
+                removed.append(os.path.basename(path))
+                freed += size
+            except OSError:
+                pass
+
+    # 性能采样 csv 也按同一个保留天数滚（#14）
+    for day, path in _perf_files(d):
+        try:
+            when = datetime.datetime.strptime(day, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        if when < cutoff:
             try:
                 size = os.path.getsize(path)
                 if not dry:
@@ -332,6 +363,9 @@ def bundle(include_turns=0, out_dir="", d=None, exe_dir=""):
         crash = _crash_logs(d)[-3:]
         for _k, cp in crash:
             put("logs/" + os.path.basename(cp), _tail_text(scrub(_read_text(cp))))
+        # 性能采样 csv（#14）：纯数字，原样带上
+        for _pday, pp in _perf_files(d)[-KEEP_DAYS:]:
+            put("logs/" + os.path.basename(pp), _read_text(pp, 512 * 1024))
 
         # 素材报告 / 运行状态 / 调试状态
         rep = _read_json(os.path.join(d, "asset_report.json"))

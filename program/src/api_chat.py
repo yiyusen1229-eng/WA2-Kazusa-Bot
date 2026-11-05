@@ -5,6 +5,7 @@ import json, os, time
 import char_res
 import characters
 import diag
+import perf
 import persona_ctx
 import persona_stage
 import scene_cg
@@ -211,6 +212,11 @@ class ChatApi:
                     reply_chars=len(reply or ""), ms=_ms)
             except Exception as e:
                 log("调试账本写入失败（不影响对话）: %s" % e)
+            # 性能采样（#14）：每 N 轮记一行，后台线程写，不占这一轮
+            try:
+                perf.maybe()
+            except Exception:
+                pass
 
             self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                         "action": action, "action_zh": action_zh,

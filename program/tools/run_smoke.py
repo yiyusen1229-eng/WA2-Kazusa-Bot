@@ -55,6 +55,7 @@ STEPS = [
     ("核心", "调试账本 35 项", "py", ["tools/test_diag.py"], 120),
     ("核心", "参数表 51 项", "py", ["tools/test_params.py"], 180),
     ("核心", "日志保留 + 诊断包 40 项", "py", ["tools/test_logpack.py"], 180),
+    ("核心", "性能采样 59 项", "py", ["tools/test_perf_sample.py"], 120),
     ("核心", "演出状态机 23 项", "node", ["tools/test_perf.js"], 120),
     ("核心", "交叉淡化 24 项", "node", ["tools/test_fade.js"], 120),
     ("边界", "长会话 / 缓存满 / 素材缺失", "py", ["tools/test_boundary.py"], 180),
@@ -63,6 +64,7 @@ STEPS = [
     ("静态", "前端语法 44 文件", "node", ["tools/test_ui_syntax.js"], 120),
     ("静态", "架构映射表", "py", ["tools/arch_map.py", "--check"], 120),
     ("静态", "参数与指标表", "py", ["tools/param_table.py", "--check"], 120),
+    ("静态", "像素测量 25 项", "py", ["tools/test_measure_ui.py"], 180),
     ("静态", "前端拆分告警（≤%d）" % CHECK_SPLIT_MAX, "split", ["tools/check_split.py"], 180),
 ]
 

@@ -184,6 +184,15 @@ def _scene_block():
     return dict(note_get("scene") or {})
 
 
+def _perf_block():
+    """最近一次性能采样（#14）：内存 / 线程 / 句柄 / GDI / 缓存体积"""
+    try:
+        import perf
+        return dict(perf.last() or {})
+    except Exception as e:
+        return {"error": str(e)[:80]}
+
+
 # ------------------------------------------------------------------ 面板整包
 
 def snapshot():
@@ -199,6 +208,7 @@ def snapshot():
             "tts": _tts_block(),
             "story": _story_block(),
             "scene": _scene_block(),
+            "perf": _perf_block(),
             "cache": _cache_block(),
         },
     }

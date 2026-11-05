@@ -87,6 +87,12 @@ def main():
     for i in range(12):
         with open(os.path.join(d, "crash_2026-11-05_12-00-%02d.log" % i), "w", encoding="utf-8") as f:
             f.write("boom")
+    # 性能采样 csv（#14）也跟着同一个保留天数滚
+    for days in (0, 40):
+        day = (today - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
+        with open(os.path.join(d, "perf-%s.csv" % day), "w", encoding="utf-8") as f:
+            f.write("ts,round\n")
+            f.write("2026-11-05 12:00:00,1\n")
 
     r = logpack.prune(keep_days=14, d=d, dry=True)
     check("dry-run 只报不删", len(r["removed"]) >= 1 and
@@ -100,6 +106,8 @@ def main():
           [os.path.join(d, n) for n in names])
     crashes = [f for f in os.listdir(d) if f.startswith("crash_")]
     check("崩溃现场只留 %d 份" % logpack.CRASH_KEEP, len(crashes) == logpack.CRASH_KEEP, len(crashes))
+    perfs = sorted(f for f in os.listdir(d) if f.startswith("perf-"))
+    check("性能采样 csv 也按天数滚（只留今天的）", len(perfs) == 1, perfs)
     check("清理返回释放字节数", r["freed"] > 0, r)
 
     # 正在写的那个永远不删
@@ -133,6 +141,9 @@ def main():
         json.dump({"ok": True, "checked": 3, "assets_dir": "D:/games/assets"}, f)
     with open(os.path.join(d2, "run_state.json"), "w", encoding="utf-8") as f:
         json.dump({"pid": 1234, "started_at": "2026-11-05 12:00:00"}, f)
+    with open(os.path.join(d2, "perf-%s.csv" % today.strftime("%Y-%m-%d")), "w", encoding="utf-8") as f:
+        f.write("ts,round,rss_mb,handles\n")
+        f.write("2026-11-05 12:00:00,20,180,540\n")
 
     sess = os.path.join(_TMP, "sessions")
     os.makedirs(sess, exist_ok=True)
@@ -156,6 +167,8 @@ def main():
     check("有日志", any(n.startswith("logs/app-") for n in names), list(names))
     check("有素材报告", "asset_report.json" in names)
     check("有运行状态", "run_state.json" in names)
+    check("有性能采样 csv（#14）",
+          any(n.startswith("logs/perf-") and n.endswith(".csv") for n in names), list(names))
     check("有调试状态", "diag_state.json" in names and "modules" in names["diag_state.json"])
     check("有配置摘要", "config_summary.json" in names and "prefs" in names["config_summary.json"],
           names.get("config_summary.json"))
