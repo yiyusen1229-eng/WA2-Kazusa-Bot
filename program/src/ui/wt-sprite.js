@@ -94,6 +94,14 @@
     if (!sp) return;
     sp.classList.remove("show");
     setTimeout(function () {
+      /* 立绘缺图时别让画面留个破图标：藏起来、保留名字，提示一次 */
+      sp.onerror = function () {
+        sp.classList.remove("show");
+        if (!window.__spriteWarned) {
+          window.__spriteWarned = true;
+          (window.__toast || function () {})("立绘缺失，先用文字继续", 2500);
+        }
+      };
       sp.src = spritePath(outfit, mood);
       sp.classList.add("show");
       currentSprite = key;

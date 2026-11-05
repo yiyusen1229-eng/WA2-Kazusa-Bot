@@ -17,6 +17,8 @@ import re
 import time
 import urllib.request
 
+import cache_io
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(BASE, "cache")
 CACHE_FILE = os.path.join(CACHE_DIR, "prices.json")
@@ -123,13 +125,10 @@ def _parse(html):
 
 
 def _load_cache():
-    try:
-        with open(CACHE_FILE, encoding="utf-8") as f:
-            d = json.load(f)
-        if isinstance(d, dict) and d.get("table"):
-            return d
-    except Exception:
-        pass
+    # 坏缓存（0 字节 / 半截）当没有：cache_io 会删掉它，下面回落到内置价目
+    d = cache_io.read_json(CACHE_FILE)
+    if isinstance(d, dict) and d.get("table"):
+        return d
     return None
 
 

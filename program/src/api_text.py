@@ -3,6 +3,8 @@
 
 import os
 
+import cache_io
+
 
 class TextApi:
     """见 main.Handler；从 main 注入运行时全局。"""
@@ -44,14 +46,16 @@ class TextApi:
             _disk = _text_disk_path(_key)
             _TEXT_DISK = _disk
             if os.path.exists(_disk):
-                data = open(_disk, "rb").read()
-                self.send_response(200)
-                self.send_header("Content-Type", "image/png")
-                self.send_header("Content-Length", str(len(data)))
-                self.send_header("Cache-Control", "public, max-age=86400")
-                self.end_headers()
-                self.wfile.write(data)
-                return
+                # 坏缓存（0 字节 / 半截）当没有：cache_io 会删掉它，下面重新渲染
+                data = cache_io.read_image(_disk)
+                if data:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "image/png")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.send_header("Cache-Control", "public, max-age=86400")
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
             if _key in _TEXT_CACHE:
                 data = _TEXT_CACHE[_key]
             else:

@@ -194,6 +194,17 @@ function setBg(name) {
   l.style.opacity = "0.25";
   setTimeout(() => {
     const bgUrl = bgSrc(name);
+    /* 背景缺图时留个纯色底 + 提示一次，别让画面空成黑的 */
+    const probe = new Image();
+    probe.onerror = function () {
+      l.style.backgroundImage = "none";
+      l.style.backgroundColor = "#1b2430";
+      if (!window.__bgWarned) {
+        window.__bgWarned = true;
+        (window.__toast || function () {})("背景缺失，先用纯色底继续", 2500);
+      }
+    };
+    probe.src = bgUrl;
     l.style.backgroundImage = `url("${bgUrl}")`;
     l.style.opacity = "1";
     window.__curBg = new Image();

@@ -486,6 +486,23 @@ persona_ctx.set_logger(log)      # 人设/世界书的日志也走这里
 persona_stage.set_logger(log)    # 关系阶段的日志
 
 
+def _write_asset_report():
+    """启动时扫一遍素材，写 logs/asset_report.json（缺图/0 字节文件一目了然）"""
+    try:
+        import assets_report
+        try:
+            char_dir = characters.active_dir()
+        except Exception:
+            char_dir = ""
+        r = assets_report.build(ASSETS_DIR, char_dir)
+        assets_report.write(os.path.join(applog._log_dir(), "asset_report.json"), r)
+        log(assets_report.summary(r))
+        return r
+    except Exception as e:
+        log("素材自检失败：%s" % e)
+        return None
+
+
 
 _JA_CACHE = {}
 TRANSLATE_MODEL = 'qwen2.5:14b-instruct-q4_K_M'
@@ -1222,6 +1239,7 @@ def serve_only(prefer_port=None):
                           "--autoplay-policy=no-user-gesture-required")
     runstate.install_hooks()
     runstate.begin(APP_NAME, _VERSION)
+    _write_asset_report()
     _memory.clear_runtime()          # 后端模式也当作一次"新启动"
 
     port_holder = []
@@ -1368,6 +1386,7 @@ def main():
     _WINDOW = window
     ensure_cloud_cfg()
     apply_model_cfg()
+    _write_asset_report()
     # private_mode=True: 每次启动都用全新的 WebView2 数据目录, 彻底避免旧缓存
     webview.start(private_mode=True)
     runstate.end()                   # 正常退出：删掉运行标记

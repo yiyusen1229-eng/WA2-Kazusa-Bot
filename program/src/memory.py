@@ -27,6 +27,8 @@ import os
 import sys
 import time
 
+import cache_io
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 # 运行时缓存目录（缓存记忆书就放这儿）；WA2_CACHE_DIR 是给自测/便携版换位置的
 CACHE_DIR = os.environ.get("WA2_CACHE_DIR") or os.path.join(BASE, "cache")
@@ -129,8 +131,8 @@ def runtime():
     if _RT is None:
         _RT = _blank()
         try:
-            with open(RUNTIME_FILE, encoding="utf-8") as f:
-                d = json.load(f)
+            # 坏缓存（0 字节 / 半截 JSON）当没有：cache_io 会删掉它
+            d = cache_io.read_json(RUNTIME_FILE)
             if isinstance(d, dict):
                 for k in _RT:
                     if k in d:

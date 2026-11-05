@@ -10,18 +10,21 @@ import os
 import re
 import threading
 
+import cache_io
+
 CJK = re.compile(r"[\u4e00-\u9fff]")
 WORD = re.compile(r"[a-zA-Z]{2,}")
 STOP = set("的了是我你他她它在和与就都也很还又而但如果不没要会能可以这个那个什么怎么为什么吗呢吧啊呀哦嗯")
 
 
 def _load_docs(path):
-    """读取剧本索引：优先 .json.gz（体积约为 json 的 1/6，启动更快）"""
+    """读取剧本索引：优先 .json.gz（体积约为 json 的 1/6，启动更快）
+
+    坏索引（0 字节 / 半截 gz）当没有：cache_io 会删掉它，调用方按"没索引"处理。
+    """
     if path.endswith(".gz"):
-        with gzip.open(path, "rt", encoding="utf-8") as fh:
-            return json.load(fh)
-    with open(path, encoding="utf-8") as fh:
-        return json.load(fh)
+        return cache_io.read_gz_json(path) or []
+    return cache_io.read_json(path) or []
 
 
 
