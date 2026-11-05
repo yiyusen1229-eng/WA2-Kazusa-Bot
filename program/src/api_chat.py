@@ -9,6 +9,7 @@ import perf
 import persona_ctx
 import persona_stage
 import scene_cg
+import standing
 import tts_client
 
 # 关键参数（#12：以前散在函数体里的数字，集中在这里；表见 other/docs/参数与指标.md）
@@ -70,7 +71,8 @@ class ChatApi:
         #   人设 → 常驻记忆书（角色固定设定）→ 世界书（设定）→ 对话记忆书（自动摘要）
         #   后面还有：剧本检索（原作片段）
         try:
-            mem_extra = char_res.memory_text()
+            # 常驻记忆书（#3）：两段化之后是「固定设定 + 关系摘要」；没 standing.json 就回落老文本
+            mem_extra = standing.text()
             _seg["memory_extra"] = len(mem_extra or "")
             if mem_extra:
                 system = system + (
@@ -197,6 +199,7 @@ class ChatApi:
                       score=bg_hit.get("score"))
 
             _ms = int((time.time() - t0) * 1000)
+            _stage = (persona_stage.debug_state() or {}).get("stage")
             # 调试面板：这一轮的提示词分段 / token 估算 / 耗时 / 用量（只记数字和标签）
             try:
                 _tok = {"system": diag.token_est(system),
@@ -204,7 +207,7 @@ class ChatApi:
                         "fewshot": sum(diag.token_est(m.get("content") or "") + 4 for m in _few)}
                 diag.round_record(
                     model=model, tier=("cloud" if cc else "local"), period=period,
-                    stage=(persona_stage.debug_state() or {}).get("stage"),
+                    stage=_stage,
                     seg=_seg, tokens=_tok,
                     usage={k: _uinfo.get(k) for k in ("tokens", "in", "out", "cost") if k in (_uinfo or {})},
                     scene={"id": bg_hit.get("id", ""), "score": bg_hit.get("score")},
@@ -212,6 +215,11 @@ class ChatApi:
                     reply_chars=len(reply or ""), ms=_ms)
             except Exception as e:
                 log("调试账本写入失败（不影响对话）: %s" % e)
+            # 常驻记忆书（#3）：关系阶段变了才在后台刷一次关系摘要（每个阶段最多一次）
+            try:
+                standing.note(_stage, raw_msgs)
+            except Exception:
+                pass
             # 性能采样（#14）：每 N 轮记一行，后台线程写，不占这一轮
             try:
                 perf.maybe()

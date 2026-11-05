@@ -49,6 +49,7 @@ import persona_ctx
 import persona_stage
 import runstate
 import scene_cg
+import standing
 try:
     import gdi_text as GLIB
 except Exception:
@@ -722,6 +723,10 @@ def _mem_llm(prompt, max_tokens=1200, timeout=90):
             pass
         log("记忆书：模型调用失败 %s: %s %s" % (type(e).__name__, e, detail))
         raise
+
+
+# 常驻记忆书的关系摘要（#3）：用同一个便宜模型，只要 3~6 行短句
+standing.set_llm(lambda prompt: _mem_llm(prompt, max_tokens=400, timeout=60))
 
 
 def _memory_context(msgs, cloud):

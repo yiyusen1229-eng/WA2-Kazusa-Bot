@@ -34,6 +34,7 @@ LEVELS = {
     "winutil.py": ("二级 · 核心", "Windows 窗口 API"),
     "pricing.py": ("二级 · 核心", "价格与用量估算"),
     "memory.py": ("二级 · 记忆", "对话记忆书：阈值/打包/条目"),
+    "standing.py": ("二级 · 记忆", "常驻记忆书两段化 + 随阶段低频刷新"),
     "persona_ctx.py": ("二级 · 记忆", "人设正文、世界书命中、时期"),
     "persona_stage.py": ("二级 · 记忆", "关系阶段分类"),
     "story_rag.py": ("二级 · 记忆", "原作检索（BM25）"),

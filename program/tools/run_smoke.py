@@ -54,6 +54,7 @@ STEPS = [
     ("核心", "响度归一化 28 项", "py", ["tools/test_audio_gain.py"], 180),
     ("核心", "调试账本 35 项", "py", ["tools/test_diag.py"], 120),
     ("核心", "参数表 51 项", "py", ["tools/test_params.py"], 180),
+    ("核心", "常驻记忆书两段化 44 项", "py", ["tools/test_standing.py"], 120),
     ("核心", "日志保留 + 诊断包 40 项", "py", ["tools/test_logpack.py"], 180),
     ("核心", "性能采样 59 项", "py", ["tools/test_perf_sample.py"], 120),
     ("核心", "演出状态机 23 项", "node", ["tools/test_perf.js"], 120),

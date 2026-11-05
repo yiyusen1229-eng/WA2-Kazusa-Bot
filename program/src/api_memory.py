@@ -14,6 +14,7 @@
 
 import memory
 import char_res
+import standing as standing_mod
 
 KIND_LABEL = {"preference": "偏好", "event": "事件", "progress": "进度"}
 
@@ -46,9 +47,15 @@ def view():
     standing_text = ""
     standing_file = ""
     try:
-        standing_text = (char_res.memory_text() or "").strip()
+        standing_text = (standing_mod.text() or "").strip()
         st = (char_res.status() or {}).get("memory") or {}
         standing_file = st.get("file") or ""
+    except Exception:
+        pass
+    # #3：两段化之后，界面要能看出「关系摘要」是不是自动更新过
+    standing_meta = {}
+    try:
+        standing_meta = standing_mod.status()
     except Exception:
         pass
 
@@ -68,6 +75,10 @@ def view():
             "file": standing_file,
             "chars": len(standing_text),
             "text": standing_text,
+            "two_part": bool(standing_meta.get("two_part")),
+            "stage": standing_meta.get("stage", 0),
+            "updated_at": standing_meta.get("updated_at", ""),
+            "hint": standing_meta.get("hint", ""),
         },
     }
 

@@ -49,15 +49,19 @@
     stand.innerHTML = "";
     setHint("");
 
-    /* 常驻记忆书：角色设定，只读 */
+    /* 常驻记忆书：角色设定，只读（#3：两段化之后，下半是自动刷新的关系摘要） */
     var st = (d && d.standing) || {};
-    stand.appendChild(el("span", "lbl",
-      "常驻记忆书（角色设定，只读）" + (st.chars ? " · " + st.chars + " 字" : "")));
+    var lab = "常驻记忆书（角色设定，只读）" + (st.chars ? " · " + st.chars + " 字" : "");
+    if (st.two_part && st.updated_at) {
+      lab += " · 关系摘要更新于 " + st.updated_at;
+    }
+    stand.appendChild(el("span", "lbl", lab));
     if (st.text) {
       stand.appendChild(el("div", "", st.text));
     } else {
       stand.appendChild(el("div", "memEmpty", "还没有常驻记忆书，可以在「特别模式 → 记忆书」导入。"));
     }
+    if (st.hint) stand.appendChild(el("div", "memEmpty", st.hint));
 
     /* 自动摘要条目：可删 */
     var entries = (d && d.entries) || [];
