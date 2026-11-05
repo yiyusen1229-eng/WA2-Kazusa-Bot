@@ -32,7 +32,15 @@
     return fetch("/api/session/load?slot=auto", { cache: "no-store" })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (!d || !d.ok || !d.messages || !d.messages.length) return false;
+        if (!d || !d.ok) {
+          /* 存档 schema 读不了的时候说清楚原因，别静默当没有存档 */
+          var e = d && d.error, t = window.__toast || function () {};
+          if (e === "save_too_new") t("存档来自更新版本，请先升级程序");
+          else if (e === "corrupt") t("存档已损坏，读不出来");
+          else if (e === "migrate_failed" || e === "migrate_missing") t("存档升级失败，原档已备份");
+          return false;
+        }
+        if (!d.messages || !d.messages.length) return false;
         applyHistory(d.messages);
         const meta = d.meta || {};
         if (meta.bg) { currentBg = null; setBg(meta.bg); }

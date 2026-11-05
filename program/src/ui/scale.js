@@ -22,6 +22,9 @@
     t._h = setTimeout(function () { t.style.display = "none"; }, 1500);
   }
 
+  /* 给别的模块用（读档失败提示等）：window.__toast("…") */
+  window.__toast = toast;
+
   function applyAll() {
     var imgs = document.querySelectorAll("#msgText img, #namePlate img");
     for (var i = 0; i < imgs.length; i++) {

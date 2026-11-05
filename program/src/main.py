@@ -992,6 +992,17 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             slot = (q.get("slot") or ["auto"])[0]
             d = session_load(slot)
+            if not isinstance(d, dict) or not d.get("ok"):
+                # 读不了（坏档 / 来自更新版本）：别动记忆书和关系阶段，把错误原样交给前端
+                err = (d or {}).get("error") if isinstance(d, dict) else "load_failed"
+                log("存档：读 %s 失败（%s）" % (slot, err))
+                if isinstance(d, dict):
+                    d.pop("memory", None)
+                    return self._json(d)
+                return self._json({"ok": False, "error": "load_failed"})
+            if d.get("migrated_from") is not None:
+                log("存档：%s 从 v%s 迁移到 v%s"
+                    % (slot, d.get("migrated_from"), d.get("schema_version")))
             # 读档：存档里的记忆书一次性复制进运行时缓存（cache/memory_runtime.json），
             # 之后整局都只读缓存 —— 不再区分"存档记忆书 / 缓存记忆书"两套。
             try:
