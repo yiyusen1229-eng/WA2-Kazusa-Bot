@@ -1,0 +1,198 @@
+/* choice.css —— 选择分支（选项条 / 小标签 / 编号 / 悬停高亮 / 点击淡出）
+ *
+ * 素材：assets/ui/choice/bar.png（sys_00200，三段：常态 / 高亮 / 按下）
+ *       assets/ui/save/d1..d9.png（烤好的数字字模）+ CSS 画的「.」
+ *       assets/snowflake_right.png（两端的雪花，沿用游戏里的那张）
+ *
+ * bar.png 本身是**可染色**的白色底纹（游戏里靠顶点色染成蓝色），所以底板放在
+ * .choiceBg 上单独做 filter（不然 filter 会把文字一起变暗）。
+ * 常态：暗蓝 + 浅蓝白字；悬停：整条变亮 + 字变金（和截图一致）；点击后整层淡化消失。
+ */
+
+#choiceScreen {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  display: none;
+  z-index: 70;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 120px;              /* 稍微偏上，别压住输入框 */
+  opacity: 1;
+  transition: opacity .42s ease;
+  pointer-events: none;
+}
+#choiceScreen.show { display: flex; pointer-events: auto; }
+#choiceScreen.fading { opacity: 0; }
+
+#choiceList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 520px;
+}
+
+.choiceRow {
+  position: relative;
+  height: 34px;
+  border: 0;
+  margin: 0;
+  padding: 0 0 0 52px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: #d8ecff;                     /* 常态：浅蓝白 */
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: .5px;
+  background: none;
+  border-radius: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  text-shadow: 0 1px 3px rgba(0, 14, 30, .95);
+  display: flex;
+  align-items: center;
+}
+
+/* 底板：bar.png 只有边缘高光/雪花，中间是空的 —— 蓝色填充我们自己铺一层渐变 */
+.choiceBg {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background-image:
+    linear-gradient(180deg, rgba(26, 78, 124, .92) 0%, rgba(12, 40, 72, .90) 55%,
+                    rgba(8, 26, 48, .94) 100%),
+    url("assets/ui/choice/bar.png");
+  background-size: 100% 100%, 100% 300%;
+  background-position: 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat;
+  border-top: 1px solid rgba(150, 230, 255, .55);
+  border-bottom: 1px solid rgba(110, 190, 250, .32);
+  box-shadow: inset 0 0 18px rgba(60, 160, 220, .22);
+  opacity: .96;
+  pointer-events: none;
+  transition: filter .18s ease, opacity .18s ease;
+}
+
+/* 两端的雪花 */
+.choiceRow::before,
+.choiceRow::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 22px; height: 22px;
+  transform: translateY(-50%);
+  background-image: url("assets/snowflake_right.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: .8;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(120, 220, 255, .8));
+}
+.choiceRow::before { left: 8px; }
+.choiceRow::after { right: 8px; }
+
+/* 悬停：换到高亮段 + 提亮 + 金字 */
+.choiceRow:hover,
+.choiceRow.hover { color: #ffe9a8; }
+.choiceRow:hover .choiceBg,
+.choiceRow.hover .choiceBg {
+  background-image:
+    linear-gradient(180deg, rgba(58, 150, 200, .95) 0%, rgba(20, 80, 130, .92) 55%,
+                    rgba(10, 40, 72, .95) 100%),
+    url("assets/ui/choice/bar.png");
+  background-position: 0 0, 0 50%;
+  filter: saturate(1.35) drop-shadow(0 0 10px rgba(96, 208, 255, .55));
+  opacity: 1;
+}
+.choiceRow:hover::before, .choiceRow:hover::after,
+.choiceRow.hover::before, .choiceRow.hover::after { opacity: 1; }
+
+/* 按下：第三段（两侧带端帽） */
+.choiceRow:active .choiceBg {
+  background-position: 0 0, 0 100%;
+  filter: brightness(1.15) saturate(1.6);
+}
+
+/* 左边那个小白标签（sys_00011 里没有单独一张，用 CSS 画） */
+.choiceTag {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  width: 13px; height: 16px;
+  transform: translateY(-50%) rotate(-6deg);
+  background: linear-gradient(180deg, #ffffff 0%, #d8ecf7 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(150, 230, 255, .9), 0 1px 2px rgba(0, 20, 40, .6);
+  pointer-events: none;
+  z-index: 1;
+}
+.choiceTag::after {
+  content: "";
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #2b6f96;
+}
+
+/* 编号：烤好的数字字模 + 一个「.」 */
+.choiceNum {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 12px;
+  height: 12px;
+  z-index: 1;
+}
+.choiceNum img {
+  height: 12px; width: auto; display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 10, 24, .9));
+}
+.choiceNum .dot {
+  display: inline-block;
+  width: 3px; height: 3px;
+  margin: 0 0 0 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .9;
+}
+
+.choiceTxt { position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.choiceLoading { color: #cfe9ff; font-size: 13px; text-align: center; opacity: .8; }
+
+/* 「选择分支」按钮：底板和发送键同一张三段图 */
+#choiceBtn {
+  position: absolute;
+  bottom: -22px;
+  right: 180px;
+  height: 20px;
+  width: 82px;
+  padding: 0 6px;
+  font-size: 7.6px;
+  letter-spacing: .6px;
+  color: #f4fcff !important;
+  font-family: inherit !important;
+  text-shadow: 0 1px 2px rgba(0, 18, 36, .95) !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  cursor: pointer;
+  isolation: isolate;
+  white-space: nowrap;
+}
+#choiceBtn::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  z-index: -1;
+  background-image: url("assets/ui/btn_3state.png");
+  background-size: 100% 300%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  opacity: var(--ui-alpha, 1);
+  pointer-events: none;
+}
+#choiceBtn:active::before { background-position: 0 50%; }
+#choiceBtn.released::before { background-position: 0 100%; }
+#choiceBtn[disabled] { opacity: .55; cursor: default; }

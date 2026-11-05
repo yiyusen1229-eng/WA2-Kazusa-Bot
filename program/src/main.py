@@ -404,6 +404,7 @@ from api_perfcfg import PerfCfgApi
 from api_hotreload import HotReloadApi
 from api_wizard import WizardApi
 from api_cleanup import CleanupApi
+from api_choice import ChoiceApi
 from api_memory import MemoryApi
 from api_update import UpdateApi
 from text_parse import (
@@ -850,7 +851,7 @@ def _repack_async(msgs, a, b):
 
 class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
               ModelCfgApi, TtsApi, TextApi, LogApi, PerfCfgApi, HotReloadApi, WizardApi,
-              CleanupApi,
+              CleanupApi, ChoiceApi,
               SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=UI_DIR, **kw)
@@ -1172,6 +1173,9 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
         if self.path.startswith("/api/update/apply"):
             # 一键更新：整份代码取最新，不走补丁链（漏几版都没关系）
             return self._update_apply()
+        if self.path.startswith("/api/choice"):
+            # 选择分支：让模型基于最近对话给 2~5 个玩家可选项
+            return self._choice()
         if self.path.startswith("/api/hotreload"):
             return self._hotreload_post()
         if self.path.startswith("/api/cleanup/"):

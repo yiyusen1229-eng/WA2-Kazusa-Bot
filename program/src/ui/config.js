@@ -6,6 +6,7 @@
     seHover: 55, seClick: 56, seCancel: 56, sePage: 57, seExit: 58,   // 55=悬停音 56=点击音（录屏比对得出）
     bgmMenu: 0, bgmCalm: 2, bgmWarm: 3, bgmSad: 4, bgmTense: 6,
     bgmVol: 30, seVol: 35,
+    choiceCount: 2,          /* 选择分支：一次给几个选项（2~5） */
   };
 
   try {
@@ -92,6 +93,17 @@ function savePrefs() {
           <div class="cfgRow"><span>音效</span><input id="cfgSeVol" type="range" min="0" max="100"><b id="cfgSeVolV"></b></div>
         </div>
 
+        <div class="cfgSec">
+          <div class="cfgLbl">选择分支</div>
+          <div class="cfgRow"><span>选项数量</span>
+            <select id="cfgChoiceCount">
+              <option value="2">2 个</option>
+              <option value="3">3 个</option>
+              <option value="4">4 个</option>
+              <option value="5">5 个</option>
+            </select></div>
+        </div>
+
         <div class="cfgBtns">
           <button id="cfgSave">保存</button>
           <button id="cfgClose">关闭</button>
@@ -125,6 +137,8 @@ function savePrefs() {
       box.querySelector("#cfgSeHover").value = prefs.seHover;
       box.querySelector("#cfgSeClick").value = prefs.seClick;
       box.querySelector("#cfgSeCancel").value = prefs.seCancel;
+      var _ccEl = box.querySelector("#cfgChoiceCount");
+      if (_ccEl) _ccEl.value = String(prefs.choiceCount || 2);
       box.querySelector("#cfgBgmCalm").value = prefs.bgmCalm;
       box.querySelector("#cfgBgmWarm").value = prefs.bgmWarm;
       box.querySelector("#cfgBgmSad").value = prefs.bgmSad;
@@ -146,6 +160,8 @@ function savePrefs() {
       prefs.bgmTense = +box.querySelector("#cfgBgmTense").value;
       prefs.bgmVol = +box.querySelector("#cfgBgmVol").value;
       prefs.seVol = +box.querySelector("#cfgSeVol").value;
+    var ccEl = box.querySelector("#cfgChoiceCount");
+    if (ccEl) prefs.choiceCount = Math.max(2, Math.min(5, +ccEl.value || 2));
     }
 
     box.querySelectorAll("[data-listen]").forEach(btn => {
