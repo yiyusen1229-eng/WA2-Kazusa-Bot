@@ -1021,6 +1021,9 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             return self._json({"ok": True, "app": APP_NAME})
         if self.path == "/api/run/state":
             return self._json(runstate.state())
+        if self.path.startswith("/api/update/status"):
+            # 一键更新：前端轮询进度（要排在 /api/update 前面）
+            return self._update_status()
         if self.path.startswith("/api/update"):
             return self._update_check()
         if self.path.startswith("/api/open_url"):
@@ -1166,6 +1169,9 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
 
     def do_POST(self):
         self._req_start = time.time()
+        if self.path.startswith("/api/update/apply"):
+            # 一键更新：整份代码取最新，不走补丁链（漏几版都没关系）
+            return self._update_apply()
         if self.path.startswith("/api/hotreload"):
             return self._hotreload_post()
         if self.path.startswith("/api/cleanup/"):

@@ -82,6 +82,7 @@ STEPS = [
     ("核心", "常驻记忆书两段化 45 项", "py", ["tools/test_standing.py"], 120),
     ("核心", "演出/切片配置 44 项", "py", ["tools/test_perfcfg.py"], 120),
     ("核心", "剧情检索 27 项", "py", ["tools/test_story_rag.py"], 120),
+    ("核心", "一键更新 26 项", "py", ["tools/test_update.py"], 120),
     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),
     ("核心", "翻译层 21 项", "py", ["tools/test_translate.py"], 60),
     ("核心", "素材热重载 27 项", "py", ["tools/test_hotreload.py"], 120),
@@ -266,12 +267,21 @@ def live_smoke():
                     os.remove(b["path"])
                 except OSError:
                     pass
+        # 一键更新：只验检测 + 进度两个只读接口（真更新不能在这里跑）
+        st, body = _get(base + "/api/update")
+        up = json.loads(body)
+        if "auto" not in up or up.get("mode") not in ("git", "zip"):
+            problems.append("update 检测结构不对")
+        st, body = _get(base + "/api/update/status")
+        ups = json.loads(body)
+        if not ups.get("ok") or "progress" not in ups:
+            problems.append("update/status 结构不对")
         if has_assets:
             st, body = _get(base + "/api/text?text=" + urllib.request.quote("冒烟"))
             # 这里是二进制 PNG；只验 HTTP 200 和长度，不解析
         if problems:
             return False, " / ".join(problems), time.time() - t0
-        return True, "端口 %d，接口 %d 个" % (port, 11 if has_assets else 10), time.time() - t0
+        return True, "端口 %d，接口 %d 个" % (port, 13 if has_assets else 12), time.time() - t0
     finally:
         try:
             proc.terminate()

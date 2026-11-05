@@ -44,6 +44,7 @@
 | K24 | 素材向导 | 缺立绘按衣服聚合、缺场景按 id、语音 0 字节/没参考音频、文本三件套未导入；补齐后各步 ok；每步可跳过 | `test_wizard.py`（+ 真机探针看 `data-uitxt`） |
 | K27 | 窗口接口归属 | `python main.py` 起时真身是 `__main__`：`main.py` 顶部把 "main" 别名指过去；`api_window.py` 经 `winutil._main_module()` 取窗口，不直接 `import main`；`_main_module()` 在有窗口/没窗口两种情况下都挑得对。**防「全屏 / 最大化点了没反应」——接口回 200 但 error 里写着 `module 'main' has no attribute '_WINDOW'`** | `test_window_api.py`（真机验证另见 `other/docs/踩坑记录` 第十条） |
 | K28 | 数据清理入口 | 概览 8 个清理项体积算得对（运行时缓存只算三份、日志只算 app-*.log）；清缓存保留今天正在写的日志、不碰存档与角色内容、未知 key 不算失败；导出 zip 有 manifest / README、跳过 `.bak`、不带素材、默认不带对话、`sk-` 已脱敏、turns>0 才带 sessions；删角色四种拒绝（确认名不对 / 当前角色 / id 带 `..` / 不存在），成功时整目录挪进 `characters/_deleted/` 且清掉 `cache/<角色>/` | `test_cleanup.py`（59 项） |
+| K29 | 一键更新 | `detect()` 按有没有 `.git` 选 git / zip 两种模式；**zip 模式只覆盖代码+文档白名单，角色/素材/存档/日志一个都不动**；上游删掉的旧文件本地也删（不留孤儿）；覆盖前有 `update_backup_*` 备份；坏包报错且不动本地；`apply()` 立刻返回、进度可轮询；git 模式用本地裸仓模拟远端，fetch+reset 后拿到新代码 | `test_update.py`（26 项） |
 
 ## 边界（极端输入不炸，行为仍可预期）
 
