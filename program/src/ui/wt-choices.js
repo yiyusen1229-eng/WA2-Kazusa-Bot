@@ -76,7 +76,8 @@
       var b = document.createElement("button");
       b.className = "choiceRow";
       b.setAttribute("data-i", String(i));
-      b.innerHTML = '<span class="choiceBg"></span><span class="choiceTag"></span>' +
+      b.innerHTML = '<span class="choiceBg"></span><span class="choiceTop"></span>' +
+                    '<span class="choiceSnow"></span><span class="choiceTag"></span>' +
                     numGlyphs(i) + '<span class="choiceTxt"></span>';
       b.querySelector(".choiceTxt").textContent = txt;
       b.addEventListener("mouseenter", function () { b.classList.add("hover"); se("hover"); });
