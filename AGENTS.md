@@ -28,10 +28,10 @@
 
 ```powershell
 program\启动程序.bat                                  # 启动（同步 src → build_env 再开窗）
+python program\tools\run_smoke.py                     # 一键自测（约 5 秒，含在线冒烟）
 python program\tools\run_dev.py --sync-only           # 只同步代码到 build_env
 cd program\build_env; $env:WA2_ASSETS_DIR="..\res\assets"
 .\venv\Scripts\python.exe main.py --serve-only --port 8791   # 只起后端（自测/探针用）
-python program\tools\test_char_res.py                 # 6 个自测，全绿才算过
 python program\tools\ui_probe.py --url http://127.0.0.1:8791/game/index.html `
     --js setup.js --check check.js --wait 1500        # 界面探针（--js/--check 收文件路径）
 python program\tools\check_assets.py                  # 素材自检

@@ -72,6 +72,23 @@ check("两层都结束 → IDLE", perf.current() === S.IDLE, perf.current());
 perf.end(S.VOICE_PLAYING);
 check("多余的 end 不把计数弄负", perf.current() === S.IDLE, perf.current());
 
+// 快速连点重播（边界）：连点几十次也回得到 IDLE，计数表不残留
+for (let i = 0; i < 20; i++) {
+  perf.begin(S.REPLAYING);
+  perf.interrupt(S.REPLAYING);
+}
+check("快速连点重播：回到 IDLE", perf.current() === S.IDLE, perf.current());
+check("快速连点重播：计数表清空", Object.keys(perf.counts()).length === 0, perf.counts());
+check("快速连点后仍能重播", perf.can(S.REPLAYING) === true);
+
+// 重播中来了新消息：流式压过重播，掐掉重播后回到 IDLE
+perf.begin(S.REPLAYING);
+perf.begin(S.DIALOGUE_STREAMING);
+check("重播中途来新消息 → 流式", perf.current() === S.DIALOGUE_STREAMING, perf.current());
+perf.interrupt(S.REPLAYING);
+perf.end(S.DIALOGUE_STREAMING);
+check("掐掉重播 + 流式结束 → IDLE", perf.current() === S.IDLE, perf.current());
+
 // onChange
 let seen = [];
 perf.onChange(function (now, prev) { seen.push(prev + "->" + now); });

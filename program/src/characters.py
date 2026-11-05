@@ -513,15 +513,39 @@ def sprite_index(assets_sprites):
     return out
 
 
+def _under(base, path):
+    """path 是不是真的在 base 下面（挡绝对路径 / 盘符 / 各种花样逃出去）"""
+    try:
+        if not base or not path:
+            return False
+        b = os.path.abspath(base)
+        p = os.path.abspath(path)
+        return os.path.commonpath([b, p]) == b
+    except Exception:
+        return False
+
+
 def sprite_file(assets_sprites, rel):
-    """按相对路径找立绘图：角色 portrait/ 优先，没有再用自带 assets/sprites/"""
+    """按相对路径找立绘图：角色 portrait/ 优先，没有再用自带 assets/sprites/
+
+    安全：`rel` 只当**相对路径**用。`..`、以 `/` 开头、带盘符（`C:`）的一律拒绝——
+    `os.path.join(base, "C:", ...)` 会把 base 整个甩掉，等于把本机任意文件发出去。
+    （边界自测 `tools/test_boundary.py` 里有对应用例盯着。）
+    """
     rel = (rel or "").replace("\\", "/").strip("/")
     if not rel or ".." in rel.split("/"):
         return ""
-    own = os.path.join(sprite_dir(), *rel.split("/")) if sprite_dir() else ""
-    if own and os.path.isfile(own):
-        return own
-    base = os.path.join(assets_sprites, *rel.split("/"))
-    if os.path.isfile(base):
+    if rel.startswith("/") or re.match(r"^[A-Za-z]:", rel):
+        return ""
+    parts = [p for p in rel.split("/") if p not in ("", ".")]
+    if not parts:
+        return ""
+    own_dir = sprite_dir()
+    if own_dir:
+        own = os.path.join(own_dir, *parts)
+        if os.path.isfile(own) and _under(own_dir, own):
+            return own
+    base = os.path.join(assets_sprites, *parts)
+    if os.path.isfile(base) and _under(assets_sprites, base):
         return base
     return ""
