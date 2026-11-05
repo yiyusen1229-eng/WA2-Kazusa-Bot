@@ -1,13 +1,10 @@
-/* wt-choices.js —— 选择分支（galgame 那种选项条）
+/* wt-choices.js —— 选择分支：让 AI 按当前对话给几个分歧选项，点一条就当玩家发言发出去。
  *
- * 流程：点「选择分支」→ POST /api/choice（带上最近对话 + prefs 里设的选项数量）
- *      → 渲染 2~5 条选项（bar.png 三态：常态 / 悬停高亮+金字 / 按下）
- *      → 悬停播 se_select；点一条 → 整层淡出 → 把选项当成玩家说的话发出去
- *
- * 素材：assets/ui/choice/bar.png（sys_00200）、assets/ui/save/d1..d9.png（烤好的数字字模）、
- *      assets/snowflake_right.png（两端雪花）。样式在 choice.css。
- *
- * 探针：window.__openChoices() 直接弹；window.WA2.choices.state 看状态。
+ * 结构：点「选择分支」→ POST /api/choice → 每条画成 .choiceRow
+ *       （.choiceBg 三段拉伸的条 + .choiceSnowL/R 两端雪花 + .choiceTag 白牌 +
+ *         .choiceNum 烤好的数字字模 + .choiceTxt 文字）
+ * 几何：见 choice.css 顶部注释（读数来自原版整帧截图，系数 800/2730）。
+ * 交互：悬停换高亮贴图 + 字变金；点击整层淡出 420ms 后发送；数字键 1~5 选择，Esc 关闭。
  */
 (function () {
   var WA2 = window.WA2 = window.WA2 || {};
@@ -15,6 +12,8 @@
 
   var state = { open: false, busy: false, options: [], error: "", count: 2 };
   var FADE_MS = 420;
+  var ROW_TOP = 176;      /* 首条上沿（舞台 px，原版实测） */
+  var ROW_PITCH = 29;     /* 行距 */
 
   function prefsCount() {
     var n = 2;
@@ -22,12 +21,6 @@
       var p = (WA2.prefs && WA2.prefs.getPrefs) ? WA2.prefs.getPrefs() : null;
       if (p && p.choiceCount) n = parseInt(p.choiceCount, 10) || 2;
     } catch (e) {}
-    if (!n) {
-      try {
-        var raw = localStorage.getItem("app_prefs");
-        if (raw) n = parseInt(JSON.parse(raw).choiceCount, 10) || 2;
-      } catch (e) {}
-    }
     return Math.max(2, Math.min(5, n));
   }
 
@@ -58,12 +51,10 @@
     return el;
   }
 
-  function numGlyphs(i) {
-    /* 用烤好的数字字模：1~9 取 dN.png；「.」用 CSS 点 */
-    var n = String(i + 1);
-    var h = "";
-    for (var k = 0; k < n.length; k++) {
-      h += '<img src="assets/ui/save/d' + n.charAt(k) + '.png" alt="">';
+  function numHTML(i) {
+    var s = String(i + 1), h = "";
+    for (var k = 0; k < s.length; k++) {
+      h += '<img src="assets/ui/save/d' + s.charAt(k) + '.png" alt="">';
     }
     return '<span class="choiceNum">' + h + '<i class="dot"></i></span>';
   }
@@ -75,10 +66,11 @@
     options.forEach(function (txt, i) {
       var b = document.createElement("button");
       b.className = "choiceRow";
-      b.setAttribute("data-i", String(i));
-      b.innerHTML = '<span class="choiceBg"></span><span class="choiceTop"></span>' +
-                    '<span class="choiceSnow"></span><span class="choiceTag"></span>' +
-                    numGlyphs(i) + '<span class="choiceTxt"></span>';
+      b.style.top = (ROW_TOP + i * ROW_PITCH) + "px";
+      b.innerHTML = '<span class="choiceBg"></span>' +
+                    '<span class="choiceSnowL"></span><span class="choiceSnowR"></span>' +
+                    '<span class="choiceTag"></span>' + numHTML(i) +
+                    '<span class="choiceTxt"></span>';
       b.querySelector(".choiceTxt").textContent = txt;
       b.addEventListener("mouseenter", function () { b.classList.add("hover"); se("hover"); });
       b.addEventListener("mouseleave", function () { b.classList.remove("hover"); });
@@ -91,16 +83,11 @@
     state.options = options.slice();
   }
 
-  function hide(instant) {
+  function hide() {
     var el = $("choiceScreen");
     state.open = false;
     if (!el) return;
-    if (instant) {
-      el.classList.remove("show", "fading");
-      return;
-    }
-    el.classList.add("fading");
-    setTimeout(function () { el.classList.remove("show", "fading"); }, FADE_MS);
+    el.classList.remove("show", "fading");
   }
 
   function pick(i) {
@@ -109,7 +96,7 @@
     se("click");
     state.open = false;
     var el = $("choiceScreen");
-    if (el) el.classList.add("fading");
+    if (el) el.classList.add("fading");        /* 整层淡出，和演出过渡同一个时长 */
     setTimeout(function () {
       if (el) el.classList.remove("show", "fading");
       try {
@@ -133,17 +120,16 @@
     state.count = prefsCount();
     list.innerHTML = '<div class="choiceLoading">……</div>';
     el.classList.add("show");
-    var body = { count: state.count, messages: historyMsgs() };
     return fetch("/api/choice", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ count: state.count, messages: historyMsgs() })
     }).then(function (r) { return r.json(); })
       .then(function (d) {
         state.busy = false;
         if (!d || !d.ok || !(d.options || []).length) {
           state.error = (d && d.error) || "没有生成选项";
-          hide(true);
+          hide();
           try { if (window.__toast) window.__toast("选择分支失败：" + state.error, 2400); } catch (e) {}
           return state;
         }
@@ -153,7 +139,7 @@
       .catch(function (e) {
         state.busy = false;
         state.error = String(e);
-        hide(true);
+        hide();
         try { if (window.__toast) window.__toast("选择分支失败：" + state.error, 2400); } catch (e) {}
         return state;
       });
@@ -175,6 +161,6 @@
                   pick: pick, hide: hide, prefsCount: prefsCount };
   WA2.register("choices", WA2.choices);
   window.openChoices = open;
-  window.showChoices = open;          /* 旧名字，别的模块还在用 */
+  window.showChoices = open;          /* 旧名，别的模块还在用 */
   window.__openChoices = open;
 })();

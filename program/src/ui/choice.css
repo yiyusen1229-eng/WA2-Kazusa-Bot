@@ -1,12 +1,18 @@
-/* choice.css —— 选择分支（选项条 / 小标签 / 编号 / 悬停高亮 / 点击淡出）
+/* choice.css —— 选择分支（选项条）
  *
- * 素材：assets/ui/choice/bar.png（sys_00200，三段：常态 / 高亮 / 按下）
- *       assets/ui/save/d1..d9.png（烤好的数字字模）+ CSS 画的「.」
- *       assets/snowflake_right.png（两端的雪花，沿用游戏里的那张）
+ * 几何量全部来自原版整帧截图（2730×1536 → 800×450 舞台，系数 800/2730 = 0.29304），
+ * 用「网格定位 + 亮边像素检测」读出来（见 other/docs/界面像素测量方法.md）：
+ *   条宽 490（原图 x 556..2225）      条高 22（原图 y 606..682）
+ *   上沿 y 176   行距 29（缝 7）      左端 x 163
+ *   标签 11×17（条内左 23）           数字 9px（条内左 51）   文字 11px（条内左 73）
  *
- * bar.png 本身是**可染色**的白色底纹（游戏里靠顶点色染成蓝色），所以底板放在
- * .choiceBg 上单独做 filter（不然 filter 会把文字一起变暗）。
- * 常态：暗蓝 + 浅蓝白字；悬停：整条变亮 + 字变金（和截图一致）；点击后整层淡化消失。
+ * 素材（都是原版图，`tools/make_choice_assets.py` 生成）：
+ *   bar_off.png / bar_on.png  ← sys_00200 段1 / 段2（784×72：条身 + 顶部高光 + 两端雪花）
+ *   snow_l.png / snow_r.png   ← sys_00200 段3 左右两朵（裁到 alpha 盒）
+ *   tag.png                   ← sys_00011 图集里那块小白牌
+ *
+ * 素材 784×72 = 10.9:1，原版条子 490×22 = 22.3:1，比例不等 —— 所以用 border-image
+ * 做三段拉伸：左右各 96px 原图不拉伸（雪花/端头保持形状），中间拉长。
  */
 
 #choiceScreen {
@@ -14,107 +20,77 @@
   left: 0; top: 0; right: 0; bottom: 0;
   display: none;
   z-index: 70;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding-left: 163px;
-  padding-top: 174px;
-  padding-bottom: 120px;              /* 稍微偏上，别压住输入框 */
   opacity: 1;
   transition: opacity .42s ease;
   pointer-events: none;
 }
-#choiceScreen.show { display: flex; pointer-events: auto; }
+#choiceScreen.show { display: block; pointer-events: auto; }
 #choiceScreen.fading { opacity: 0; }
 
-#choiceList {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  /* 几何量自原版整帧截图（2730×1536，系数 800/2730 = 0.29304）：
-     条宽 1320 → 387 舞台px；条高 62 → 18.2；行距 118 → 34.6（减去条高 = 16 的缝） */
-  width: 490px;
-}
+#choiceList { position: relative; }
 
+/* 一条 = 背景（三段拉伸）+ 两端雪花 + 白牌 + 数字 + 文字 */
 .choiceRow {
-  position: relative;
-  height: 20px;
-  border: 0;
+  position: absolute;
+  left: 163px;
+  width: 490px;
+  height: 22px;
+  padding: 0;
   margin: 0;
-  padding: 0 0 0 54px;
-  width: 100%;
-  text-align: left;
+  border: 0;
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  color: #d8ecff;                     /* 常态：浅蓝白 */
+  color: #dcecff;
   font-family: inherit;
   font-size: 11px;
-  letter-spacing: .5px;
+  letter-spacing: .3px;
+  text-shadow: 0 1px 2px rgba(0, 12, 28, .95);
   background: none;
   border-radius: 0;
   appearance: none;
   -webkit-appearance: none;
-  text-shadow: 0 1px 3px rgba(0, 14, 30, .95);
-  display: flex;
-  align-items: center;
+  transition: color .16s ease, filter .16s ease;
 }
 
-/* 条身：深蓝渐变（游戏里靠顶点色染，贴图本身没有填充） */
+/* 条身：原版贴图三段拉伸（左右端不拉伸） */
 .choiceBg {
   position: absolute;
   left: 0; top: 0; right: 0; bottom: 0;
-  background: linear-gradient(180deg, rgba(26, 78, 124, .88) 0%,
-              rgba(12, 40, 72, .86) 55%, rgba(8, 26, 48, .92) 100%);
-  border-bottom: 1px solid rgba(110, 190, 250, .28);
+  /* 条身填充：贴图中间是透明的（原版靠顶点色染，而且半透明会让背景透出来），
+     所以底下铺一层深蓝渐变，颜色取原版条子的中间调 */
+  background: linear-gradient(180deg, rgba(38, 96, 142, .94) 0%,
+              rgba(18, 58, 96, .92) 55%, rgba(9, 28, 50, .95) 100%);
+  border-bottom: 1px solid rgba(120, 205, 255, .45);
+  border-style: solid;
+  border-width: 0 7px;
+  border-image: url("assets/ui/choice/bar_off.png") 0 96 fill / 0 7px stretch;
   pointer-events: none;
-  transition: filter .18s ease;
-}
-
-/* 顶部高光带：sys_00200 段1（常态）/ 段2（悬停），只取顶部 8px 那一线 */
-.choiceTop {
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 4px;
-  background-image: url("assets/ui/choice/bar_top.png");
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  opacity: .95;
-  pointer-events: none;
-}
-
-/* 两端雪花：sys_00200 段3（原图左右各一朵，中间透明） */
-.choiceSnow {
-  position: absolute;
-  left: 0; right: 0; top: 50%;
-  height: 14px;
-  transform: translateY(-50%);
-  background-image: url("assets/ui/choice/bar_snow.png");
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  opacity: .9;
-  pointer-events: none;
-}
-
-/* 悬停：高光换段2 + 条身提亮 + 外发光；字变金 */
-.choiceRow:hover .choiceTop,
-.choiceRow.hover .choiceTop {
-  background-image: url("assets/ui/choice/bar_top_on.png");
 }
 .choiceRow:hover .choiceBg,
 .choiceRow.hover .choiceBg {
-  background: linear-gradient(180deg, rgba(58, 150, 200, .92) 0%,
-              rgba(20, 80, 130, .90) 55%, rgba(10, 40, 72, .94) 100%);
-  filter: brightness(1.25) saturate(1.15) drop-shadow(0 0 12px rgba(110, 220, 255, .7));
+  border-image: url("assets/ui/choice/bar_on.png") 0 96 fill / 0 7px stretch;
+  filter: drop-shadow(0 0 10px rgba(110, 220, 255, .65));
 }
 
-/* 按下：再提亮一档 */
-.choiceRow:active .choiceBg {
-  filter: brightness(1.2) saturate(1.2);
+/* 两端雪花：原版里比条子高、会溢出去，按原始比例画，不拉伸 */
+.choiceSnowL, .choiceSnowR {
+  position: absolute;
+  top: 50%;
+  width: 30px; height: 30px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+  pointer-events: none;
 }
+.choiceSnowL { left: -8px;  background-image: url("assets/ui/choice/snow_l.png"); }
+.choiceSnowR { right: -8px; background-image: url("assets/ui/choice/snow_r.png"); }
 
-/* 左边那个小白牌：真素材（sys_00011 图集里抠出来的 17×36 → CSS 9×19）
-   原图自带一点蓝色小火苗和一个挂孔，别再用 CSS 画假的。 */
+/* 白牌（真素材） */
 .choiceTag {
   position: absolute;
-  left: 30px;
+  left: 23px;
   top: 50%;
   width: 11px;
   height: 17px;
@@ -123,34 +99,45 @@
   background-size: 100% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
-/* 编号：烤好的数字字模 + 一个「.」 */
+/* 编号：烤好的数字字模 + CSS 画的「.」 */
 .choiceNum {
   display: inline-flex;
   align-items: center;
+  margin-left: 51px;
   margin-right: 8px;
   height: 9px;
-  z-index: 1;
+  z-index: 2;
 }
-.choiceNum img {
-  height: 9px; width: auto; display: block;
-  filter: drop-shadow(0 1px 2px rgba(0, 10, 24, .9));
-}
+.choiceNum img { height: 9px; width: auto; display: block; }
 .choiceNum .dot {
-  display: inline-block;
   width: 3px; height: 3px;
-  margin: 0 0 0 3px;
+  margin-left: 2px;
   border-radius: 50%;
   background: currentColor;
   opacity: .9;
 }
+.choiceTxt {
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.choiceRow:hover, .choiceRow.hover { color: #ffe9a8; }
 
-.choiceTxt { position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.choiceLoading { color: #cfe9ff; font-size: 13px; text-align: center; opacity: .8; }
+.choiceLoading {
+  position: absolute;
+  left: 163px;
+  top: 176px;
+  color: #cfe9ff;
+  font-size: 11px;
+  opacity: .85;
+}
 
-/* 「选择分支」按钮：底板和发送键同一张三段图 */
+/* 「选择分支」按钮（和发送键同一张三段底板） */
 #choiceBtn {
   position: absolute;
   bottom: -22px;
@@ -163,7 +150,6 @@
   color: #f4fcff !important;
   font-family: inherit !important;
   text-shadow: 0 1px 2px rgba(0, 18, 36, .95) !important;
-  background-image: none !important;
   background-color: transparent !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -187,4 +173,3 @@
 }
 #choiceBtn:active::before { background-position: 0 50%; }
 #choiceBtn.released::before { background-position: 0 100%; }
-#choiceBtn[disabled] { opacity: .55; cursor: default; }

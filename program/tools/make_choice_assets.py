@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
-"""把「选择分支」要用的原版素材转成 PNG（本地素材，不入库）。
+"""选择分支的素材：从原版两张图里切出来（本地素材，不入库）。
 
-来源：`other/dev/game_pak/gh/gcn_unpack/`
+源文件：`other/dev/game_pak/gh/gcn_unpack/`
+  · sys_00200.tga（784×216）—— 选项条贴图，竖排三段：
+        段1 = 常态（顶部高光 + 条身 + 两端雪花）
+        段2 = 悬停高亮
+        段3 = 只剩两端雪花（本工具不用，雪花已含在段1/段2 里）
+  · sys_00011.tga（408×288）—— 菜单图集，里面有一块**小白牌**（约 (218,63)~(236,96)）
 
-| 源 | 产物 | 用法 |
-|---|---|---|
-| `sys_00200.tga`（784×216） | `ui/choice/bar_top.png`（段1） | 常态：条子顶部那一道高光（CSS 里只取顶部 8px） |
-| 同上 | `ui/choice/bar_top_on.png`（段2） | 悬停：换这条更亮的高光 |
-| 同上 | `ui/choice/bar_snow.png`（段3） | 两端雪花（原图左右各一朵，中间透明） |
-| `sys_00110.tga`（480×112） | `ui/choice/plate.png` | 带雪花暗纹的蓝板（备选纹理，未在 CSS 里启用） |
-| `sys_00011.tga`（408×288） | `ui/choice/tag.png` | 菜单图集里那块**小白牌**（约 (218,63)~(236,96)），按亮度 <95 抠掉深蓝底 |
+产物（`program/res/assets/ui/choice/`）：
+  bar_off.png   段1（784×72）
+  bar_on.png    段2（784×72）
+  tag.png       小白牌（抠掉图集深蓝底）
 
-**条身填充不来自贴图**：游戏里是顶点色染的，所以 CSS 用深蓝渐变画底，
-上面叠「顶部高光 + 两端雪花」。数字沿用 `ui/save/d1..d9.png`，「.」由 CSS 画。
+为什么整段用 + CSS 三段拉伸：原版条子 490×22 舞台像素 = 22.3:1，素材 784×72 = 10.9:1，
+比例对不上，说明原版是「左右端保持比例、中间拉长」的三段画法（否则雪花会被压扁）。
+CSS 用 border-image slice 96 实现。
 
 用法：
     python program/tools/make_choice_assets.py
@@ -24,24 +27,24 @@ from PIL import Image
 PROG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GCN = os.path.join(os.path.dirname(PROG), "other", "dev", "game_pak", "gh", "gcn_unpack")
 OUT = os.path.join(PROG, "res", "assets", "ui", "choice")
-TAG_BOX = (210, 55, 246, 100)
+
+TAG_BOX = (212, 58, 242, 98)
 TAG_LUM_MIN = 95
 
 
 def _save(im, name):
     os.makedirs(OUT, exist_ok=True)
-    im.save(os.path.join(OUT, name))
-    print("%-14s %dx%d" % (name, im.size[0], im.size[1]))
+    dst = os.path.join(OUT, name)
+    im.save(dst)
+    print("%-12s %-9s -> %s" % (name, "%dx%d" % im.size, dst))
 
 
 def main():
     bar = Image.open(os.path.join(GCN, "sys_00200.tga")).convert("RGBA")
     w, h = bar.size
     seg = h // 3
-    _save(bar.crop((0, 0, w, seg)), "bar_top.png")
-    _save(bar.crop((0, seg, w, seg * 2)), "bar_top_on.png")
-    _save(bar.crop((0, seg * 2, w, seg * 3)), "bar_snow.png")
-    _save(Image.open(os.path.join(GCN, "sys_00110.tga")).convert("RGBA"), "plate.png")
+    _save(bar.crop((0, 0, w, seg)), "bar_off.png")
+    _save(bar.crop((0, seg, w, seg * 2)), "bar_on.png")
 
     atlas = Image.open(os.path.join(GCN, "sys_00011.tga")).convert("RGBA")
     tag = atlas.crop(TAG_BOX)
