@@ -34,16 +34,20 @@ def split_scene(text):
 
 
 def split_emotion(text):
-    """取出 <emotion>xxx</emotion>，返回 (正文, 情绪)。没有标记时情绪为 calm。"""
+    """取出 <emotion>xxx</emotion>，返回 (正文, 情绪)。没有标记时情绪为 calm。
+
+    模型偶尔把标签拼错（`</emomotion>`），以前只清 `emotion` 这两个词，
+    残留的标签会直接出现在台词里。所以开标签用 `<emotion>`、闭标签放宽到 `emo…`。
+    """
     if not text:
         return text, "calm"
-    m = re.search(r"<emotion>\s*([^<]{1,20})\s*</emotion>", text)
+    m = re.search(r"<emotion>\s*([^<\n]{1,20})\s*</?\s*emo[a-z]*\s*>", text, re.I)
     emo = "calm"
     if m:
         emo = m.group(1).strip()
         text = (text[:m.start()] + text[m.end():]).strip()
-    # 兼容模型把标记写在其它位置/多次出现
-    text = re.sub(r"</?emotion[^>]*>", "", text).strip()
+    # 兼容模型把标记写在其它位置 / 拼错 / 多次出现
+    text = re.sub(r"</?\s*emo[a-z]*[^>]*>", "", text, flags=re.I).strip()
     return text, emo
 
 
@@ -66,7 +70,9 @@ def split_thinking(text):
 
 def ja_clean(x):
     """只留第一行，去掉假名/汉字/日文标点以外的字符，并截掉解释性尾巴。"""
-    x = (x or "").split("\\n")[0].strip()
+    # 注意：以前写成 split("\\n")（字面反斜杠+n），真换行根本切不开，
+    # 多行回复会被后面的字符过滤拼成一句。这里按真换行取第一行。
+    x = (x or "").replace("\r", "").split("\n")[0].strip()
     for stop in ("翻訳", "場合は", "注意", "つまり", "：", ":", "，", ","):
         i = x.find(stop)
         if i > 0:
