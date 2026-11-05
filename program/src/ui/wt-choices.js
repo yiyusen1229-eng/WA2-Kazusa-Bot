@@ -139,6 +139,7 @@
       });
       el.classList.remove("fading");
       el.classList.add("in", "show");
+      document.body.classList.add("choiceOpen");     /* 收起输入栏（它的边框会横穿选项条） */
       requestAnimationFrame(function () {
         requestAnimationFrame(function () { el.classList.remove("in"); });
       });
@@ -153,6 +154,7 @@
     var el = $("choiceScreen");
     state.open = false;
     perf(false);
+    document.body.classList.remove("choiceOpen");
     if (!el) return;
     el.classList.remove("show", "in", "fading");
     if (!opts || !opts.keepList) {
@@ -167,6 +169,8 @@
     if (!txt) return;
     se("click");
     state.open = false;
+    /* 输入栏先回来：淡出这一层的同时，文字正好落进输入框 */
+    document.body.classList.remove("choiceOpen");
     var el = $("choiceScreen");
     if (el) el.classList.add("fading");           /* 整层淡出，和演出过渡同一个节奏 */
     setTimeout(function () {

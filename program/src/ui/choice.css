@@ -102,15 +102,24 @@
   filter: drop-shadow(0 0 6px rgba(96, 208, 255, .5));
 }
 
-/* 两端雪花：和条子同画布同原点，整张叠上去 */
+/* 两端雪花：和条子同画布同原点，整张叠上去。
+   **也是加法**：雪花贴图芯色 (149,193,227)，原版常态那条的雪花最亮处实测 R = 159，
+   正好等于 149 + 条身底色 ~10；用普通 alpha 盖上去只能得到 149 以下，会发灰
+   （用户反馈「选中的时候雪花没有亮」就是这个）。plus-lighter 之后常态/悬停都跟着
+   底下的条身一起亮，和原版一致。 */
 .choiceSnow {
   position: absolute;
   inset: 0;
   background-image: url("assets/ui/choice/snow.png");
   background-size: 100% 100%;
   background-repeat: no-repeat;
+  mix-blend-mode: plus-lighter;
   pointer-events: none;
 }
+
+/* 选择分支开着的时候把输入栏收起来：输入栏的青色边框正好横穿选项条那一行，
+   会看成一条「分界线」（也点不到，收起来更接近原版只有对话框的样子）。 */
+body.choiceOpen #inputBar { opacity: 0; pointer-events: none; }
 
 /* 小白牌（真素材，18×33 × 0.625） */
 .choiceTag {
