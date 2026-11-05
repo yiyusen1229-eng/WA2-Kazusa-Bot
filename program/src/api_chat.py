@@ -12,6 +12,7 @@ import persona_stage
 import scene_cg
 import standing
 import text_parse as _tp
+from text_parse import split_bilingual
 import tts_client
 
 # 关键参数（#12：以前散在函数体里的数字，集中在这里；表见 other/docs/参数与指标.md）
@@ -152,7 +153,14 @@ class ChatApi:
                 "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
                 "标记只能是开头那一个，正文里不要再出现。"
                 "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
-                "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
+                "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。"
+                "\n【双语】台词必须给两份，紧跟在一起：<ja>日语原句</ja><zh>对应的中文</zh>。"
+                "<zh> 不是另一个人写的翻译，就是你自己那句话的意思，"
+                "所以要和 <ja> 对得上（不许改口、不许省略、不许加戏），中文要口语、带情绪。"
+                '<action> 里的描写也用中文写。例：'
+                '<emotion>毒舌</emotion><action>（别过脸）</action>'
+                '<ja>「べ、別に。あんたのためじゃないから」</ja>'
+                '<zh>「才、才不是。不是为你才做的」</zh>')
         _seg["tail"] = len(system) - _before_tail
         _few = fewshot_msgs() if cc else []
         payload = {
@@ -193,7 +201,11 @@ class ChatApi:
                 pass
             raw, scene_now, outfit_now = split_scene(raw)
             acts, raw = split_action(raw)
+            # 模型自己给的双语：<ja>日语</ja><zh>中文</zh>（比事后再翻译准，还省一次往返）
+            raw, _ja, _zh_model = split_bilingual(raw)
             reply, think = split_thinking(raw)
+            if _ja:                      # 有 <ja> 就以它为准（那是模型的原句）
+                reply = _ja
             action = " ".join(a for a in acts if a).strip()
             # 游戏里角色台词一律用「」包起来，由程序统一处理，不让模型自己加
             _r = (reply or "").strip()
@@ -201,17 +213,25 @@ class ChatApi:
                 _r = _r.strip("「」『』")
                 reply = "「" + _r + "」"
 
-            # v7 用日文回答: 日文原文留给语音, 中文译文给对话框
+            # 中文：优先用模型自己写的那句；没写 / 不像中文才回落翻译层
             reply_zh = ""
             action_zh = ""
             try:
-                if any("\u3040" <= c <= "\u30ff" for c in reply):
+                _z = (_zh_model or "").strip().strip("「」『』")
+                if _z and _tp.looks_zh(_z):
+                    reply_zh = _z
+                elif any("\u3040" <= c <= "\u30ff" for c in reply):
                     # 走统一翻译层：云端优先、本地兜底，人名过术语表
                     # （原来只调本地 Hy-MT2，はるき 会被译成「春树」）
                     import translate as _tr
                     reply_zh = _tr.to_zh(_r)
-                    if action:
-                        action_zh = _tr.to_zh(action)
+                if action:
+                    # 动作描写模型一般直接给中文；是日语才翻
+                    if _tp.looks_zh(action) or not any("\u3040" <= c <= "\u30ff" for c in action):
+                        action_zh = action
+                    else:
+                        import translate as _tr2
+                        action_zh = _tr2.to_zh(action)
             except Exception as e:
                 log("日译中失败: %s" % e)
 

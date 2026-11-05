@@ -78,6 +78,23 @@ def main():
     body, emo = T.split_emotion("<emotion>撒娇</emotion>「…もういい。どうせあたしなんて」")
     check("模型给的撒娇不被覆盖", emo == "撒娇", (emo, T.LAST_EMO_SOURCE))
 
+    # 双语块（模型自己给中文，省掉一次翻译）
+    rest, ja, zh = T.split_bilingual('<emotion>x</emotion><action>（别过脸）</action>'
+                                     '<ja>「べ、別に」</ja><zh>「才、才不是」</zh>')
+    check("双语块拆出 ja/zh", ja == "「べ、別に」" and zh == "「才、才不是」", (ja, zh))
+    check("双语块不残留标签", "<ja>" not in rest and "<zh>" not in rest, rest)
+    rest, ja, zh = T.split_bilingual("<jp>「やあ」</jp>")
+    check("jp 标签也认", ja == "「やあ」" and zh == "", (ja, zh))
+    rest, ja, zh = T.split_bilingual("<中文>「你好」</中文>")
+    check("中文标签也认", ja == "" and zh == "「你好」", (ja, zh))
+    rest, ja, zh = T.split_bilingual("「普通的句子」")
+    check("没有双语块时原样留在 rest", rest == "「普通的句子」" and not ja and not zh, (rest, ja, zh))
+    rest, ja, zh = T.split_bilingual("<ja>「片方だけ」</ja>")
+    check("只有一种语言也不炸", ja == "「片方だけ」" and zh == "" and rest == "", (rest, ja, zh))
+    check("像中文（有汉字、没假名）", T.looks_zh("「才不是呢」") is True)
+    check("日语不算中文", T.looks_zh("「べ、別に」") is False)
+    check("空白不算中文", T.looks_zh("") is False)
+
     # 2) scene / outfit
     body, sc, of = T.split_scene("<scene>第二音乐室</scene><outfit>冬季校服</outfit>「…」")
     check("scene/outfit 拆出来", sc == "第二音乐室" and of == "冬季校服" and body == "「…」",

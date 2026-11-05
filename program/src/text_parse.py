@@ -109,6 +109,43 @@ def split_scene(text):
     return text, scene, outfit
 
 
+_JA_BLOCK = re.compile(r"<\s*(?:ja|jp|jpn|日本语|日语)\s*>\s*(.*?)\s*<\s*/\s*(?:ja|jp|jpn|日本语|日语)\s*>", re.S)
+_ZH_BLOCK = re.compile(r"<\s*(?:zh|cn|chs|中文|汉语)\s*>\s*(.*?)\s*<\s*/\s*(?:zh|cn|chs|中文|汉语)\s*>", re.S)
+_BI_LEFTOVER = re.compile(r"</?\s*(?:ja|jp|jpn|zh|cn|chs|日本语|日语|中文|汉语)[^>]*>", re.I)
+
+
+def split_bilingual(text):
+    """拆 <ja>日语</ja><zh>中文</zh> 双语块，返回 (剩下的文本, 日语, 中文)。
+
+    为什么要这个：让**对话模型自己**把中文一起给出来——它知道这句话是什么意思，
+    比事后再找一个翻译模型（经常把人名译成「春树」、中译日满口敬语）准得多，
+    还省掉一次往返。模型没给就当没有，调用方回落到翻译层，不影响玩。
+
+    标签写坏 / 只用一种（`<jp>`、`<中文>`）也认；没有块的句子原样留在 rest 里。
+    """
+    if not text:
+        return text, "", ""
+    ja = zh = ""
+    m = _JA_BLOCK.search(text)
+    if m:
+        ja = m.group(1).strip()
+        text = text[:m.start()] + text[m.end():]
+    m = _ZH_BLOCK.search(text)
+    if m:
+        zh = m.group(1).strip()
+        text = text[:m.start()] + text[m.end():]
+    text = _BI_LEFTOVER.sub("", text).strip()
+    return text, ja, zh
+
+
+def looks_zh(x):
+    """像中文吗：有汉字、几乎没有假名（用来判断模型给的是不是真的中文译文）"""
+    t = x or ""
+    cjk = sum(1 for c in t if 0x4E00 <= ord(c) <= 0x9FFF)
+    kana = sum(1 for c in t if 0x3040 <= ord(c) <= 0x30FF)
+    return cjk >= 2 and kana < 2
+
+
 def split_action(text):
     """把 <action> 从回复里拆出来，返回 (action 列表, 纯台词)"""
     acts = ACTION_RE.findall(text or "")
