@@ -55,3 +55,6 @@ program/src/fewshot.json
 # 备份文件
 *.bak
 *.bak.*
+
+# 自测 / 探针的临时目录（run_smoke.py 会把 TEMP 指到这里）
+program/work_scratch/

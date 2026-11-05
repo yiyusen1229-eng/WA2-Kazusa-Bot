@@ -32,6 +32,31 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROGRAM = os.path.dirname(HERE)
 BUILD_ENV = os.path.join(PROGRAM, "build_env")
+# 自测的临时目录一律放项目里（已在 .gitignore）：别往用户 C 盘的 %TEMP% 里堆
+SCRATCH = os.path.join(PROGRAM, "work_scratch")
+SCRATCH_TMP = os.path.join(SCRATCH, "tmp")
+
+
+def _child_env():
+    """子进程用的环境：TEMP/TMP 指到 work_scratch/tmp
+
+    tempfile.mkdtemp() 会跟着 TEMP 走，所以各份自测的临时目录全落在项目里，
+    跑完由 _clean_scratch() 收走；用户 %TEMP% 不再被写。
+    """
+    os.makedirs(SCRATCH_TMP, exist_ok=True)
+    env = dict(os.environ)
+    for k in ("TEMP", "TMP", "TMPDIR"):
+        env[k] = SCRATCH_TMP
+    return env
+
+
+def _clean_scratch():
+    """跑完清掉本次的临时目录（失败就算了，别影响结论）"""
+    try:
+        import shutil
+        shutil.rmtree(SCRATCH_TMP, ignore_errors=True)
+    except Exception:
+        pass
 SRC = os.path.join(PROGRAM, "src")
 
 # check_split.py 的已知历史告警数：只许降不许升（升了就是这次改动带进来的）
@@ -100,7 +125,8 @@ def run_step(kind, args, timeout):
     t0 = time.time()
     try:
         p = subprocess.run(_cmd(kind, args), cwd=PROGRAM, capture_output=True,
-                           text=True, encoding="utf-8", errors="replace", timeout=timeout)
+                           text=True, encoding="utf-8", errors="replace",
+                           timeout=timeout, env=_child_env())
         out = (p.stdout or "") + (p.stderr or "")
         return p.returncode, out, time.time() - t0
     except subprocess.TimeoutExpired as e:
@@ -153,8 +179,9 @@ def live_smoke():
         return False, "build_env 没同步（先跑 run_dev.py --sync-only）", time.time() - t0
 
     port = _free_port()
-    tmp = tempfile.mkdtemp(prefix="wa2_smoke_")
-    env = dict(os.environ)
+    os.makedirs(SCRATCH_TMP, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix="smoke_", dir=SCRATCH_TMP)
+    env = _child_env()
     env["WA2_NO_MODELS"] = "1"           # 别把 GPT-SoVITS 拉起来，冒烟只要接口
     env["WA2_CACHE_DIR"] = os.path.join(tmp, "cache")
     env["WA2_SESS_DIR"] = os.path.join(tmp, "sessions")
@@ -299,6 +326,7 @@ def main():
         print("  %s [在线] %-28s %5.1fs %s" % ("ok  " if ok else "FAIL", "本地服务冒烟", dt, note))
 
     bad = [r for r in results if not r[2]]
+    _clean_scratch()                     # 临时目录只活在这次自测里
     print()
     print("—— %d 项：通过 %d，失败 %d，用时 %.1fs" %
           (len(results), len(results) - len(bad), len(bad), time.time() - t_all))
