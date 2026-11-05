@@ -138,7 +138,7 @@ index 3ebf4cb..c6bfd7e 100644
      --js setup.js --check check.js --wait 1500        # 界面探针（--js/--check 收文件路径）
  python program\tools\check_assets.py                  # 素材自检
 diff --git a/README.md b/README.md
-index ee56fda..3291a96 100644
+index 049f9e9..0ef9dfd 100644
 --- a/README.md
 +++ b/README.md
 @@ -37,6 +37,16 @@
@@ -153,16 +153,16 @@ index ee56fda..3291a96 100644
 +> 另修：全屏失效、回想重播慢、字幕两句而语音半句、拼错闭标签漏进台词。
 +
 +- [更新日志 2026-11-05_21-00-00](other/docs/更新日志_2026-11-05_21-00-00.md)
-+- [本版补丁](other/docs/patches/2026-11-05_21-00-00_更新补丁.patch)（基线 `bb19d51`）
++- [本版补丁](other/docs/patches/2026-11-05_20-49-35_更新补丁.patch)（基线 `bb19d51`）
 +
  ## 近期更新（2026-11-04 打包）
  
  > 安装包产物名带版本号与时间戳；修掉「安装包里夹带用户存档」的问题。
 diff --git a/other/docs/交接速览.md b/other/docs/交接速览.md
-index 448e158..075b05f 100644
+index 448e158..04b63dc 100644
 --- a/other/docs/交接速览.md
 +++ b/other/docs/交接速览.md
-@@ -1,81 +1,149 @@
+@@ -1,81 +1,155 @@
 -# 交接速览（1 页）
 -
 -> 这份是**省 token 的入口**：新会话先读这一页就够开工。
@@ -386,13 +386,19 @@ index 448e158..075b05f 100644
 +
 +## 最近提交
 +
-+远端 `bb19d51` → 本地未推 36 个（含本条文档提交）：`58a50f8` #5 前半 · `90d7dc5` #5 后半 · `806e5ab` 文档 · `71ff1df` #6 ·
++远端 `9454ce0`（版本 `2026-11-05.2`，2026-11-05 20:49 已推）→ **本地未推 0 个**。
++本版补丁：`other/docs/patches/2026-11-05_20-49-35_更新补丁.patch`（基线 `bb19d51`，127 个文件）。
++本版要点见 `更新日志_2026-11-05_21-00-00.md`：演出状态机 · 剧情检索 v3（时期/线路/情境 +
++`prompt/style.txt`）· 日中双语 · 数据清理面板 · 参数与指标表 · 日志诊断包；另修全屏失效、
++回想重播慢、字幕两句而语音半句、拼错闭标签漏进台词。自测 `run_smoke.py` 35 项全绿。
++
++上一段历史（`bb19d51` 之前那批，已并入本版）：`58a50f8` #5 前半 · `90d7dc5` #5 后半 · `806e5ab` 文档 · `71ff1df` #6 ·
 +`ed28469` #2 · `66b04b8` 文档 · `8e4ebd7` #7 · `2fb0dfc` #13 · `5342010` #12 · `8fae0bd` #11 ·
 +`e34d6a1` #15 · `ea68dc5` #14 · `2780b3d` #3 · `3766e26` #19 · `e88aafa` #20 ·
 +`33a0b6f` 临时目录 · `3ec1f88` 日志路径 · `5d60466` 剧情检索 · `6907b91` 标签解析 · `92f1c1e` 文档交接 ·
 +`de6b70e` 修全屏失效 · `63445b3` 文档 · `2dd787d` #17 数据清理入口 · `74ea747` 文档 ·
 +`d51f4f7` 自测 #17 进在线冒烟 · `f69f410` 文档 · `15ab725` 语音情绪 + 读音 · `文档交接` ·
-+`d2dd452` 翻译层 · 最新：文档交接
++`d2dd452` 翻译层
 diff --git a/other/docs/参数与指标.md b/other/docs/参数与指标.md
 new file mode 100644
 index 0000000..3d47b38
@@ -1312,18 +1318,26 @@ index 5e3f046..3630203 100644
 +| 2026-11-05 | #20 素材向导 + 热重载做完，从路线图移入「已完成」 |
 +| 2026-11-05 | 维护：剧情检索召回修复 / 回复标签宽容 / 角色内容按原文整理 / 临时文件与日志位置 |
 diff --git a/other/docs/新对话交接说明.md b/other/docs/新对话交接说明.md
-index 688650b..1e096b8 100644
+index 688650b..eb849ce 100644
 --- a/other/docs/新对话交接说明.md
 +++ b/other/docs/新对话交接说明.md
-@@ -5,6 +5,12 @@
+@@ -5,6 +5,20 @@
  > **本轮（多角色 / 立绘中文命名 / 世界书扩容 / 收敛清理）的过程见 `更新日志_2026-11-02.md`（本轮起不写开发日志）。**
  > 下一轮要微调人设，数据位置直接看第十节和第十四节。
  
 +> **2026-11-05 补记**：本页部分细节已经过时，**当前状态以 [`交接速览.md`](交接速览.md) 为准**。
 +> 这一轮新增：`sessions.py` 存档版本化与迁移、`runstate.py` 退出标记 / 崩溃现场、
 +> `cache_io.py` 缓存读取守卫、`assets_report.py` 启动素材自检、`ui/wt-perf.js` 演出状态机。
-+> 自测共 9 份（含 `node tools/test_perf.js`）。远端停在 `bb19d51`（版本 `2026-11-05.1`），
-+> 本地还有 5 个提交没推。
++> 自测共 9 份（含 `node tools/test_perf.js`）。
++
++> **2026-11-05.2 发布（20:49）**：远端已到 `9454ce0`（版本 `2026-11-05.2`），
++> 补丁 [`patches/2026-11-05_20-49-35_更新补丁.patch`](patches/2026-11-05_20-49-35_更新补丁.patch)
++> 基线 `bb19d51`、127 个文件。本版要点见
++> [`更新日志_2026-11-05_21-00-00.md`](更新日志_2026-11-05_21-00-00.md)：
++> 演出状态机、剧情检索 v3（时期 / 线路 / 情境三层标签 + 按情境加权 + `prompt/style.txt`）、
++> 模型直接输出日中双语、数据清理面板、参数与指标表、日志诊断包；
++> 另修全屏失效、回想重播慢、字幕两句而语音半句、拼错闭标签漏进台词。
++> 自测：`run_smoke.py` **35 项全绿**（`test_story_rag` 27 项）。
 +
  ---
  
@@ -2808,7 +2822,7 @@ index 0000000..a0c9884
 +- 风格摘句 775 字是**每轮都带**的，觉得占 token 就把 `TOTAL_CAP` 调小。
 diff --git a/other/docs/更新日志_2026-11-05_21-00-00.md b/other/docs/更新日志_2026-11-05_21-00-00.md
 new file mode 100644
-index 0000000..98ebd4f
+index 0000000..3523f22
 --- /dev/null
 +++ b/other/docs/更新日志_2026-11-05_21-00-00.md
 @@ -0,0 +1,71 @@
@@ -2874,7 +2888,7 @@ index 0000000..98ebd4f
 +
 +## 六、包里带什么 / 怎么更新
 +
-+- 本版补丁：`other/docs/patches/2026-11-05_21-00-00_更新补丁.patch`（基线 `bb19d51`）
++- 本版补丁：`other/docs/patches/2026-11-05_20-49-35_更新补丁.patch`（基线 `bb19d51`）
 +- 应用方式：在仓库根目录 `git apply` 该补丁；或 `git pull` 直接用（这一版已把补丁内容合进 master）
 +- 只更新程序、不覆盖你自己的 `characters/`：补丁只碰 `program/` 与 `other/docs/`，不碰角色数据
 +
@@ -3262,7 +3276,7 @@ index a02c5cc..4a4a966 100644
  ## 配置
  
 diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
-index 7897ac0..23b0542 100644
+index 7897ac0..26ba892 100644
 --- a/other/docs/架构/映射表.md
 +++ b/other/docs/架构/映射表.md
 @@ -7,7 +7,7 @@
@@ -3502,7 +3516,7 @@ index 7897ac0..23b0542 100644
  | `src/special_cfg.py` | 132 | 角色名读写 | name_file, defaults, current, ensure, save, get_name | characters, memory | api_char, main |
  | `src/special_files.py` | 404 | 特别模式导入/打开/立绘落盘 | char_dir, set_assets_dir, save_upload, set_default_paths, kind_dir, portrait_dir | characters | char_res, main |
 -| `src/tts_client.py` | 624 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | char_res | api_chat, api_modelcfg, api_tts, main |
-+| `src/tts_client.py` | 694 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | audio_gain, cache_io, char_res, diag | api_chat, api_modelcfg, api_tts, main |
++| `src/tts_client.py` | 688 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | audio_gain, cache_io, char_res, diag | api_chat, api_modelcfg, api_tts, main |
  
  ## 二级 · 记忆
  
@@ -3547,7 +3561,7 @@ index 7897ac0..23b0542 100644
 -| `src/ui/menubar.js` | 526 | 超过 400 行，建议拆 |
 -| `src/ui/game.js` | 522 | 超过 400 行，建议拆 |
 +| `src/main.py` | 1521 | 超过 800 行，必须拆 |
-+| `src/tts_client.py` | 694 | 超过 400 行，建议拆 |
++| `src/tts_client.py` | 688 | 超过 400 行，建议拆 |
 +| `src/ui/menubar.js` | 586 | 超过 400 行，建议拆 |
 +| `src/api_cleanup.py` | 582 | 超过 400 行，建议拆 |
 +| `src/ui/game.js` | 553 | 超过 400 行，建议拆 |
