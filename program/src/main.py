@@ -55,7 +55,7 @@ import urllib.error
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 BUILD_TAG = time.strftime("%H%M%S")
-APP_NAME = "WHITE ALBUM 2"
+APP_NAME = "WHITE ALBUM2 Extension~ どこまでも続く道~"
 WINDOW_TITLE = APP_NAME
 OLLAMA = "http://127.0.0.1:11434"
 # 安全模式: 存在 模型开关.txt(或环境变量 WA2_NO_MODELS=1) 时不加载任何模型
