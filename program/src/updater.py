@@ -198,16 +198,40 @@ def _apply_zip(zip_url=None):
 
 
 # ---------------------------------------------------------------- git 模式
+def _git_out(exe, *args):
+    r = subprocess.run([exe, "-C", ROOT] + list(args), capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=60)
+    return (r.stdout or "").strip()
+
+
 def _apply_git():
     _ok, exe = _git_ok()          # 注意顺序：_git_ok() 返回 (能不能用, git 路径)
+    # 保护开发者：有未提交改动 / 未推送提交时不 reset --hard（那会把人家的工作抹掉）
+    # 只算「被跟踪文件的改动」，未跟踪文件（日志/临时文件）不算
+    try:
+        dirty = _git_out(exe, "status", "--porcelain", "--untracked-files=no")
+    except Exception:
+        dirty = ""
+    if dirty:
+        _set(stage="停止", percent=100, message="本机有未提交的改动，未更新")
+        raise RuntimeError("本机有未提交的改动，先提交/撤销再更新（或用 zip 安装版）")
     _set(stage="备份", percent=20, message="备份现有代码")
     # 备份范围比 zip 模式再宽一点：reset --hard 会丢掉本地未提交的改动
     dst, made = _backup_paths(list(WL_DIRS) + [f for f in WL_FILES
                                                if os.path.exists(os.path.join(ROOT, f.replace("/", os.sep)))])
     try:
         _set(stage="拉取", percent=40, message="git fetch origin master")
-        subprocess.run([exe, "-C", ROOT, "fetch", "--depth=1", "origin", "master"],
+        # 不用 --depth=1：浅克隆会切断历史，「本地有没有未推送提交」就判断不出来了
+        subprocess.run([exe, "-C", ROOT, "fetch", "origin", "master"],
                        check=True, capture_output=True, timeout=300)
+        # 本地有没有没推上去的提交？有就不动它
+        try:
+            ahead = int(_git_out(exe, "rev-list", "--count", "FETCH_HEAD..HEAD") or "0")
+        except Exception:
+            ahead = 0
+        if ahead > 0:
+            _set(stage="停止", percent=100, message="本机有 %d 个未推送的提交，未更新" % ahead)
+            raise RuntimeError("本机有 %d 个未推送的提交，先推送再更新（或用 zip 安装版）" % ahead)
         _set(stage="切换", percent=70, message="git reset --hard origin/master")
         subprocess.run([exe, "-C", ROOT, "reset", "--hard", "FETCH_HEAD"],
                        check=True, capture_output=True, timeout=120)

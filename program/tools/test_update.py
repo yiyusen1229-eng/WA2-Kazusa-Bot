@@ -203,6 +203,28 @@ def main():
         check("git 模式新增文件也在", os.path.exists(os.path.join(clone, "program", "src", "brand_new.py")))
         check("git 模式也留了备份", any(x.startswith("update_backup_")
                                        for x in os.listdir(updater.WORK)))
+
+        # 保护开发者：有未提交改动 → 拒绝更新，改动保住
+        write(os.path.join(clone, "program", "src", "keep.py"), "# 本地没提交的改动\n")
+        updater.reset_progress()
+        updater.apply(wait=True)
+        pg2 = updater.progress()
+        check("有未提交改动 → 不更新", pg2.get("ok") is False, pg2)
+        check("未提交改动被保住",
+              "本地没提交的改动" in read(os.path.join(clone, "program", "src", "keep.py")),
+              read(os.path.join(clone, "program", "src", "keep.py")))
+        sh("checkout", "--", ".", cwd=clone)
+
+        # 保护开发者：本地有未推送的提交 → 拒绝更新，提交保住
+        sh("pull", "-q", "origin", "master", cwd=clone)
+        write(os.path.join(clone, "program", "src", "local_only.py"), "# 只在本地\n")
+        sh("add", "-A", cwd=clone)
+        sh("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "local", cwd=clone)
+        updater.reset_progress()
+        updater.apply(wait=True)
+        pg3 = updater.progress()
+        check("有未推送提交 → 不更新", pg3.get("ok") is False, pg3)
+        check("未推送的提交还在", os.path.exists(os.path.join(clone, "program", "src", "local_only.py")))
     else:
         print("  skip  git 模式（这台机器没装 git）")
 
