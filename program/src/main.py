@@ -581,6 +581,16 @@ def translate_ja(text):
         return ''
     if t in _JA_CACHE:
         return _JA_CACHE[t]
+    # 先走统一的翻译层（translate.py）：云端优先、本地兜底，还能套术语表
+    try:
+        import translate as _tr
+        ja = _tr.to_ja(t)
+        if ja and _ja_ok(ja):
+            if len(_JA_CACHE) < 500:
+                _JA_CACHE[t] = ja
+            return ja
+    except Exception as e:
+        log("翻译层失败（回落旧路径）: %s" % e)
     _mt = (model_cfg_all().get("mt") or {})
     mt_ep = (_mt.get("endpoint") or OLLAMA).rstrip("/")
     mt_model = _mt.get("model") or TRANSLATE_MODEL

@@ -206,10 +206,12 @@ class ChatApi:
             action_zh = ""
             try:
                 if any("\u3040" <= c <= "\u30ff" for c in reply):
-                    tts_client.start_translate()
-                    reply_zh = tts_client.translate_via_service(_r, "zh")
+                    # 走统一翻译层：云端优先、本地兜底，人名过术语表
+                    # （原来只调本地 Hy-MT2，はるき 会被译成「春树」）
+                    import translate as _tr
+                    reply_zh = _tr.to_zh(_r)
                     if action:
-                        action_zh = tts_client.translate_via_service(action, "zh")
+                        action_zh = _tr.to_zh(action)
             except Exception as e:
                 log("日译中失败: %s" % e)
 
