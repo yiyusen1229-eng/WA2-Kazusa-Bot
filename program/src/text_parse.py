@@ -10,6 +10,82 @@ import re
 # <action>…</action>
 ACTION_RE = re.compile(r"<action>\s*(.*?)\s*</action>", re.S)
 
+# 没标签时的兜底情绪（也是“什么线索都没有”时的结果）
+EMO_DEFAULT = "calm"
+
+# 最近一次 split_emotion 的情绪是怎么来的：tag（模型写了）/ inferred（按台词猜的）/ default（真没线索）
+# api_chat 拿它写日志：模型偷懒的频率要看得见，别再静默 at 成 calm。
+LAST_EMO_SOURCE = "default"
+
+# 按台词形态猜情绪：只认很明确的线索，猜不准就回 default（宁可 calm，也别乱选参考音频）。
+# 顺序有意义：先看疑问句形态，再看哭 / 毒舌 / 撒娇 / 温柔的字眼。
+_EMO_HINTS = (
+    ("哭腔", re.compile(r"涙|泣|ごめん|ひどい|苦しい|つらい|寂しい|さみしい")),
+    ("毒舌", re.compile(r"ばか|バカ|あほ|アホ|うるさい|ウザ|きもい|ムカつく|嫌い|っ嫌")),
+    ("撒娇", re.compile(r"お願い|やだ|いやだ|ずるい|ねえ|だって|別に|べつに|〜して|してよ")),
+    ("soft", re.compile(r"ありがと|うれし|嬉し|好き|すき|大好き|よかった|助かった|優し")),
+)
+_QUESTION_TAIL = re.compile(r"(か|の|かな|のよ|でしょ|どう|なの)[」』\s]*$")
+
+# 「明显是在难过」的强线索：模型偶尔把这种句子标成 calm / 毒舌，声音会明显不对。
+# 只在这两种标签上纠偏，别的标签一律尊重模型。
+_SAD_STRONG = re.compile(r"涙|泣|ごめん|どうせ|いらない|もういい|寂しい|さみしい|さよなら|バイバイ")
+_SAD_OVERRIDABLE = ("calm", "平静", "毒舌")
+
+
+def infer_emotion(text):
+    """没有 <emotion> 标签时，按台词猜一个情绪；猜不出来返回 ""（调用方回 default）。
+
+    为什么要有这层：模型经常不写标签（实测明显生气 / 难过 / 温柔的句子里 3/5 都没写），
+    而以前没标签直接当 calm，结果参考音频永远用同一组，听起来毫无起伏。
+    这里只认**明确**的线索，宁可漏判也不乱判。
+    """
+    t = (text or "").strip()
+    if not t:
+        return ""
+    if "？" in t or "?" in t or _QUESTION_TAIL.search(t):
+        return "问句"
+    for emo, rx in _EMO_HINTS:
+        if rx.search(t):
+            return emo
+    return ""
+
+
+def split_emotion(text):
+    """取出 <emotion>xxx</emotion>，返回 (正文, 情绪)。
+
+    模型偶尔把标签拼错（`</emomotion>`），以前只清 `emotion` 这两个词，
+    残留的标签会直接出现在台词里。所以开标签用 `<emotion>`、闭标签放宽到 `emo…`。
+
+    没标签时不再一律 calm：先按台词形态猜（`infer_emotion`），实在没线索才用
+    `EMO_DEFAULT`；怎么来的记在 `LAST_EMO_SOURCE` 里。
+    """
+    global LAST_EMO_SOURCE
+    if not text:
+        LAST_EMO_SOURCE = "default"
+        return text, EMO_DEFAULT
+    m = re.search(r"<emotion>\s*([^<\n]{1,20})\s*</?\s*emo[a-z]*\s*>", text, re.I)
+    emo = ""
+    if m:
+        emo = m.group(1).strip()
+        text = (text[:m.start()] + text[m.end():]).strip()
+    # 兼容模型把标记写在其它位置 / 拼错 / 多次出现
+    text = re.sub(r"</?\s*emo[a-z]*[^>]*>", "", text, flags=re.I).strip()
+    if emo:
+        # 模型自己写了标签就用它的；只有「明显难过却标成 calm/毒舌」这种硬矛盾才纠一下，
+        # 不然一句哽咽的台词会被念得又冷又冲（实测模型会把难过句标成毒舌）。
+        if emo in _SAD_OVERRIDABLE and _SAD_STRONG.search(text):
+            LAST_EMO_SOURCE = "override"
+            return text, "哭腔"
+        LAST_EMO_SOURCE = "tag"
+        return text, emo
+    guessed = infer_emotion(text)
+    if guessed:
+        LAST_EMO_SOURCE = "inferred"
+        return text, guessed
+    LAST_EMO_SOURCE = "default"
+    return text, EMO_DEFAULT
+
 
 def split_scene(text):
     """取出 <scene>地点</scene> 与 <outfit>衣服</outfit>，返回 (正文, 场景, 服装)。
@@ -31,24 +107,6 @@ def split_scene(text):
         text = text[:m.start()] + text[m.end():]
     text = re.sub(r"</?(scene|outfit)[^>]*>", "", text).strip()
     return text, scene, outfit
-
-
-def split_emotion(text):
-    """取出 <emotion>xxx</emotion>，返回 (正文, 情绪)。没有标记时情绪为 calm。
-
-    模型偶尔把标签拼错（`</emomotion>`），以前只清 `emotion` 这两个词，
-    残留的标签会直接出现在台词里。所以开标签用 `<emotion>`、闭标签放宽到 `emo…`。
-    """
-    if not text:
-        return text, "calm"
-    m = re.search(r"<emotion>\s*([^<\n]{1,20})\s*</?\s*emo[a-z]*\s*>", text, re.I)
-    emo = "calm"
-    if m:
-        emo = m.group(1).strip()
-        text = (text[:m.start()] + text[m.end():]).strip()
-    # 兼容模型把标记写在其它位置 / 拼错 / 多次出现
-    text = re.sub(r"</?\s*emo[a-z]*[^>]*>", "", text, flags=re.I).strip()
-    return text, emo
 
 
 def split_action(text):

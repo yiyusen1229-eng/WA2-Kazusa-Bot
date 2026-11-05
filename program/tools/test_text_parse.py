@@ -43,8 +43,40 @@ def main():
     body, emo = T.split_emotion("「やあ」</emomotion>")
     check("只有残留标签时清掉、不吞台词", body == "「やあ」" and emo == "calm", (body, emo))
     body, emo = T.split_emotion("「やあ」")
-    check("没有标签时情绪默认 calm", emo == "calm" and body == "「やあ」", (body, emo))
+    check("没线索时还是 calm", emo == "calm" and body == "「やあ」" and
+          T.LAST_EMO_SOURCE == "default", (body, emo, T.LAST_EMO_SOURCE))
     check("空输入不炸", T.split_emotion("") == ("", "calm"), T.split_emotion(""))
+    # 没有标签时按台词形态猜（模型经常不写标签：实测 5 句里 3 句没有）
+    body, emo = T.split_emotion("<emotion>问句</emotion>「覚えてる？」")
+    check("模型写了标签就用标签", emo == "问句" and T.LAST_EMO_SOURCE == "tag",
+          (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("「あんたなんか、ほんとに大っ嫌い！」")
+    check("猜得出毒舌", emo == "毒舌" and T.LAST_EMO_SOURCE == "inferred", (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("<action>（目をそらす）</action>「べ、別に…ずるい」")
+    check("猜得出撒娇", emo == "撒娇", (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("「…ごめん、ひどいこと言った」")
+    check("猜得出哭腔", emo == "哭腔", (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("「ありがと…助かった」")
+    check("猜得出温柔", emo == "soft", (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("「ねえ、それで？」")
+    check("猜得出问句", emo == "问句", (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("「寒いな」")
+    check("没线索的普通句子仍然是 calm", emo == "calm", (emo, T.LAST_EMO_SOURCE))
+    check("推断只认明确线索（不乱猜）", T.infer_emotion("「うん」") == "",
+          T.infer_emotion("「うん」"))
+    body, emo = T.split_emotion("「べ、別に。あんたのためじゃないから」")
+    check("别扭（別に）算撒娇", emo == "撒娇", (emo, T.LAST_EMO_SOURCE))
+    # 硬矛盾纠偏：明显难过却标 calm/毒舌 → 哭腔（别的标签一律尊重模型）
+    body, emo = T.split_emotion("<emotion>毒舌</emotion>「…もういい。どうせあたしなんて」")
+    check("难过句被标毒舌 → 纠成哭腔", emo == "哭腔" and T.LAST_EMO_SOURCE == "override",
+          (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("<emotion>calm</emotion>「ごめん…ひどいこと言った」")
+    check("难过句被标 calm → 纠成哭腔", emo == "哭腔", (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("<emotion>毒舌</emotion>「ばか、うるさい」")
+    check("真毒舌不被误纠", emo == "毒舌" and T.LAST_EMO_SOURCE == "tag",
+          (emo, T.LAST_EMO_SOURCE))
+    body, emo = T.split_emotion("<emotion>撒娇</emotion>「…もういい。どうせあたしなんて」")
+    check("模型给的撒娇不被覆盖", emo == "撒娇", (emo, T.LAST_EMO_SOURCE))
 
     # 2) scene / outfit
     body, sc, of = T.split_scene("<scene>第二音乐室</scene><outfit>冬季校服</outfit>「…」")

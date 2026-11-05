@@ -11,6 +11,7 @@ import persona_ctx
 import persona_stage
 import scene_cg
 import standing
+import text_parse as _tp
 import tts_client
 
 # 关键参数（#12：以前散在函数体里的数字，集中在这里；表见 other/docs/参数与指标.md）
@@ -148,6 +149,7 @@ class ChatApi:
                 "平时绝对不要输出。"
                 "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
                 "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
+                "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
                 "标记只能是开头那一个，正文里不要再出现。"
                 "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
                 "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
@@ -177,6 +179,18 @@ class ChatApi:
             raw = (d["choices"][0]["message"].get("content") or "").strip()
             _uinfo = _record_usage(model, d.get("usage") or {})
             raw, emo = split_emotion(raw)
+            # 情绪标签是模型该给的；它经常偷懒不写（实测 5 句里 3 句没有），
+            # 以前没标签直接当 calm，参考音频就永远停在同一组。这里让偷懒看得见：
+            #   source=tag      模型自己写了
+            #   source=inferred 按台词形态猜的（可能猜错，日志里能对账）
+            #   source=default  真没线索，用 calm
+            try:
+                _src = _tp.LAST_EMO_SOURCE
+                if _src != "tag":
+                    log("情绪标签%s：%s（模型没写 <emotion>）"
+                        % ("推断" if _src == "inferred" else "缺失", emo))
+            except Exception:
+                pass
             raw, scene_now, outfit_now = split_scene(raw)
             acts, raw = split_action(raw)
             reply, think = split_thinking(raw)
