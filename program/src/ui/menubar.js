@@ -345,11 +345,15 @@
   }
 
 
-  /* 选择分支数量：写进 prefs（后端落盘 prefs.json），选项条下次打开就用新值 */
+  /* 选择分支数量：写进 prefs（后端落盘 prefs.json），选项条下次打开就用新值。
+     设置模块的入口是 `window.App.setPref`（它会同时写 localStorage、POST /api/prefs、
+     派发 app:prefs 事件）；**没有 `WA2.prefs`**。以前先试 `WA2.prefs.setPref`，
+     拿不到才走下面那段自己拼的兜底——兜底能存但读不回来（wt-choices 也读的 WA2.prefs），
+     结果就是「不管改成几都是 2 个」（2026-11-06）。 */
   function setChoiceCount(n) {
     n = Math.max(2, Math.min(5, n | 0));
     try {
-      if (window.WA2 && WA2.prefs && WA2.prefs.setPref) WA2.prefs.setPref("choiceCount", n);
+      if (window.App && window.App.setPref) window.App.setPref("choiceCount", n);
       else {
         var raw = localStorage.getItem("app_prefs");
         var p = raw ? JSON.parse(raw) : {};

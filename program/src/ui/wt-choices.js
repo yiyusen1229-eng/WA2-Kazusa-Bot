@@ -36,10 +36,13 @@
 
   var COLORS = { normal: "", gold: "f0e0a0" };
 
+  /* 读设置里的「分支数量」。注意：设置模块挂在 `window.App.getPrefs/setPref`，
+     **没有 `WA2.prefs`**（2026-11-06 之前这里读 `WA2.prefs`，永远拿不到，
+     所以不管设置改成几都是 2 个选项）。 */
   function prefsCount() {
     var n = 2;
     try {
-      var p = (WA2.prefs && WA2.prefs.getPrefs) ? WA2.prefs.getPrefs() : null;
+      var p = (window.App && window.App.getPrefs) ? window.App.getPrefs() : null;
       if (p && p.choiceCount) n = parseInt(p.choiceCount, 10) || 2;
     } catch (e) {}
     return Math.max(2, Math.min(5, n));
