@@ -22,6 +22,8 @@ FAILS = []
 MUST = [
     os.path.join(DOCS, "不要动.md"),
     os.path.join(DOCS, "架构", "00b_数据流.md"),
+    os.path.join(DOCS, "角色包规范.md"),
+    os.path.join(DOCS, "examples", "min_pack", "雪见.zip"),
 ]
 
 SCAN = [
@@ -53,6 +55,7 @@ def main():
     overview = io.open(os.path.join(DOCS, "架构", "00_总览.md"), encoding="utf-8").read()
     check("AGENTS.md 指向不要动.md", "不要动.md" in agents)
     check("AGENTS.md 指向数据流", "00b_数据流" in agents or "数据流" in agents)
+    check("AGENTS.md 指向角色包规范", "角色包规范" in agents or "角色包" in agents)
     check("00_总览 链接数据流", "00b_数据流" in overview)
     check("00_总览 链接不要动", "不要动" in overview)
 

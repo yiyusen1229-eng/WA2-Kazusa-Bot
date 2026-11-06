@@ -75,3 +75,5 @@ python program\tools\check_assets.py                  # 素材自检
   （模块身份 `__main__`、像素系数 0.625、`window.__history` 同一个数组、hotreload 跳过清单、
   选择条不能实时叠 plus-lighter、`WA2.prefs` 不存在、改完 src 要 run_dev --sync-only …）。
 - 想知道「一次对话经过哪些模块、缓存落在哪」→ `other/docs/架构/00b_数据流.md`。
+- 想做/改**角色包**（导出、导入、给别人发角色）→ `other/docs/角色包规范.md`
+  （格式、脱敏规则、大小上限、`tools/char_pack_migrate.py --check/--fix/--from-dir`，还有一个 2.2 KB 的示例包）。

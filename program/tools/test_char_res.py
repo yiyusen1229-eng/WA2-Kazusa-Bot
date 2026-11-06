@@ -90,6 +90,17 @@ def main():
     check("txt 走整段附加", CR.worldbook_text() == "这是整段的设定资料。")
     check("json 版为空", CR.worldbook() is None)
 
+    # 末尾多一行垃圾不该让整本世界书失效。
+    # 2026-11-06 真实踩到：worldbook.json 最后多了一个「xx」，json.load 抛 Extra data，
+    # 两处加载器都是 except 后静默回落 —— 界面上一切正常，世界书却一条都没注入。
+    os.remove(os.path.join(char_dir, "worldbook", "设定.md"))
+    write(os.path.join(char_dir, "worldbook", "wb.json"),
+          json.dumps(wb, ensure_ascii=False) + "\nxx\n")
+    got = CR.worldbook()
+    check("末尾有垃圾也能读出来（宽容解析）",
+          bool(got) and (got.get("entries") or [{}])[0].get("name") == "测试", got)
+    os.remove(os.path.join(char_dir, "worldbook", "wb.json"))   # 后面的用例要「没文件」的状态
+
     print("\n[4] 记忆书")
     write(os.path.join(char_dir, "memory", "旧事.txt"), "我们约好周末去海边。")
     check("读到记忆书", CR.memory_text() == "我们约好周末去海边。")

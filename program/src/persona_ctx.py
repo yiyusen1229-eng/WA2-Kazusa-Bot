@@ -238,6 +238,29 @@ def persona_text(messages=None, period=None):
     return base
 
 
+def loads_tolerant(raw):
+    """宽容地解析 JSON：允许末尾有多余内容。
+
+    手工编辑 worldbook.json 很容易在最后多一行（实测多了一个「xx」），
+    严格的 json.load 会抛 Extra data —— 原来的写法是 except 后静默回落，
+    结果**整本世界书一条都不注入**，而且没有任何报错。
+    这里改成：先严格解析；失败就用 raw_decode 吃掉第一个完整值，剩下的当垃圾记日志。
+    """
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+    try:
+        d, end = json.JSONDecoder().raw_decode(raw.lstrip())
+        junk = raw.lstrip()[end:].strip()
+        if junk:
+            _log("JSON 末尾有多余内容（%d 字符，已忽略）：%r" % (len(junk), junk[:24]))
+        return d
+    except Exception as e:
+        _log("JSON 解析失败：%s" % e)
+        raise
+
+
 def load_worldbook():
     """世界书：当前角色文件夹的 worldbook/ 优先，没有再用程序自带的 worldbook/
     （旧安装还在根目录的也认）。char_res 按 mtime 缓存，导入后立刻生效。"""
@@ -249,7 +272,8 @@ def load_worldbook():
         _log("读取导入世界书失败: %s" % e)
     for f in (worldbook_file(), WORLDBOOK_FILE, LEGACY_WORLDBOOK_FILE):
         try:
-            return json.load(open(f, encoding="utf-8"))
+            with open(f, encoding="utf-8") as fh:
+                return loads_tolerant(fh.read())
         except Exception:
             continue
     return {"entries": []}

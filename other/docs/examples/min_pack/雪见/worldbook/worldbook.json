@@ -1,0 +1,31 @@
+{
+ "name": "冬木堂世界书",
+ "version": 1,
+ "scan_depth": 8,
+ "max_entries": 4,
+ "max_chars": 1200,
+ "entries": [
+  {
+   "name": "冬木堂",
+   "keywords": [
+    "书店",
+    "冬木堂",
+    "店里"
+   ],
+   "content": "冬木堂是一间开了三十年的旧书店，木地板会响。靠窗有一张旧沙发，雪见上班时会坐在那儿理书。",
+   "priority": 10,
+   "case_sensitive": false
+  },
+  {
+   "name": "北方的冬天",
+   "keywords": [
+    "雪",
+    "冬天",
+    "冷"
+   ],
+   "content": "小城的冬天很长，十一月初就下雪，路面结冰。雪见总是走得很慢，说「摔一下要疼半个月」。",
+   "priority": 8,
+   "case_sensitive": false
+  }
+ ]
+}

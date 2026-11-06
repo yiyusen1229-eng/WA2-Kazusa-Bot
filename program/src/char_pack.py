@@ -238,6 +238,17 @@ def pick_pack_file(title="选择角色包（.zip）", default=""):
 
 
 # ------------------------------------------------------------------ 导出
+# 不该进包的垃圾：编辑/备份留下的副本（.bak、.bak-20261105-2015、~$xxx、Thumbs.db…）
+# 不光是体积问题 —— 旧版提示词里可能有已经被改掉的私人内容，不该跟着包发给别人
+_JUNK_RE = re.compile(
+    r"(\.bak(\.|-|$)|\.tmp$|\.swp$|^~\$|^\.DS_Store$|^Thumbs\.db$|^desktop\.ini$)",
+    re.IGNORECASE)
+
+
+def _is_junk(name):
+    return bool(_JUNK_RE.search(name or ""))
+
+
 def _members(cid):
     """要打包的文件 [(绝对路径, 包内相对路径)]"""
     root = os.path.join(characters.root(), cid)
@@ -252,6 +263,8 @@ def _members(cid):
             continue
         for dirpath, _dirs, files in os.walk(base):
             for fn in sorted(files):
+                if _is_junk(fn):
+                    continue
                 p = os.path.join(dirpath, fn)
                 if not os.path.isfile(p):
                     continue

@@ -90,6 +90,7 @@ STEPS = [
     ("核心", "桌面行为 21 项", "py", ["tools/test_desktop.py"], 90),
     ("核心", "睡眠唤醒检测 19 项", "py", ["tools/test_powerwatch.py"], 60),
     ("静态", "文档链接与索引 12 项", "py", ["tools/test_docs.py"], 60),
+    ("核心", "角色包规范与迁移 32 项", "py", ["tools/test_pack_migrate.py"], 90),
     ("核心", "演出标签提示 15 项", "py", ["tools/test_chat_hints.py"], 60),
     ("核心", "立绘索引扫描 13 项", "py", ["tools/test_sprite_scan.py"], 60),
     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),

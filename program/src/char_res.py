@@ -106,10 +106,21 @@ def prompt_text():
 
 
 # ------------------------------------------------------------------ 世界书
+def _load_json_file(path):
+    """读 JSON：末尾多余内容不算错（手工编辑时很容易多一行，见 persona_ctx.loads_tolerant）"""
+    with open(path, encoding="utf-8") as fh:
+        raw = fh.read()
+    try:
+        import persona_ctx
+        return persona_ctx.loads_tolerant(raw)
+    except Exception:
+        return json.loads(raw)
+
+
 def worldbook():
     """导入的 .json 世界书（结构同 worldbook.json）；不是 JSON 就返回 None"""
     path = char_file("worldbook", JSON_EXTS)
-    data = _cached(path, lambda p: json.load(open(p, encoding="utf-8")))
+    data = _cached(path, _load_json_file)
     if isinstance(data, dict) and isinstance(data.get("entries"), list):
         return data
     return None
