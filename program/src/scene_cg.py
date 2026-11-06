@@ -86,6 +86,11 @@ def set_assets_dir(path):
     _CACHE["data"] = None
 
 
+def assets_dir():
+    """当前素材目录（只读用；firstrun 的素材自检要它）"""
+    return _ASSETS_DIR
+
+
 def index_path():
     return os.path.join(_ASSETS_DIR, "cg", "index.json")
 

@@ -424,6 +424,15 @@
       { label: "系统设置", action: function () {
           if (window.__openOptions) window.__openOptions();
       } },
+      /* #23：首次设置检查（可重跑）+ 导出对话 */
+      { label: "设置检查（缺什么配什么）", action: function () {
+          if (window.__openFirstRun) window.__openFirstRun();
+          else alert("首次自检没加载（wt-firstrun.js）");
+        } },
+      { label: "导出对话（Markdown）", action: function () {
+          if (window.__openExport) window.__openExport();
+          else alert("导出模块没加载（wt-export.js）");
+        } },
       { label: "记忆书", action: function () {
           if (window.__openMemory) window.__openMemory();
       } },

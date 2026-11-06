@@ -38,15 +38,22 @@ SCRATCH_TMP = os.path.join(SCRATCH, "tmp")
 
 
 def _child_env():
-    """子进程用的环境：TEMP/TMP 指到 work_scratch/tmp
+    """子进程用的环境：TEMP/TMP 指到 work_scratch/tmp，并强制 UTF-8 输出
 
     tempfile.mkdtemp() 会跟着 TEMP 走，所以各份自测的临时目录全落在项目里，
     跑完由 _clean_scratch() 收走；用户 %TEMP% 不再被写。
+
+    PYTHONIOENCODING 必须在这里定死：不设的话子进程按控制台代码页输出
+    （中文系统是 GBK），被测脚本打印的「全部通过」到这边就是乱码 ——
+    判据对不上，明明通过也报失败。2026-11-06 实测：从没设这个变量的终端里跑冒烟，
+    「演出标签提示」「选项条测量」两项无故标红，单独跑又都是好的。
     """
     os.makedirs(SCRATCH_TMP, exist_ok=True)
     env = dict(os.environ)
     for k in ("TEMP", "TMP", "TMPDIR"):
         env[k] = SCRATCH_TMP
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
     return env
 
 
@@ -91,6 +98,7 @@ STEPS = [
     ("核心", "睡眠唤醒检测 19 项", "py", ["tools/test_powerwatch.py"], 60),
     ("静态", "文档链接与索引 12 项", "py", ["tools/test_docs.py"], 60),
     ("核心", "角色包规范与迁移 32 项", "py", ["tools/test_pack_migrate.py"], 90),
+    ("核心", "导出与首次自检 25 项", "py", ["tools/test_export.py"], 60),
     ("核心", "演出标签提示 15 项", "py", ["tools/test_chat_hints.py"], 60),
     ("核心", "立绘索引扫描 13 项", "py", ["tools/test_sprite_scan.py"], 60),
     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),

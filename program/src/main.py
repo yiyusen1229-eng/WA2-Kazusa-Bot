@@ -51,6 +51,8 @@ import persona_ctx
 import persona_stage
 import runstate
 import scene_cg
+import api_export
+import firstrun
 import standing
 try:
     import gdi_text as GLIB
@@ -996,6 +998,10 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
 
     def do_GET(self):
         self._req_start = time.time()
+        if self.path.startswith("/api/export/chat"):
+            return api_export.handle_get(self)   # 它自己解析 query（do_GET 里 q 是后面的局部变量，这里还不存在）
+        if self.path.startswith("/api/firstrun"):
+            return self._json(firstrun.state())
         if self.path.startswith("/api/window"):
             return self._window_ctl()
         if self.path.startswith("/api/log/dump"):
