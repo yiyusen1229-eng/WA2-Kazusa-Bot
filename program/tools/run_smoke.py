@@ -87,6 +87,8 @@ STEPS = [
     ("核心", "新游戏清历史 7 项", "py", ["tools/test_newgame.py"], 60),
     ("核心", "分支数量接线 9 项", "node", ["tools/test_choices_prefs.js"], 60),
     ("核心", "BGM 情绪槽位 21 项", "node", ["tools/test_mood_bgm.js"], 60),
+    ("核心", "桌面行为 25 项", "py", ["tools/test_desktop.py"], 90),
+    ("核心", "睡眠唤醒检测 19 项", "py", ["tools/test_powerwatch.py"], 60),
     ("核心", "演出标签提示 15 项", "py", ["tools/test_chat_hints.py"], 60),
     ("核心", "立绘索引扫描 13 项", "py", ["tools/test_sprite_scan.py"], 60),
     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),

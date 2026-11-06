@@ -87,6 +87,8 @@
 
 | K36 | BGM 情绪槽位 | 用户反馈「只在寂静的冬夜和冰之刃之间切，而冰之刃该是分手争执那种沉重」。实测 476 句真实台词：正则把她的日常嘴硬（笨蛋/哼/少来）判成 angry → 冰之刃（11%），而衰减 0.65 太黏，calm 占八成时 warm/sad 永远翻不了身（476 句只切 2 次）。现在：**优先用模型给的 `<emotion>`**（毒舌/问句算日常、`沉重` 才算争执），没有标签才回退文本规则（回退规则也分两档，嘴硬不算沉重）；衰减 0.5、领先 1.5 分且连续两轮才切。词表补了 `沉重`（并写明「只有真的争执/要分开时用」）。改后实测切 6 次、warm 会出现、真模型对「我们到此为止吧」会标 `沉重`、对「你今天怎么这么笨」标 `毒舌` | `test_mood_bgm.js`（21 项：映射表、回退规则、连续两轮才切、毒舌不拉 tense、reset 语义） |
 
+| K37 | 桌面行为（#18） | 置顶 / 不透明度 / 点击穿透 / 多显示器夹回，全走 user32（不引 pystray/keyboard）。`winutil.set_topmost / set_alpha / set_click_through / clamp_to_workarea`，HTTP 动作 `topmost|alpha|clickthrough|workarea|clamp`，前端 `wt-window.js` 记住设置并套用。**点击穿透必须带自动恢复**（30 秒倒计时；关窗时也 sendBeacon 复位），否则窗口点不动只能杀进程。**睡眠唤醒**：`powerwatch` 看墙钟跳变（巡检线程睡过去 → 首轮差 >20 秒即判定），`/api/power` 暴露 gen，前端变了就复用 `suspendForDevice/rebuildAfterDevice` 重建音频 | `test_desktop.py`（25 项，真 Win32 窗口验样式位）+ `test_powerwatch.py`（19 项，喂假墙钟）+ `test_desktop_app.py`（真主窗口跑一遍置顶/透明/穿透，人工跑不进冒烟） |
+
 ## 发版前手动过一遍
 
 1. `program\启动程序.bat`：标题栏、背景、立绘、字模、按钮音效、窗口按钮

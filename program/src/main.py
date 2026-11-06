@@ -45,6 +45,7 @@ import characters
 import char_res
 import diag
 import hotreload
+import powerwatch
 import logpack
 import persona_ctx
 import persona_stage
@@ -550,6 +551,7 @@ def _hot_reload_setup():
     hotreload.set_hooks({"text_cache": _on_text, "char_res": _on_char,
                          "asset_report": _on_assets})
     hotreload.start()
+    powerwatch.start()          # #18：睡眠唤醒检测（前端据此重建音频）
 
 
 def _log_maintenance():
@@ -1007,6 +1009,8 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
             return self._performance_get()
         if self.path.startswith("/api/hotreload"):
             return self._hotreload_get()
+        if self.path.startswith("/api/power"):
+            return self._json(dict(ok=True, **powerwatch.state()))
         if self.path.startswith("/api/assets/wizard"):
             return self._wizard_get()
         if self.path.split("?")[0] == "/api/cleanup":
@@ -1397,7 +1401,7 @@ def serve_only(prefer_port=None):
     return port
 
 
-def main():
+def main(prefer_port=None):
     runstate.install_hooks()
     runstate.begin(APP_NAME, _VERSION)
     _log_maintenance()
@@ -1415,7 +1419,8 @@ def main():
     import webview
 
     port_holder = []
-    t = threading.Thread(target=serve, args=(port_holder,), daemon=True)
+    # 窗口模式也认 --port（测试 / 多开时能指定端口，不然只能靠 8771 撞运气）
+    t = threading.Thread(target=serve, args=(port_holder, prefer_port), daemon=True)
     t.start()
     for _ in range(100):
         if port_holder:
@@ -1423,6 +1428,10 @@ def main():
         time.sleep(0.05)
     bind_port_zero = True
     port = port_holder[0] if port_holder else 0
+    try:
+        log("窗口模式: http://127.0.0.1:%d" % port, "WIN")
+    except Exception:
+        pass
     url = "http://127.0.0.1:%d/game/index.html?t=%d" % (port, int(time.time()))
 
     class _Api:
@@ -1528,4 +1537,4 @@ if __name__ == "__main__":
     if args.serve_only:
         serve_only(args.port)
     else:
-        main()
+        main(args.port)

@@ -128,8 +128,53 @@ class WindowApi:
             elif action == "state":
                 u = _user32()
                 hw = _win_hwnd()
+                import winutil
                 return self._json({"ok": bool(hw), "maxed": bool(u.IsZoomed(hw)) if hw else False,
-                                   "fullscreen": bool(getattr(w, "_wa2_full", False))})
+                                   "fullscreen": bool(getattr(w, "_wa2_full", False)),
+                                   # #18 桌面行为
+                                   "topmost": winutil.is_topmost(hw),
+                                   "alpha": winutil.get_alpha(hw),
+                                   "click_through": winutil.is_click_through(hw)})
+            # ---------------- #18 桌面行为 ----------------
+            elif action == "topmost":
+                import winutil
+                on = qs(q, ("on", "v")).strip().lower() not in ("0", "false", "off", "")
+                hw = _win_hwnd()
+                ok = winutil.set_topmost(hw, on)
+                applog.log("窗口置顶: %s -> %s" % (on, ok), "WIN")
+                return self._json({"ok": bool(ok), "topmost": winutil.is_topmost(hw)})
+            elif action == "alpha":
+                import winutil
+                raw = qs(q, ("v", "alpha")).strip()
+                try:
+                    a = int(raw) if raw else 255
+                except Exception:
+                    return self._json({"ok": False, "error": "bad alpha"})
+                ok = winutil.set_alpha(_win_hwnd(), a)
+                return self._json({"ok": bool(ok), "alpha": winutil.get_alpha(_win_hwnd())})
+            elif action == "clickthrough":
+                import winutil
+                on = qs(q, ("on", "v")).strip().lower() not in ("0", "false", "off", "")
+                hw = _win_hwnd()
+                ok = winutil.set_click_through(hw, on)
+                applog.log("窗口点击穿透: %s -> %s" % (on, ok), "WIN")
+                return self._json({"ok": bool(ok), "click_through": winutil.is_click_through(hw)})
+            elif action == "workarea":
+                import winutil
+                area = winutil.monitor_workarea(*(None, None))
+                rect = winutil.get_rect(_win_hwnd())
+                return self._json({"ok": bool(area), "workarea": list(area or []),
+                                   "rect": list(rect) if rect else []})
+            elif action == "clamp":
+                # 多显示器：窗口跑到已经拔掉的那块屏上时，把它拉回可见区域
+                import winutil
+                hw = _win_hwnd()
+                rect = winutil.get_rect(hw)
+                if not rect:
+                    return self._json({"ok": False, "error": "窗口位置读不到"})
+                x, y, ww, hh = winutil.clamp_to_workarea(*rect)
+                ok = winutil.move_window(hw, x, y, ww, hh) if (x, y) != (rect[0], rect[1]) else True
+                return self._json({"ok": bool(ok), "moved": [x, y], "rect": list(winutil.get_rect(hw) or [])})
             elif action == "resize":
                 try:
                     nw = int(q.get("w", ["0"])[0])

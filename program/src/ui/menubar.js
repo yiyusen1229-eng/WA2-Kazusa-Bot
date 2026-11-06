@@ -148,6 +148,15 @@
     try { if (window.__dbg) window.__dbg("FADE", on ? "on/" + (window.WA2 && WA2.fade ? WA2.fade.ms() : "?") + "ms" : "off"); } catch (e) {}
   }
 
+  /* #18 桌面行为：菜单统一入口（模块没加载就提示一次，别让菜单点了没反应） */
+  function winSet(fn, arg) {
+    try {
+      if (window.WA2 && WA2.win && typeof WA2.win[fn] === "function") return WA2.win[fn](arg);
+    } catch (e) {}
+    try { if (window.__toast) window.__toast("桌面行为模块没加载（wt-window.js）", 2400); } catch (e) {}
+    return null;
+  }
+
   /* 诊断包（#15）：交给后端 /api/log/bundle 打 zip，路径直接告诉用户 */
   function exportDiag(turns) {
     var url = "/api/log/bundle" + (turns ? "?turns=" + turns : "");
@@ -372,7 +381,27 @@
 
     bar.appendChild(makeMenu("画面设置", [
       { label: "全屏模式", action: toggleFullscreen },
-      { label: "窗口模式", sub: RES }
+      { label: "窗口模式", sub: RES },
+      /* #18 桌面行为：置顶 / 不透明度 / 点击穿透 / 拉回本屏 */
+      { label: "窗口置顶", sub: [
+          { label: "开（压在其他程序上面）", w: 0, h: 0, run: function () { winSet("setTopmost", true); } },
+          { label: "关", w: 0, h: 0, run: function () { winSet("setTopmost", false); } }
+        ] },
+      { label: "窗口不透明度", sub: [
+          { label: "100%（不透明）", w: 0, h: 0, run: function () { winSet("setAlpha", 255); } },
+          { label: "90%", w: 0, h: 0, run: function () { winSet("setAlpha", 230); } },
+          { label: "80%", w: 0, h: 0, run: function () { winSet("setAlpha", 204); } },
+          { label: "70%", w: 0, h: 0, run: function () { winSet("setAlpha", 178); } },
+          { label: "60%（很淡）", w: 0, h: 0, run: function () { winSet("setAlpha", 153); } }
+        ] },
+      { label: "点击穿透（30 秒后自动恢复）", action: function () {
+          if (window.WA2 && WA2.win && WA2.win.setClickThrough) {
+            WA2.win.setClickThrough(!(WA2.win.state && WA2.win.state.clickThrough));
+          } else alert("桌面行为模块没加载（wt-window.js）");
+        } },
+      { label: "拉回本屏（多显示器）", action: function () {
+          if (window.WA2 && WA2.win && WA2.win.clampBack) WA2.win.clampBack();
+        } }
     ]));
     bar.appendChild(makeMenu("环境设置", [
       { label: "配音语言", sub: [
