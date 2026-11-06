@@ -43,6 +43,13 @@ import urllib.request
 BUDGET_DAILY = 0.0
 
 CHAT_PATH = "/v1/chat/completions"
+
+# 本地模型的上下文窗口。Ollama 默认跟着模型参数（这台机器上是 8192），
+# 而修好世界书后提示词约 8500 token —— 超了会被截断、输出乱码。
+# 这里显式传 num_ctx（只有原生 /api/chat 的 options 认这个参数）。
+LOCAL_NUM_CTX = 16384
+# 本地一次最多生成多少 token（对应 OpenAI 的 max_tokens）
+LOCAL_NUM_PREDICT = 512
 OLLAMA_PORT = ":11434"
 
 
@@ -159,7 +166,8 @@ def _extract(d, require_text=True):
         return _finish(txt, d, require_text)
     msg = d.get("message")
     if isinstance(msg, dict) and "content" in msg:
-        return _finish(msg.get("content"), d, require_text)
+        usage = d.get("usage") or _native_usage(d)
+        return _finish(msg.get("content"), {"usage": usage}, require_text)
     raise LLMError("bad_response", "没有 choices/message", "模型返回里没有正文", True)
 
 
@@ -175,8 +183,47 @@ def _finish(txt, d, require_text):
 
 
 # ------------------------------------------------------------------ 调用
+def native_payload(payload):
+    """OpenAI 形状 → Ollama 原生形状（并把 num_ctx 带上）"""
+    p = {"model": payload.get("model"),
+         "messages": payload.get("messages") or [],
+         "stream": False,
+         "options": {"num_ctx": int(LOCAL_NUM_CTX)}}
+    mt = payload.get("max_tokens")
+    p["options"]["num_predict"] = int(mt) if mt else int(LOCAL_NUM_PREDICT)
+    if "temperature" in payload:
+        p["options"]["temperature"] = payload["temperature"]
+    # 本地小模型不该把预算花在思考上
+    p["think"] = False
+    return p
+
+
+def _native_usage(d):
+    """原生响应的用量 → OpenAI 口径（pricing.py 认这个）"""
+    pin = int(d.get("prompt_eval_count") or 0)
+    pout = int(d.get("eval_count") or 0)
+    if not (pin or pout):
+        return {}
+    return {"prompt_tokens": pin, "completion_tokens": pout, "total_tokens": pin + pout}
+
+
 def post(url, payload, cfg, timeout=90):
-    """真正发请求（测试里替换这个函数就能把网络挡在外面）"""
+    """真正发请求（测试里替换这个函数就能把网络挡在外面）
+
+    本地 Ollama 走原生 /api/chat：只有它认 num_ctx（OpenAI 兼容接口会把那个参数丢掉，
+    于是模型按自己的 8192 截断提示词）。云端仍然走 /v1/chat/completions。
+    """
+    if provider_of((cfg or {}).get("base_url")) == "ollama":
+        native_url = (cfg.get("base_url") or "").rstrip("/")
+        if native_url.endswith("/v1"):
+            native_url = native_url[:-3]
+        native_url = native_url + "/api/chat"
+        rq = urllib.request.Request(native_url,
+                                    data=json.dumps(native_payload(payload),
+                                                    ensure_ascii=False).encode("utf-8"),
+                                    headers=headers({"api_key": ""}))
+        with urllib.request.urlopen(rq, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
     rq = urllib.request.Request(url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                                 headers=headers(cfg))
     with urllib.request.urlopen(rq, timeout=timeout) as r:

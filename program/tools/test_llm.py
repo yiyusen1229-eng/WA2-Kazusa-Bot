@@ -185,6 +185,18 @@ def main():
     except llm.LLMError as e:
         check("纯空白 → bad_response", e.kind == "bad_response", e.kind)
 
+    print("[9a] 本地走原生接口：带上 num_ctx")
+    np = llm.native_payload({"model": "m", "max_tokens": 300,
+                             "messages": [{"role": "user", "content": "hi"}]})
+    check("options.num_ctx 有值且 >= 8192",
+          int(np.get("options", {}).get("num_ctx", 0)) >= 8192, np.get("options"))
+    check("max_tokens → num_predict", np["options"].get("num_predict") == 300,
+          np["options"])
+    check("本地不要思考", np.get("think") is False, np.get("think"))
+    check("原生请求不带 stream", np.get("stream") is False)
+    check("原生用量口径换算",
+          llm._native_usage({"prompt_eval_count": 10, "eval_count": 5})
+          == {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15})
     print("[9] Ollama 原生形状也认")
     llm.post = Script({"message": {"content": "「原生 ok」"}, "usage": {"total_tokens": 5}})
     r = llm.generate({"model": "q"}, LOCAL, timeout=5, sleep=lambda s: None)

@@ -97,7 +97,11 @@ class ChatApi:
                                               outfit_now[:20], period_req or "auto"))
 
         # 上下文预算：超过阈值就切成「记忆书 + 最近一段原文」
-        msgs, mem_note = _memory_context(msgs, bool(cc))
+        # 预算按**这一轮实际用的端点**选，不按「有没有云端 key」选。
+        # 以前用 bool(cc)：配了云端 key 的人即使切到本地模型玩，也按云端 32000 的预算
+        # 全量发历史（实测 8500 token）—— 而这个 14B 本地模型 4k 往上就开始说胡话。
+        _local_now = llm.provider_of(base_url) == "ollama"
+        msgs, mem_note = _memory_context(msgs, bool(cc) and not _local_now)
 
         # ---- 调试面板（#13）：这一轮 system 花在哪一段、送了多少条 ----
         # 只记字数和估算 token，不记正文（面板不该变成聊天记录查看器）

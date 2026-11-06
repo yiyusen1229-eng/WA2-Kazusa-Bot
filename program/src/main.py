@@ -335,6 +335,17 @@ def model_cfg_all():
         "voice": pick("voice", TTS_ENDPOINT_HINT, "", "GPT-SoVITS"),
         "mt": pick("mt", OLLAMA, "", TRANSLATE_MODEL),
     }
+    # 翻译板块：说清楚它现在到底在不在用（用户反馈过「方案改了还显示已连接」）
+    try:
+        import translate as _tr
+        _st = _tr.status()
+        out["mt"]["connected"] = bool(out["mt"].get("connected")) and _st["mt_in_use"]
+        out["mt"]["in_use"] = bool(_st["mt_in_use"])
+        out["mt"]["active_engine"] = _st["label"]
+        out["mt"]["note"] = ("当前翻译走「%s」%s" % (
+            _st["label"], "" if _st["mt_in_use"] else "；这块配置只是备用"))
+    except Exception:
+        pass
     # key 来自环境变量时，界面只拿到掩码：真 key 不出后端，也不会被保存回去
     env = secret.env_key()
     if env:

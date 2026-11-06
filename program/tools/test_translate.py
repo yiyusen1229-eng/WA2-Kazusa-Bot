@@ -125,6 +125,16 @@ def main():
     check("环境变量能强制云端", T.provider() == "cloud", T.provider())
     os.environ.pop("WA2_MT_PROVIDER", None)
 
+    print("[status] 翻译引擎现状要能说清楚（给设置界面用）")
+    st = T.status()
+    check("有 provider/engines", "provider" in st and len(st.get("engines") or []) == 3, st)
+    check("三种引擎都列了", [e["key"] for e in st["engines"]] == ["cloud", "local", "mt"],
+          [e["key"] for e in st["engines"]])
+    check("每项都有 ready 与说明",
+          all("ready" in e and e.get("detail") is not None for e in st["engines"]))
+    check("mt 默认不算在用", st["mt_in_use"] is False or st["provider"] == "mt", st)
+    check("label 是个中文名", bool(st.get("label")) and st["label"] != "mt", st.get("label"))
+
     print()
     if FAILS:
         print("失败 %d 项：%s" % (len(FAILS), " / ".join(FAILS)))

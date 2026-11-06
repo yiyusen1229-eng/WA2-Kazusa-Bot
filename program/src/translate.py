@@ -69,18 +69,61 @@ def _cloud_cfg():
 def provider():
     """cloud / local"""
     env = (os.environ.get("WA2_MT_PROVIDER") or "").strip().lower()
-    if env in ("cloud", "local"):
+    if env in ("cloud", "local", "mt"):
         return env
     p = os.path.join(_src_dir(), "config.json")
     try:
         with open(p, encoding="utf-8") as f:
             d = json.load(f)
         v = ((d.get("translate") or {}).get("provider") or "").strip().lower()
-        if v in ("cloud", "local"):
+        if v in ("cloud", "local", "mt"):
             return v
     except Exception:
         pass
     return "cloud" if _cloud_cfg()["key"] else "local"
+
+
+def status():
+    """这一轮翻译实际怎么走（给设置界面显示，别让面板说假话）。
+
+    引擎三种：
+      cloud  云端（复用对话那套 base_url / key / model）
+      local  本地 Hy-MT2（tts_client 里的服务）
+      mt     「模型管理 → 翻译」那块单独配的端点（**默认不启用**，要显式选才走）
+
+    只在 `translate.provider == "mt"` 时才用 mt；否则那个板块只是备用配置。
+    """
+    prov = provider()
+    cc = _cloud_cfg()
+    cloud_ready = bool(cc["key"] and cc["base"])
+    local_ready = False
+    local_detail = "未检测"
+    try:
+        import tts_client
+        local_ready = bool(tts_client.available())
+        local_detail = "可用" if local_ready else "没检测到本地 Hy-MT2 服务"
+    except Exception as e:
+        local_detail = "检测失败：%s" % e
+    mt = {}
+    try:
+        with open(os.path.join(_src_dir(), "config.json"), encoding="utf-8") as f:
+            d = json.load(f)
+        mt = ((d.get("models") or {}).get("mt") or {})
+    except Exception:
+        mt = {}
+    mt_ready = bool((mt.get("endpoint") or "").strip() and (mt.get("model") or "").strip())
+    engines = [
+        {"key": "cloud", "name": "云端（对话模型）", "ready": cloud_ready,
+         "detail": ("用 %s" % (cc["model"] or "对话模型")) if cloud_ready else "没配 key / 端点"},
+        {"key": "local", "name": "本地 Hy-MT2", "ready": local_ready, "detail": local_detail},
+        {"key": "mt", "name": "翻译专用端点", "ready": mt_ready,
+         "detail": (mt.get("endpoint") or "未配置") if mt_ready else "未配置（备用）"},
+    ]
+    label = {"cloud": "云端（对话模型）", "local": "本地 Hy-MT2", "mt": "翻译专用端点"}
+    return {"provider": prov, "engine": prov, "label": label.get(prov, prov),
+            "engines": engines,
+            "cloud_ready": cloud_ready, "local_ready": local_ready, "mt_ready": mt_ready,
+            "mt_in_use": prov == "mt"}
 
 
 # ---------------------------------------------------------------- 术语表

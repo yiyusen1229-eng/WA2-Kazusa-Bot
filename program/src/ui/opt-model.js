@@ -41,6 +41,18 @@
       im.src = key ? ("assets/ui/text/" + key + ".png") : txtUrl(text);
       btn.appendChild(im);
     }
+    /* 板块状态标签（#24 后续）：翻译那块不能只看「上次连过没有」。
+       mt 板块只是备用配置：除非 translate.provider 显式选成 mt，否则翻译根本不走它 ——
+       以前一律显示「已连接」，用户改了翻译方案后看到的就是一句假话。 */
+    function sectionLabel(sec, got) {
+      got = got || {};
+      if (sec === "mt") {
+        if (got.in_use) return "使用中";
+        return (got.endpoint && got.model) ? "备用" : "连接";
+      }
+      return got.connected ? "已连接" : "连接";
+    }
+
 
     var modelBound = false;
     function bindModelFields() {
@@ -273,7 +285,16 @@
             if (d && d.ok) {
               b.classList.add("on");
               b.classList.remove("fail");
-              setConnLabel(b, "已连接");
+              /* 翻译板块连上了也只是存配置：现在翻译走别的引擎，别说成「已连接」 */
+              setConnLabel(b, sec === "mt" ? "已保存（备用）" : "已连接");
+              if (sec === "mt") {
+                b.title = "配置存下来了，但当前翻译不走它（走哪个由 config.json 的 translate.provider 决定）";
+                setTimeout(function () {
+                  var dm = (d && d.cfg && d.cfg[sec]) || {};
+                  b.classList.remove("on");
+                  setConnLabel(b, sectionLabel(sec, dm));
+                }, 2200);
+              }
               var got = d.cfg && d.cfg[sec];
               if (got) {
                 setModelName(sec, got.model);
@@ -316,12 +337,11 @@
           syncKeyRow(sec, got.endpoint);
           var b = btns[sec];
           if (b) {
-            if (got.connected) {
-              b.classList.add("on");
-              setConnLabel(b, "已连接");
-            } else {
-              setConnLabel(b, "连接");
-            }
+            var lab = sectionLabel(sec, got);
+            if (lab === "已连接" || lab === "使用中") b.classList.add("on");
+            else b.classList.remove("on");
+            setConnLabel(b, lab);
+            if (got.note) b.title = got.note;
           }
         });
       });
@@ -337,7 +357,7 @@
   WA2.optModel = _exp;
   WA2.register("optModel", _exp);
   /* __export_all__ */
-  ["beginEdit", "bindModelFields", "commitField", "fieldOf", "maskKey", "modelApi", "resetSection", "setConnLabel", "setModelName", "showValue", "syncKeyRow", "txtUrl", "BAKED", "WA2", "_exp", "_names", "b", "box", "btns", "d", "ep", "exitBound", "got", "i0", "im", "im0", "img", "inp", "isKey", "key", "kwrap", "local", "modelBound", "old", "payload", "ratio", "row", "secEl", "show", "sp", "sp0", "sw", "v", "w", "w0", "wrap", "xhr"].forEach(function (n) {
+  ["beginEdit", "bindModelFields", "commitField", "fieldOf", "maskKey", "modelApi", "resetSection", "sectionLabel", "setConnLabel", "setModelName", "showValue", "syncKeyRow", "txtUrl", "BAKED", "WA2", "_exp", "_names", "b", "box", "btns", "d", "ep", "exitBound", "got", "i0", "im", "im0", "img", "inp", "isKey", "key", "kwrap", "local", "modelBound", "old", "payload", "ratio", "row", "secEl", "show", "sp", "sp0", "sw", "v", "w", "w0", "wrap", "xhr"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
