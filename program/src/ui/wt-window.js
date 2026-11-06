@@ -1,20 +1,13 @@
-/* wt-window.js —— 桌面行为（#18）：置顶 / 不透明度 / 点击穿透 / 夹回本屏。
+/* wt-window.js —— 桌面行为（#18）：置顶 / 不透明度 / 夹回本屏。
  *
- * 挂在 WA2.win。后端动作在 api_window.py（action=topmost/alpha/clickthrough/clamp），
+ * 挂在 WA2.win。后端动作在 api_window.py（action=topmost/alpha/workarea/clamp），
  * 用纯 user32（没有 pystray / keyboard 依赖）。
- *
- * ⚠️ 点击穿透的坑：窗口一旦穿透，**它自己就收不到点击了**，界面上没有任何按钮能关掉它。
- * 所以这里强制「定时自动恢复」（默认 30 秒，倒计时写在标题栏提示里）。
- * 别改成「一直开着」——那只能任务管理器杀进程。
  */
 (function () {
   var WA2 = window.WA2 = window.WA2 || {};
   var $ = (WA2.util && WA2.util.$) || function (id) { return document.getElementById(id); };
 
-  var CLICK_SECS = 30;          /* 穿透自动恢复秒数 */
-  var ctTimer = null;
-  var ctLeft = 0;
-  var state = { topmost: false, alpha: 255, clickThrough: false };
+  var state = { topmost: false, alpha: 255 };
 
   function toast(msg, ms) {
     try { (window.__toast || function () {}) (msg, ms || 2200); } catch (e) {}
@@ -60,34 +53,6 @@
       return state.alpha;
     }).catch(function () { return state.alpha; });
   }
-
-  /* ---------- 点击穿透（带自动恢复） ---------- */
-  function stopCountdown() {
-    if (ctTimer) { clearInterval(ctTimer); ctTimer = null; }
-    ctLeft = 0;
-  }
-
-  function setClickThrough(on, secs) {
-    var wait = Math.max(3, parseInt(secs || CLICK_SECS, 10));
-    return api("clickthrough", { on: on ? 1 : 0 }).then(function (d) {
-      state.clickThrough = !!(d && d.click_through);
-      stopCountdown();
-      if (!state.clickThrough) { toast("已取消点击穿透", 1500); return false; }
-      ctLeft = wait;
-      toast("点击穿透已开：" + wait + " 秒后自动恢复（期间点不到窗口）", 3000);
-      ctTimer = setInterval(function () {
-        ctLeft -= 1;
-        if (ctLeft <= 0) {
-          stopCountdown();
-          setClickThrough(false, 0);
-          toast("点击穿透已自动恢复", 2500);
-        }
-      }, 1000);
-      return true;
-    }).catch(function () { return state.clickThrough; });
-  }
-
-  function clickLeft() { return ctLeft; }
 
   /* ---------- 多显示器：把窗口拉回可见区域 ---------- */
   function clampBack() {
@@ -144,21 +109,18 @@
   }
 
   function summary() {
-    return { topmost: state.topmost, alpha: state.alpha,
-             clickThrough: state.clickThrough, clickLeft: clickLeft(),
-             powerGen: lastPowerGen };
+    return { topmost: state.topmost, alpha: state.alpha, powerGen: lastPowerGen };
   }
 
   WA2.win = {
-    setTopmost: setTopmost, setAlpha: setAlpha, setClickThrough: setClickThrough,
-    clampBack: clampBack, applySaved: applySaved, summary: summary, clickLeft: clickLeft,
+    setTopmost: setTopmost, setAlpha: setAlpha,
+    clampBack: clampBack, applySaved: applySaved, summary: summary,
     pollPower: pollPower, onResume: onResume, state: state
   };
   WA2.register("win", WA2.win);
   /* 兼容老调用 */
   window.__winSetTopmost = setTopmost;
   window.__winSetAlpha = setAlpha;
-  window.__winClickThrough = setClickThrough;
   window.__winClampBack = clampBack;
   window.__winSummary = summary;
 
@@ -167,14 +129,10 @@
     /* 睡眠唤醒检测：后端每 5 秒看一次墙钟，跳一大截就 +1，这里跟着重建音频 */
     setInterval(pollPower, 5000);
     setTimeout(pollPower, 1200);
-    /* 关窗/刷新前把不透明度和穿透还回去：这两个是**进程级窗口样式**，
-       不还的话下次启动整窗是灰的、或者窗口点不动（穿透）*/
+    /* 关窗/刷新前把不透明度还回去：它是**进程级窗口样式**，不还下次启动整窗是灰的 */
     window.addEventListener("beforeunload", function () {
       try {
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon("/api/window?action=alpha&v=255");
-          navigator.sendBeacon("/api/window?action=clickthrough&on=0");
-        }
+        if (navigator.sendBeacon) navigator.sendBeacon("/api/window?action=alpha&v=255");
       } catch (e) {}
     });
   });

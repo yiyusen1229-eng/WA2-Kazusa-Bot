@@ -76,13 +76,12 @@ def _quiet_act(path):
 
 
 # ======================================================================
-# 桌面行为（#18）：置顶 / 透明 / 点击穿透 / 多显示器
+# 桌面行为（#18）：置顶 / 透明 / 多显示器（点击穿透做过又删了）
 # 全部用 user32 的本机 API，不引第三方库（pystray / keyboard 都没装，
 # 加了会让打包多两套依赖和一个全局键盘钩子，风险不值当）。
 # ======================================================================
 GWL_EXSTYLE = -20
 WS_EX_LAYERED = 0x00080000
-WS_EX_TRANSPARENT = 0x00000020
 HWND_TOPMOST = -1
 HWND_NOTOPMOST = -2
 SWP_NOSIZE = 0x0001
@@ -184,36 +183,6 @@ def get_alpha(hwnd):
     except Exception:
         pass
     return 255
-
-
-def set_click_through(hwnd, on=True):
-    """点击穿透：鼠标事件直接穿到下面的窗口（她站在那里，还能点后面的东西）。
-
-    ⚠️ 穿透之后这个窗口就收不到点击了 —— 打开前必须留个**自动恢复**（前端倒计时），
-    否则只能任务管理器杀掉。
-    """
-    if not hwnd:
-        return False
-    try:
-        h = int(hwnd)
-        u = _u32()
-        ex = u.GetWindowLongW(h, GWL_EXSTYLE)
-        if on:
-            u.SetWindowLongW(h, GWL_EXSTYLE, ex | WS_EX_LAYERED | WS_EX_TRANSPARENT)
-        else:
-            u.SetWindowLongW(h, GWL_EXSTYLE, ex & ~WS_EX_TRANSPARENT)
-        return True
-    except Exception:
-        return False
-
-
-def is_click_through(hwnd):
-    if not hwnd:
-        return False
-    try:
-        return bool(_u32().GetWindowLongW(int(hwnd), GWL_EXSTYLE) & WS_EX_TRANSPARENT)
-    except Exception:
-        return False
 
 
 def get_rect(hwnd):

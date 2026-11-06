@@ -133,16 +133,21 @@ class WindowApi:
                                    "fullscreen": bool(getattr(w, "_wa2_full", False)),
                                    # #18 桌面行为
                                    "topmost": winutil.is_topmost(hw),
-                                   "alpha": winutil.get_alpha(hw),
-                                   "click_through": winutil.is_click_through(hw)})
+                                   "alpha": winutil.get_alpha(hw)})
             # ---------------- #18 桌面行为 ----------------
             elif action == "topmost":
+                import ctypes
                 import winutil
                 on = qs(q, ("on", "v")).strip().lower() not in ("0", "false", "off", "")
                 hw = _win_hwnd()
+                if not hw:
+                    return self._json({"ok": False, "error": "窗口未就绪（还没有句柄）"})
+                ctypes.set_last_error(0)
                 ok = winutil.set_topmost(hw, on)
-                applog.log("窗口置顶: %s -> %s" % (on, ok), "WIN")
-                return self._json({"ok": bool(ok), "topmost": winutil.is_topmost(hw)})
+                err = ctypes.get_last_error()
+                applog.log("窗口置顶: %s -> %s (hwnd=%s err=%s)" % (on, ok, hw, err), "WIN")
+                return self._json({"ok": bool(ok), "topmost": winutil.is_topmost(hw),
+                                   "hwnd": int(hw or 0), "err": int(err)})
             elif action == "alpha":
                 import winutil
                 raw = qs(q, ("v", "alpha")).strip()
@@ -150,15 +155,11 @@ class WindowApi:
                     a = int(raw) if raw else 255
                 except Exception:
                     return self._json({"ok": False, "error": "bad alpha"})
-                ok = winutil.set_alpha(_win_hwnd(), a)
-                return self._json({"ok": bool(ok), "alpha": winutil.get_alpha(_win_hwnd())})
-            elif action == "clickthrough":
-                import winutil
-                on = qs(q, ("on", "v")).strip().lower() not in ("0", "false", "off", "")
                 hw = _win_hwnd()
-                ok = winutil.set_click_through(hw, on)
-                applog.log("窗口点击穿透: %s -> %s" % (on, ok), "WIN")
-                return self._json({"ok": bool(ok), "click_through": winutil.is_click_through(hw)})
+                if not hw:
+                    return self._json({"ok": False, "error": "窗口未就绪（还没有句柄）"})
+                ok = winutil.set_alpha(hw, a)
+                return self._json({"ok": bool(ok), "alpha": winutil.get_alpha(_win_hwnd())})
             elif action == "workarea":
                 import winutil
                 area = winutil.monitor_workarea(*(None, None))

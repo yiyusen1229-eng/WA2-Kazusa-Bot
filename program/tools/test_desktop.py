@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#18 桌面行为：置顶 / 透明 / 点击穿透 / 多显示器 —— 用真的 Win32 窗口验。
+"""#18 桌面行为：置顶 / 透明 / 多显示器 —— 用真的 Win32 窗口验。
 
 不开主程序、不弹可见窗口：自己 CreateWindowEx 一个隐藏窗口，
 把样式设上去再读回来。验的是「API 真的生效」，不是「代码里有这行」。
@@ -105,13 +105,7 @@ def main():
     check("回到 255 摘掉 LAYERED",
           winutil.set_alpha(hwnd, 255) and winutil.get_alpha(hwnd) == 255)
 
-    print("[3] 点击穿透")
-    check("初始不穿透", not winutil.is_click_through(hwnd))
-    check("set_click_through(True)", winutil.set_click_through(hwnd, True))
-    check("读回来穿透", winutil.is_click_through(hwnd))
-    check("关掉", winutil.set_click_through(hwnd, False) and not winutil.is_click_through(hwnd))
-
-    print("[4] 多显示器 / 夹取")
+    print("[3] 多显示器 / 夹取")
     area = winutil.monitor_workarea(100, 100)
     check("拿得到工作区", bool(area) and len(area) == 4, area)
     if area:
@@ -123,12 +117,12 @@ def main():
         x2, y2, _, _ = winutil.clamp_to_workarea(-5000, -5000, 800, 450, area)
         check("跑到负坐标也拉回来", x2 >= L and y2 >= T, (x2, y2))
 
-    print("[5] 移动窗口")
+    print("[4] 移动窗口")
     check("move_window 返回成功", winutil.move_window(hwnd, 50, 60))
     rect = winutil.get_rect(hwnd)
     check("位置真的变了", rect and rect[0] == 50 and rect[1] == 60, rect)
 
-    print("[6] 句柄是 0 时不炸")
+    print("[5] 句柄是 0 时不炸")
     check("set_topmost(0) 返回 False", winutil.set_topmost(0) is False)
     check("set_alpha(0) 返回 False", winutil.set_alpha(0) is False)
     check("get_alpha(0) 不抛异常", winutil.get_alpha(0) in (0, 255))

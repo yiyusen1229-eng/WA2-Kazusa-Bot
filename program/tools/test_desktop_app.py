@@ -38,13 +38,17 @@ def get(action, **params):
 
 
 def wait_up(secs=40):
+    """等到**窗口真的建好**（state.ok 且拿得到句柄），不是「服务能应答」就算。
+    服务是先起的、窗口后建；只看端口通会赶在窗口之前调接口（实测 hwnd=0）。"""
     t0 = time.time()
     while time.time() - t0 < secs:
         try:
-            get("state")
-            return True
+            st = get("state")
+            if st and st.get("ok"):
+                return True
         except Exception:
-            time.sleep(0.5)
+            pass
+        time.sleep(0.5)
     return False
 
 
@@ -65,6 +69,7 @@ def main():
         print("[1] 置顶")
         st = get("state")
         check("state 里有 topmost 字段", "topmost" in st, st)
+        check("窗口已就绪（state.ok）", st.get("ok") is True, st)
         r = get("topmost", on=1)
         check("topmost on 返回 ok", r.get("ok"), r)
         time.sleep(0.4)
@@ -80,25 +85,16 @@ def main():
         r = get("alpha", v=255)
         check("回到 255", r.get("alpha") == 255, r)
 
-        print("[3] 点击穿透")
-        r = get("clickthrough", on=1)
-        check("开穿透返回 ok", r.get("ok") and r.get("click_through") is True, r)
-        check("state 读回穿透", get("state").get("click_through") is True, get("state"))
-        r = get("clickthrough", on=0)
-        check("能关掉穿透（不然窗口就废了）",
-              r.get("ok") and get("state").get("click_through") is False, r)
-
-        print("[4] 多显示器 / 夹回")
+        print("[3] 多显示器 / 夹回")
         r = get("workarea")
         check("拿得到工作区", r.get("ok") and len(r.get("workarea") or []) == 4, r)
         r = get("clamp")
         check("clamp 不报错", r.get("ok"), r)
 
-        print("[5] 结束时把窗口恢复原样")
+        print("[4] 结束时把窗口恢复原样")
         get("alpha", v=255)
         get("topmost", on=0)
-        get("clickthrough", on=0)
-        check("收尾后不是穿透", get("state").get("click_through") is False)
+        check("收尾后回到不透明", get("state").get("alpha") == 255, get("state"))
     finally:
         try:
             get("close")

@@ -382,7 +382,7 @@
     bar.appendChild(makeMenu("画面设置", [
       { label: "全屏模式", action: toggleFullscreen },
       { label: "窗口模式", sub: RES },
-      /* #18 桌面行为：置顶 / 不透明度 / 点击穿透 / 拉回本屏 */
+      /* #18 桌面行为：置顶 / 不透明度 / 拉回本屏（点击穿透做过又删了，用不上） */
       { label: "窗口置顶", sub: [
           { label: "开（压在其他程序上面）", w: 0, h: 0, run: function () { winSet("setTopmost", true); } },
           { label: "关", w: 0, h: 0, run: function () { winSet("setTopmost", false); } }
@@ -394,11 +394,6 @@
           { label: "70%", w: 0, h: 0, run: function () { winSet("setAlpha", 178); } },
           { label: "60%（很淡）", w: 0, h: 0, run: function () { winSet("setAlpha", 153); } }
         ] },
-      { label: "点击穿透（30 秒后自动恢复）", action: function () {
-          if (window.WA2 && WA2.win && WA2.win.setClickThrough) {
-            WA2.win.setClickThrough(!(WA2.win.state && WA2.win.state.clickThrough));
-          } else alert("桌面行为模块没加载（wt-window.js）");
-        } },
       { label: "拉回本屏（多显示器）", action: function () {
           if (window.WA2 && WA2.win && WA2.win.clampBack) WA2.win.clampBack();
         } }
