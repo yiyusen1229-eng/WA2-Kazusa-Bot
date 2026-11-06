@@ -86,8 +86,10 @@
 
       const mood = (window.__lastEmo || detectMood(shown));
       // 立绘表情随情绪变，服装与场景只在模型明确标记时切换
-      accumulateMood(reply);            // BGM 按累积氛围切换，不随单句变
-
+      // BGM 按累积氛围切换，不随单句变。
+      // 注意要喂**中文**那侧：detectMood 的规则全是中文词，喂日语原文永远判成 calm，
+      // 于是 BGM 一辈子不换（2026-11-06 用户反馈「BGM 基本没换过」）。
+      accumulateMood(replyZh || shown);
       sessionSave();          // 自动存档
       turnCount++;
     } catch (e) {

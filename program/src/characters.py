@@ -475,11 +475,52 @@ def _read_index(path):
         return {}
 
 
+def _scan_portrait_outfits():
+    """没写 index.json 的角色包：照 `portrait/<衣服>/<表情>.png` 现扫一份索引出来。
+
+    为什么需要：老版本导入的角色包只有图片、没有 `index.json`。索引一空，
+    前端 `spritePath()` 每套衣服都找不到，只能退回同一张默认立绘——
+    表现就是「立绘和表情永远不变」（2026-11-06 用户反馈）。
+    扫一遍就能直接用，不用让用户重新导入；写了 `index.json` 的仍然以文件为准
+    （文件里可以带 code / label / variants，那是扫不出来的）。
+    """
+    root = sprite_dir()
+    if not root or not os.path.isdir(root):
+        return {}
+    out = {}
+    for name in sorted(os.listdir(root)):
+        d = os.path.join(root, name)
+        if not os.path.isdir(d):
+            continue
+        images = {}
+        try:
+            for f in sorted(os.listdir(d)):
+                stem, ext = os.path.splitext(f)
+                if ext.lower() in (".png", ".webp", ".jpg", ".jpeg"):
+                    images[stem] = f
+        except OSError:
+            continue
+        if not images:
+            continue
+        out[name] = {
+            "code": "",
+            "label": name,
+            # 「认真」是这套素材的默认脸，没有就用第一个
+            "default": images.get("认真") or next(iter(images.values())),
+            "emotions": dict(images),
+            "variants": [],
+            "scanned": True,
+        }
+    return out
+
+
 def sprite_index(assets_sprites):
     """合并：自带 assets/sprites/index.json + 当前角色的 portrait/index.json（角色优先）
 
     key 现在都是**衣服名（中文）**；老安装的自带索引还是数字编号，按 `code` 对齐，
     保证同一套衣服不会同时出现「礼服」和「027」两条。
+
+    两边都没索引（老角色包只有图）时，退回扫 `portrait/` 目录（`_scan_portrait_outfits`）。
     """
     base = _read_index(os.path.join(assets_sprites, "index.json"))
     own = _read_index(os.path.join(sprite_dir(), "index.json")) if sprite_dir() else {}
@@ -495,19 +536,25 @@ def sprite_index(assets_sprites):
         v = v if isinstance(v, dict) else {}
         code = str(v.get("code") or "")
         old = code_key.get(code) if code else None
-        merged = dict(outfits.get(old) or {}) if old and old != k else dict(outfits.get(k) or {})
+        # 改名的时候（自带那份按编号、角色这份按中文名）要拿**旧那条**当底，
+        # 不能去 outfits.get(k) 找——那时候 k 还没写进去，表情映射会整段丢掉。
+        prev = outfits.get(old) if (old and old != k) else outfits.get(k)
+        merged = dict(prev or {})
         if old and old != k:
             outfits.pop(old, None)          # 角色这份用中文名，自带那份丢掉
             code_key[code] = k
         merged.update(v)
         # 角色自己加的情绪映射要叠在自带上面，不能把自带的整套覆盖掉
-        emo = dict((outfits.get(k) or {}).get("emotions") or {})
+        emo = dict((prev or {}).get("emotions") or {})
         emo.update(v.get("emotions") or {})
         if emo:
             merged["emotions"] = emo
         merged.setdefault("code", code)
         merged["label"] = v.get("label") or merged.get("label") or k
         outfits[k] = merged
+    if not outfits:
+        # 没有任何索引：照目录扫（不写文件，加了图下次自动生效）
+        outfits = _scan_portrait_outfits()
     out = dict(base)
     out["outfits"] = outfits
     return out

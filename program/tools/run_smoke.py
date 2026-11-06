@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """一键跑自测（#11 测试三类化）。
 
     python tools/run_smoke.py               # 全部（含在线冒烟）
@@ -84,9 +84,11 @@ STEPS = [
     ("核心", "剧情检索 27 项", "py", ["tools/test_story_rag.py"], 120),
     ("核心", "一键更新 30 项", "py", ["tools/test_update.py"], 120),
     ("核心", "选择分支 29 项", "py", ["tools/test_choice.py"], 120),
+    ("核心", "演出标签提示 15 项", "py", ["tools/test_chat_hints.py"], 60),
+    ("核心", "立绘索引扫描 13 项", "py", ["tools/test_sprite_scan.py"], 60),
     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),
     ("核心", "翻译层 21 项", "py", ["tools/test_translate.py"], 60),
-    ("核心", "素材热重载 30 项", "py", ["tools/test_hotreload.py"], 120),
+    ("核心", "素材热重载 33 项", "py", ["tools/test_hotreload.py"], 120),
     ("核心", "素材向导 19 项", "py", ["tools/test_wizard.py"], 120),
     ("核心", "日志保留 + 诊断包 40 项", "py", ["tools/test_logpack.py"], 180),
     ("核心", "性能采样 59 项", "py", ["tools/test_perf_sample.py"], 120),

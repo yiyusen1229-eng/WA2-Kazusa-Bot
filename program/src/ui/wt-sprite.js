@@ -83,22 +83,62 @@
     return keys.length ? keys[0] : "";
   }
 
-  // 程序情绪 → 立绘情绪（warm 用微笑）
-  var MOOD_TO_EMO = { angry: "angry", sad: "sad", cold: "cold", smile: "smile", warm: "smile" };
+  // 程序情绪（detectMood 给的英文）→ 立绘表情名。
+  // 素材里表情名大多是**中文**（认真/微笑/生气/冷淡/惊讶/其他/其他2），
+  // 所以这里直接映射到中文名；老素材用英文名时靠下面的别名表兜底。
+  var MOOD_TO_EMO = { angry: "生气", sad: "其他2", cold: "冷淡", smile: "微笑", warm: "微笑" };
+
+  /* 情绪 → 立绘里可能叫的名字（按顺序试，第一个存在的就用）。
+     模型 <emotion> 只会给这几个词：calm / soft / 毒舌 / 撒娇 / 哭腔 / 调侃吐槽 / 问句；
+     本地 detectMood 给的是 calm / warm / sad / angry / smile。
+     以前这里只认英文名、素材里又是中文名，查不到就一律退回「认真」，
+     表现是「表情永远不变」（2026-11-06 用户反馈）。 */
+  var EMO_ALIAS = {
+    calm: ["认真", "calm", "serious"],
+    soft: ["微笑", "soft", "smile"],
+    warm: ["微笑", "warm", "smile"],
+    smile: ["微笑", "smile"],
+    "撒娇": ["害羞", "微笑", "其他", "smile"],
+    "调侃吐槽": ["微笑", "其他", "smile"],
+    "毒舌": ["冷淡", "生气", "cold", "angry"],
+    cold: ["冷淡", "cold"],
+    angry: ["生气", "angry"],
+    sad: ["难过", "其他2", "其他", "sad"],
+    "哭腔": ["难过", "其他2", "其他", "sad"],
+    "问句": ["认真", "serious"],
+    "惊讶": ["惊讶", "surprised"],
+    shy: ["害羞", "其他"]
+  };
+
+  /* 挑一张表情图：先试模型/程序给的词，再试覆盖表，最后按别名表挨个试 */
+  function pickEmotion(o, emotion) {
+    var em = (o && o.emotions) || {};
+    var raw = emotion || "";
+    if (!raw) return "";
+    var override = cfgOverride("moodMap") || {};
+    var cands = [raw, override[raw], MOOD_TO_EMO[raw]]
+      .concat(EMO_ALIAS[raw] || [])
+      .concat(EMO_ALIAS[override[raw]] || [])
+      .concat(EMO_ALIAS[MOOD_TO_EMO[raw]] || []);
+    for (var i = 0; i < cands.length; i++) {
+      if (cands[i] && em[cands[i]]) return em[cands[i]];
+    }
+    return "";
+  }
 
   function spritePath(outfit, emotion) {
     var o = SPRITE_INDEX[outfit];
     if (!o) return "assets/kaz_cold.png";
-    var emo = emotion ? (mergeMap(MOOD_TO_EMO, cfgOverride("moodMap"))[emotion] || emotion) : "";
     var u = function (name) {
       var url = "/api/character/sprite/" + encodeURIComponent(outfit) + "/" + encodeURIComponent(name);
       /* #20 热重载：换了图之后靠 ?v= 让 WebView2 重新取，不然还吃旧缓存 */
       if (WA2.assetsVer) url += "?v=" + WA2.assetsVer;
       return url;
     };
-    if (emo && o.emotions && o.emotions[emo]) return u(o.emotions[emo]);
+    var file = pickEmotion(o, emotion);
+    if (file) return u(file);
     // 该套衣服没有这个情绪 → 退到「认真」，再退到默认
-    if (o.emotions && o.emotions.serious) return u(o.emotions.serious);
+    if (o.emotions && (o.emotions.认真 || o.emotions.serious)) return u(o.emotions.认真 || o.emotions.serious);
     return u(o.default);
   }
 

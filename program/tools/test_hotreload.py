@@ -107,6 +107,31 @@ def main():
     hotreload.watch(assets, char)
     hotreload.tick(now=t0 + 21)                 # 重记基线
 
+    # ---------------- 4.5 运行时数据不算「素材变了」
+    # 2026-11-06 实机问题：字模缓存 assets/ui/text_cache 是程序自己聊天时写进去的，
+    # 算进签名 → 每几秒触发一次 → 前端重画背景 → 画面闪。这里盯着它别再回来。
+    called.clear()
+    hotreload.reset()
+    hotreload.set_hooks({"one": lambda kinds: called.append(kinds)})
+    os.makedirs(os.path.join(assets, "ui", "text_cache"), exist_ok=True)
+    hotreload.watch(assets, char)
+    hotreload.tick(now=t0 + 40)                 # 基线
+    for i in range(3):
+        time.sleep(0.01)
+        with open(os.path.join(assets, "ui", "text_cache", "t%d.png" % i), "wb") as f:
+            f.write(b"g" * 200)
+        hotreload.tick(now=t0 + 41 + i)
+        hotreload.tick(now=t0 + 50 + i)
+    check("字模缓存变化：一次都不触发", called == [], called)
+    check("字模缓存变化：gen 还是 0", hotreload.state()["gen"] == 0, hotreload.state()["gen"])
+
+    # 同一层里放一张真素材，仍然要触发
+    time.sleep(0.01)
+    with open(os.path.join(assets, "ui", "real.png"), "wb") as f:
+        f.write(b"r" * 100)
+    hotreload.tick(now=t0 + 60)
+    check("同一目录放真素材：照样触发", hotreload.tick(now=t0 + 60 + hotreload.SETTLE + 0.01) is True)
+
     # ---------------- 5 勾子失败
     boom = []
 

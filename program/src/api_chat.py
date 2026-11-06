@@ -23,9 +23,40 @@ STORY_K = 2                  # 原作检索注入几块
 STORY_MAX_CHARS = 900        # 原作检索最多注入多少字
 
 
+def performance_hints(cc, outfit_hint=""):
+    """人设末尾的演出标签提示（场景 / 服装 / 情绪 / 动作；云端另加语言 + 双语）。
+
+    **云端和本地都要加**：以前整段挂在 `if cc:` 下面，本地模型（Ollama）
+    压根不知道要输出 <scene>/<outfit>/<emotion>，于是场景 CG、立绘、BGM
+    全都不会变（2026-11-06 用户反馈「基本没自动换过」）。
+    本地不加的只有「只用日语」和「双语输出」：小模型做不好双语，
+    硬要求反而写坏，中文由 translate.py 兜底。
+    单独提出来是为了能测（见 tools/test_chat_hints.py）。
+    """
+    s = (scene_cg.prompt_hint() +
+         "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
+         + (outfit_hint or "（按当前角色立绘）") +
+         "平时绝对不要输出。"
+         "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
+         "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
+         "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
+         "标记只能是开头那一个，正文里不要再出现。"
+         "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
+         "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
+    if cc:
+        s += ("\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
+              "\n【双语】台词必须给两份，紧跟在一起：<ja>日语原句</ja><zh>对应的中文</zh>。"
+              "<zh> 不是另一个人写的翻译，就是你自己那句话的意思，"
+              "所以要和 <ja> 对得上（不许改口、不许省略、不许加戏），中文要口语、带情绪。"
+              '<action> 里的描写也用中文写。例：'
+              '<emotion>毒舌</emotion><action>（别过脸）</action>'
+              '<ja>「べ、別に。あんたのためじゃないから」</ja>'
+              '<zh>「才、才不是。不是为你才做的」</zh>')
+    return s
+
+
 class ChatApi:
     """见 main.Handler。"""
-
     def _chat(self):
         from main import (ASSETS_DIR, DEFAULT_MODEL, FALLBACK_MODEL, NO_MODELS, OLLAMA, STORY, _memory_context, _record_usage, cloud_cfg, fewshot_msgs, log, ollama_models, split_action, split_emotion, split_scene, split_thinking, urllib)
         try:
@@ -150,28 +181,8 @@ class ChatApi:
         except Exception:
             outfit_hint = "（按当前角色立绘）"
         _before_tail = len(system)
-        if cc:
-            # 云端：人设末尾补语言/格式约束，前面插 few-shot
-            # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
-            system = system + (
-                "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
-                + scene_cg.prompt_hint() +
-                "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
-                + outfit_hint +
-                "平时绝对不要输出。"
-                "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
-                "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
-                "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
-                "标记只能是开头那一个，正文里不要再出现。"
-                "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
-                "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。"
-                "\n【双语】台词必须给两份，紧跟在一起：<ja>日语原句</ja><zh>对应的中文</zh>。"
-                "<zh> 不是另一个人写的翻译，就是你自己那句话的意思，"
-                "所以要和 <ja> 对得上（不许改口、不许省略、不许加戏），中文要口语、带情绪。"
-                '<action> 里的描写也用中文写。例：'
-                '<emotion>毒舌</emotion><action>（别过脸）</action>'
-                '<ja>「べ、別に。あんたのためじゃないから」</ja>'
-                '<zh>「才、才不是。不是为你才做的」</zh>')
+        # 演出标签（场景 / 服装 / 情绪 / 动作）：云端和本地都要，见 performance_hints
+        system = system + performance_hints(cc, outfit_hint)
         _seg["tail"] = len(system) - _before_tail
         _few = fewshot_msgs() if cc else []
         payload = {
