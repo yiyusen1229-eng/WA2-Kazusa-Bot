@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-06.3",
+  "version": "2026-11-06.4",
   "url": "https://github.com/yiyusen1229-eng/ai-chat-ui-arch/tree/master/other/docs/patches",
-  "notes": "演出标签喂稳（场景概率 0→4/6）/ 开新游戏清历史 / 角色包导出脱敏"
+  "notes": "BGM 情绪映射 / 角色包规范 / 聊天导出 / 模型接入层 / 世界书修复"
 }
