@@ -59,3 +59,6 @@ program/src/fewshot.json
 
 # 自测 / 探针的临时目录（run_smoke.py 会把 TEMP 指到这里）
 program/work_scratch/
+
+# 角色包「上次导出目录」之类的状态文件（正常落在 build_env/ 里，工具在 src 下跑会写到 src/）
+char_pack.json
