@@ -65,7 +65,18 @@
       });
     } else {
       // 开始游戏 = 新对话：清空历史与自动存档
-      history = [];
+      // 注意：历史数组在 wt-session.js 里，只能走它的 clearHistory()。
+      // 这里以前写的是 `history = []`，那其实是浏览器的 window.history（History API），
+      // 等于把 API 覆盖成数组、真正的历史一条没清 —— 点完「开始游戏」回想里还是上一局（2026-11-06）。
+      try {
+        if (window.WA2 && WA2.session && WA2.session.clearHistory) WA2.session.clearHistory();
+        else if (window.__resetHistory) window.__resetHistory();
+        else window.__history = [];
+      } catch (e) { window.__history = []; }
+      /* 同类的「上一局残留」一起清干净：轮数、氛围分、上一句的情绪/待切场景 */
+      try { turnCount = 0; } catch (e) {}
+      try { if (WA2.mood && WA2.mood.reset) WA2.mood.reset(); } catch (e) {}
+      try { if (WA2.chat && WA2.chat.resetPending) WA2.chat.resetPending(); } catch (e) {}
       try { rebuildBacklog(); } catch (e) {}   /* 新游戏：回想清空 */
       try {
         fetch("/api/session/save", {

@@ -83,6 +83,8 @@
 
 | K34 | 演出标签命中率 | 光写规则、不给示例时模型一个 <scene> 都不吐（实测 0/6）；提示词改成三条可执行判据（到了新地方/离开或移动/时间往后推）+ 一条看得见的示例后 4~5/6，「只是提议」基本不误报。示例必须**云端本地都加**（performance_hints），并给人设 ase.txt 顺序做过 A/B（人设在前不影响）。时段别名补了单字「夜」「天黑」等（模型会写 （夜），以前被当地点细节丢掉 → 夜里挑到白天那张） | 	est_scene_cg.py（含新增 [8.5] 三例）+ 	est_chat_hints.py（15 项）+ 	ools/measure_scene_tags.py 打真模型量命中率（人工跑，不进冒烟） |
 
+| K35 | 开新游戏要清干净 | 点「开始游戏」后回想里还是上一局（2026-11-06 用户反馈）。根因：`wt-nav.js` 写的是 `history = []` —— `history` 是 `game.js` 顶层的 `let`，这行只换了绑定，真正的数组还被 `window.__history` 指着，而 `rebuildBacklog` 读的就是它；顺带还把浏览器的 History API 覆盖成了数组。现在统一走 `WA2.session.clearHistory()`（`length = 0` 原地清、保持同一引用），并把轮数 / 氛围分 / 上一句情绪一起清（各自归属模块：`WA2.mood.reset()`、`WA2.chat.resetPending()`） | `test_newgame.py`（7 项静态守卫）+ 真机探针（伪造上一局 2 条 → 点开始游戏 → 回想 0 行、自动存档 0 条、`window.history` 仍是 API 对象） |
+
 ## 发版前手动过一遍
 
 1. `program\启动程序.bat`：标题栏、背景、立绘、字模、按钮音效、窗口按钮

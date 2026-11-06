@@ -198,15 +198,26 @@
 
   /* ---------- 场景切换 ---------- */
   let currentBg = null;
+
+  /* 开新游戏：清空对话历史（**必须走这里**）。
+     以前 wt-nav 里直接写 `history = []` —— 那不是本模块的数组，而是浏览器的
+     `window.history`，等于把 History API 覆盖成数组、而真正的历史一条没清：
+     点「开始游戏」后回想里还是上一局内容（2026-11-06 用户反馈）。
+     顺带用同一个数组引用（applyHistory 保持引用不变），别处的 window.__history 也跟着空。 */
+  function clearHistory() {
+    applyHistory([]);
+    return true;
+  }
+
   var _exp = {};
-  var _names = ["sessionRestore", "sessionSave", "runStateCheck"];
+  var _names = ["sessionRestore", "sessionSave", "runStateCheck", "clearHistory"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }
   WA2.session = _exp;
   WA2.register("session", _exp);
   /* __export_all__ */
-  ["sessionRestore", "sessionSave", "W", "WA2", "_exp", "_names", "bg", "currentBg", "cv", "g", "h", "meta", "r", "s", "sp", "sr", "stage", "w"].forEach(function (n) {
+  ["sessionRestore", "sessionSave", "clearHistory", "W", "WA2", "_exp", "_names", "bg", "currentBg", "cv", "g", "h", "meta", "r", "s", "sp", "sr", "stage", "w"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();

@@ -60,18 +60,25 @@
     return WA2.audio.current || "calm";
   }
 
+  /* 开新游戏：氛围分归零（不然上一局的「难过/紧张」会带进新局，BGM 一开就偏） */
+  function reset() {
+    for (const k in moodScore) moodScore[k] = 0;
+    moodStable = { name: "calm", turns: 0 };
+    return true;
+  }
+
 
   /* 合并版：按当前角色给开场白 */
   var OPENING_LINE = { zh: "「……」", ja: "", emo: "calm" };
   var _exp = {};
-  var _names = ["accumulateMood", "currentBgmMood", "detectMood"];
+  var _names = ["accumulateMood", "currentBgmMood", "detectMood", "reset"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }
   WA2.mood = _exp;
   WA2.register("mood", _exp);
   /* __export_all__ */
-  ["accumulateMood", "currentBgmMood", "detectMood", "MOOD_BGM", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "t"].forEach(function (n) {
+  ["accumulateMood", "currentBgmMood", "detectMood", "MOOD_BGM", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "reset", "t"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();

@@ -102,11 +102,21 @@
   /* 标题 BGM: 首次交互后播放 */
   let titleBgmStarted = false;
 
-  WA2.chat = { send: send };
+  /* 开新游戏：把「上一局留下的待办量」清掉（这些量的归属在这里，别人别直接写 window.__xxx） */
+  function resetPending() {
+    window.__lastEmo = "";
+    window.__nextScene = "";
+    window.__nextOutfit = "";
+    window.__lastThinking = "";
+    window.__lastAction = "";
+    return true;
+  }
+
+  WA2.chat = { send: send, resetPending: resetPending };
   WA2.register("chat", WA2.chat);
   window.send = send;
   /* __export_all__ */
-  ["WA2", "_want", "act", "actZh", "body", "d", "inp", "mood", "r", "reply", "replyZh", "shown", "text", "titleBgmStarted"].forEach(function (n) {
+  ["resetPending", "WA2", "_want", "act", "actZh", "body", "d", "inp", "mood", "r", "reply", "replyZh", "shown", "text", "titleBgmStarted"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
