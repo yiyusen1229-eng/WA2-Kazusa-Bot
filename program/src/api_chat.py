@@ -42,7 +42,12 @@ def performance_hints(cc, outfit_hint=""):
          "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
          "标记只能是开头那一个，正文里不要再出现。"
          "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
-         "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
+         "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。"
+         # 格式示例两条路都要：小模型只靠模仿，光讲规则它一个标签都不吐
+         # （2026-11-06 实测：本地模型 6 次「人已经进到某处」0 次输出 <scene>）
+         "\n【示例】人到了新地方、还带动作和情绪时，回复长这样："
+         "<scene>咖啡厅</scene><emotion>calm</emotion>"
+         '<action>（推开门，暖气扑在脸上）</action>「…あったかい」')
     if cc:
         s += ("\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
               "\n【双语】台词必须给两份，紧跟在一起：<ja>日语原句</ja><zh>对应的中文</zh>。"
@@ -184,7 +189,20 @@ class ChatApi:
         # 演出标签（场景 / 服装 / 情绪 / 动作）：云端和本地都要，见 performance_hints
         system = system + performance_hints(cc, outfit_hint)
         _seg["tail"] = len(system) - _before_tail
-        _few = fewshot_msgs() if cc else []
+        # 「为什么标签不出现」这类问题，光看代码猜不出来 —— WA2_DUMP_PROMPT=1 时把这一轮
+        # 真正发出去的 system 落到 work_scratch/last_prompt.txt，方便和最小复现对比
+        if os.environ.get("WA2_DUMP_PROMPT"):
+            try:
+                _dp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                                   "work_scratch", "last_prompt.txt")
+                os.makedirs(os.path.dirname(_dp), exist_ok=True)
+                with open(_dp, "w", encoding="utf-8") as _f:
+                    _f.write(system)
+            except Exception:
+                pass
+        # few-shot 示例（本地也喂：小模型靠模仿，光讲规则不吐标签）
+        # WA2_NO_FEWSHOT=1 只是给「标签不出现」这类问题做 A/B 用的
+        _few = [] if os.environ.get("WA2_NO_FEWSHOT") else fewshot_msgs()
         payload = {
             "model": model,
             "messages": ([{"role": "system", "content": system}] + _few + msgs),

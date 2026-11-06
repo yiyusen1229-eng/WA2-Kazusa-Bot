@@ -111,6 +111,14 @@ def main():
         hit = scene_cg.match(old)
         check("%s → %s" % (old, want), hit.get("place") == want, repr(hit))
 
+    print("\n[8.5] 单字「夜」也要认成晚上（2026-11-06 实测模型会写（夜））")
+    hit = scene_cg.match("和纱家别墅（夜）")
+    check("（夜）→ 晚上，不是白天", hit.get("time") == "晚上", repr(hit))
+    hit = scene_cg.match("公园（天黑）")
+    check("（天黑）→ 晚上", hit.get("time") == "晚上", repr(hit))
+    hit = scene_cg.match("咖啡厅（夜晚）")
+    check("（夜晚）→ 晚上", hit.get("id") == "咖啡厅（晚上）", repr(hit))
+
     print("\n[9] 提示词")
     hint = scene_cg.prompt_hint()
     check("带上了地名表", "咖啡厅" in hint and "大学图书馆" in hint)
