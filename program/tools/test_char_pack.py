@@ -186,6 +186,41 @@ def main():
         os.path.join(tmp, "nope.zip")).get("ok"))
     check("导出不存在的角色会报错", not char_pack.export_pack("没有这个", out).get("ok"))
 
+
+    print("== 7. 导出要脱敏：关系摘要不能跟着包走 ==")
+    # 先给角色造一份「有进度」的常驻记忆书
+    _first = characters.list_characters()[0]
+    cid = _first.get("id") if isinstance(_first, dict) else _first
+    cdir = os.path.join(characters.root(), cid)
+    os.makedirs(os.path.join(cdir, "memory"), exist_ok=True)
+    st_path = os.path.join(cdir, "memory", "standing.json")
+    before = {
+        "version": 1, "fixed": "【你是谁】测试用固定设定",
+        "relation_summary": "两人已经处得很近，这是私人进度不该外传",
+        "stage": 4, "source_msgs": 81, "updated_at": "2026-01-01 00:00:00",
+    }
+    write(st_path, json.dumps(before, ensure_ascii=False))
+    res7 = char_pack.export_pack(cid, out)
+    check("导出成功", res7.get("ok"), res7)
+    zpath = res7.get("path") or ""
+    got = {}
+    if zpath and os.path.isfile(zpath):
+        with zipfile.ZipFile(zpath) as z:
+            st_names = [n for n in z.namelist() if n.endswith("memory/standing.json")]
+            check("包里带着 standing.json", len(st_names) == 1, st_names)
+            if st_names:
+                got = json.loads(z.read(st_names[0]).decode("utf-8"))
+    check("关系摘要被清空", got.get("relation_summary") == "", repr(got.get("relation_summary")))
+    check("阶段回到 1", got.get("stage") == 1, got.get("stage"))
+    check("消息计数归零", got.get("source_msgs") == 0, got.get("source_msgs"))
+    check("固定设定还在", "固定设定" in (got.get("fixed") or ""), got.get("fixed"))
+    with open(st_path, encoding="utf-8") as _f:
+        after = json.loads(_f.read())
+    check("原始文件没被改", after.get("relation_summary") == before["relation_summary"]
+          and after.get("stage") == 4, after)
+    check("包里不含存档目录", not [n for n in zipfile.ZipFile(zpath).namelist()
+                              if "sessions" in n], "")
+
     print()
     if FAILS:
         print("失败 %d 项：%s" % (len(FAILS), ", ".join(FAILS)))

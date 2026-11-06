@@ -270,6 +270,32 @@ def _unique_zip(out_dir, base):
     return p
 
 
+def _sanitize_standing(path):
+    """把常驻记忆书里的**关系摘要**抹掉，只留固定设定。
+
+    `memory/standing.json` = {fixed（角色固定设定）, relation_summary（从聊天里总结的关系）,
+    stage, source_msgs, updated_at, version}。后面四项都是「你和这个角色处到哪了」，
+    属于私人进度：导出角色包是为了给别人一个角色，不是把自己的进度一起发出去。
+    （2026-11-06：实测导出的包里 relation_summary 有 210 字、stage=4、source_msgs=81。）
+    读不出来就原样返回（宁可少脱敏也别把包弄坏）。
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+        if not isinstance(d, dict):
+            return open(path, "rb").read()
+    except Exception:
+        try:
+            return open(path, "rb").read()
+        except OSError:
+            return b"{}"
+    d["relation_summary"] = ""
+    d["stage"] = 1
+    d["source_msgs"] = 0
+    d["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    return json.dumps(d, ensure_ascii=False, indent=1).encode("utf-8")
+
+
 def export_pack(cid, out_dir):
     """把 characters/<cid>/ 打包成 <out_dir>/<角色名>.zip"""
     cid = characters._sanitize(cid or "")
@@ -312,6 +338,11 @@ def export_pack(cid, out_dir):
         with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
             z.writestr(MANIFEST, json.dumps(manifest, ensure_ascii=False, indent=1))
             for p, rel in members:
+                # standing.json 要脱敏后再进包：关系摘要/阶段是从真实聊天里长出来的，
+                # 不该跟着角色包发给别人（2026-11-06 审出来的）
+                if rel.replace("\\", "/").endswith("memory/standing.json"):
+                    z.writestr(rel, _sanitize_standing(p))
+                    continue
                 ext = os.path.splitext(rel)[1].lower()
                 kind = zipfile.ZIP_STORED if ext in _STORE_EXT else zipfile.ZIP_DEFLATED
                 z.write(p, rel, compress_type=kind)
