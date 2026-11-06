@@ -89,6 +89,8 @@
 
 | K37 | 桌面行为（#18） | 置顶 / 不透明度 / 多显示器夹回，全走 user32（不引 pystray/keyboard）。`winutil.set_topmost / set_alpha / clamp_to_workarea`，HTTP 动作 `topmost|alpha|workarea|clamp`，前端 `wt-window.js` 记住设置并套用。**睡眠唤醒**：`powerwatch` 看墙钟跳变（巡检线程睡过去 → 首轮差 >20 秒即判定），`/api/power` 暴露 gen，前端变了就复用 `suspendForDevice/rebuildAfterDevice` 重建音频。「点击穿透」做过又删了（用不上、且有锁死窗口的风险）；托盘与全局快捷键用户明确跳过，别再排期 | `test_desktop.py`（真 Win32 窗口验样式位）+ `test_powerwatch.py`（喂假墙钟）+ `test_desktop_app.py`（真主窗口跑一遍置顶/透明/夹回，人工跑不进冒烟） |
 
+| K39 | 模型接入层（#24） | 云端/本地/自定义 provider 自动识别；七类错误各给一句人话；可重试的重试一次；auth/balance/offline/rate/server 时**回落本地模型**并标 degraded （前端弹「云端不可用，这轮用的是本地」）；空正文当 bad_response（推理型模型会假成功）；当天花费累加 + 80%/超额提醒（`llm.budget_daily` 默认 0 不提醒） | `tools/test_llm.py`（40+ 项，假 post 剧本化，不连网）+ 手动：断网发一句看是否降级到本地 |
+
 ## 发版前手动过一遍
 
 1. `program\启动程序.bat`：标题栏、背景、立绘、字模、按钮音效、窗口按钮

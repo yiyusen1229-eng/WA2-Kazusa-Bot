@@ -10,6 +10,7 @@ import perfcfg
 import persona_ctx
 import persona_stage
 import scene_cg
+import llm
 import standing
 import text_parse as _tp
 from text_parse import split_bilingual
@@ -218,16 +219,26 @@ class ChatApi:
             payload["reasoning_effort"] = "none"
         t0 = time.time()
         try:
-            rq = urllib.request.Request(
-                base_url.rstrip("/") + "/v1/chat/completions",
-                data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-                headers=({"Content-Type": "application/json",
-                          "Authorization": "Bearer " + cc["api_key"]} if cc
-                         else {"Content-Type": "application/json"}))
-            with urllib.request.urlopen(rq, timeout=CHAT_TIMEOUT_S) as r:
-                d = json.loads(r.read().decode("utf-8"))
-            raw = (d["choices"][0]["message"].get("content") or "").strip()
-            _uinfo = _record_usage(model, d.get("usage") or {})
+            # #24：统一走 llm 层 —— provider 识别、错误分类、重试一次、必要时回落本地模型
+            _cfg = {"api_key": (cc or {}).get("api_key") or "",
+                    "base_url": base_url, "model": model}
+            _fb = None
+            if cc:                      # 云端出错时才回落本地；本来就是本地就没有退路
+                try:
+                    if ollama_models():
+                        _fb = {"base_url": OLLAMA, "model": (FALLBACK_MODEL or model),
+                               "api_key": ""}
+                except Exception:
+                    _fb = None
+            _res = llm.generate(payload, _cfg, timeout=CHAT_TIMEOUT_S, fallback_cfg=_fb)
+            raw = (_res.text or "").strip()
+            if _res.degraded:
+                log("云端不可用（%s），这一轮用的是本地模型 %s" % (_res.reason, _res.model))
+            _uinfo = _record_usage(_res.model or model, _res.usage)
+            try:
+                _bw = llm.budget_warning(llm.budget_note((_uinfo or {}).get("cost") or 0))
+            except Exception:
+                _bw = ""
             raw, emo = split_emotion(raw)
             # 情绪标签是模型该给的；它经常偷懒不写（实测 5 句里 3 句没有），
             # 以前没标签直接当 calm，参考音频就永远停在同一组。这里让偷懒看得见：
@@ -325,12 +336,17 @@ class ChatApi:
                         "bg": bg_hit.get("id", ""),
                         "period": period,
                         "usage": _uinfo,
-                        "model": model,
+                        "model": _res.model or model,
+                        "degraded": bool(_res.degraded),
+                        "degrade_reason": _res.reason,
+                        "budget_warn": _bw,
                         "ms": _ms,
                         "worldbook": wb_names})
-        except urllib.error.HTTPError as e:
+        except llm.LLMError as e:
             diag.count("chat.error")
-            self._json({"error": "HTTP %s %s" % (e.code, e.read().decode("utf-8", "replace")[:200])})
+            diag.note("chat_error", kind=e.kind, status=e.status, detail=str(e.detail)[:80])
+            log("模型调用失败[%s]：%s" % (e.kind, e.detail))
+            self._json({"error": e.user_message, "kind": e.kind, "status": e.status})
         except Exception as e:
             diag.count("chat.error")
-            self._json({"error": "连不上 Ollama（%s），请先启动 Ollama" % e})
+            self._json({"error": "调用模型失败：%s" % e})

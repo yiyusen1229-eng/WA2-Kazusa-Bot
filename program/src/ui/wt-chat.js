@@ -55,6 +55,14 @@
       const d = await r.json();
       if (d && d.usage) { try { (WA2.cost && WA2.cost.render ? WA2.cost.render : window.renderCost)(d.usage); } catch (e) {} }
       if (d.error) { $("msgText").textContent = "[错误] " + d.error; return; }
+      /* #24：静默降级会让人以为云端模型突然变笨了，所以降级要说一声；
+         预算提醒也搭这趟车（后端只在到 80% / 超额时才给这句话） */
+      try {
+        if (d.degraded && window.__toast) {
+          window.__toast("云端不可用（" + (d.degrade_reason || "错误") + "），这一轮用的是本地模型", 3200);
+        }
+        if (d.budget_warn && window.__toast) window.__toast(d.budget_warn, 4000);
+      } catch (e) {}
       const reply = (d.reply || "").trim();
         const replyZh = (d.reply_zh || "").trim();
         const actZh = (d.action_zh || "").trim();
