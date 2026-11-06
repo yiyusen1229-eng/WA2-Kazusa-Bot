@@ -1,0 +1,1625 @@
+diff --git a/README.md b/README.md
+index a8db14b..1fd6d01 100644
+--- a/README.md
++++ b/README.md
+@@ -37,7 +37,21 @@
+ 
+ → [完结感言](other/docs/完结感言.md)
+ 
+-## 近期更新（2026-11-06 选择分支 / 一键更新）
++## 近期更新（2026-11-06 11:13:45 修画面闪 / 场景立绘 BGM / 分支数量）
++
++> 版本 `2026-11-06.2`：全是实机反馈的修复。
++> **画面不时闪烁**——程序自己写的字模缓存（`assets/ui/text_cache`）被素材热重载当成了「素材变了」，
++> 每来一句新台词就重画一次背景，现在缓存目录不参与签名。
++> **场景 CG / 立绘 / BGM 基本不自动换**——三个原因：演出标签提示以前只在配了云端时加
++> （本地模型压根不知道要输出 `<scene>/<outfit>/<emotion>`）；角色包没有 `portrait/index.json`
++> 时立绘索引是空的（现在照目录扫）；情绪名和素材里的中文表情名对不上（现在有别名表），
++> 加上 BGM 的情绪判定以前喂的是日语原文（现在喂中文侧）。
++> **分支数量改成几都是 2 个**——代码读了一个不存在的 `WA2.prefs`，已改走 `window.App`。
++
++- [更新日志 2026-11-06_11-13-45](other/docs/更新日志_2026-11-06_11-13-45.md)
++- [本版补丁](other/docs/patches/2026-11-06_11-14-00_更新补丁.patch)（基线 `e871081`）
++
++## 近期更新（2026-11-06 00:10:47 选择分支 / 一键更新）
+ 
+ > 版本 `2026-11-06.1`：新增**选择分支**——让模型按当前对话给 2~5 个分歧选项，
+ > 点一条就当玩家发言发出去；选项条按原版素材 1:1 还原（条 490×45、行距 52、
+@@ -48,7 +62,7 @@
+ - [更新日志 2026-11-06_00-10-47](other/docs/更新日志_2026-11-06_00-10-47.md)
+ - [本版补丁](other/docs/patches/2026-11-06_00-15-00_更新补丁.patch)（基线 `a234411`）
+ 
+-## 近期更新（2026-11-05 演出状态机 / 剧情检索 v3 / 双语对话）
++## 近期更新（2026-11-05 21:00:00 演出状态机 / 剧情检索 v3 / 双语对话）
+ 
+ > 版本 `2026-11-05.2`：重播 / 流式 / 浮层 / 切角色统一由演出状态机仲裁；
+ > 剧情检索按「时期·线路·情境」分层，同一情境优先取原作片段；
+@@ -58,21 +72,21 @@
+ - [更新日志 2026-11-05_21-00-00](other/docs/更新日志_2026-11-05_21-00-00.md)
+ - [本版补丁](other/docs/patches/2026-11-05_20-49-35_更新补丁.patch)（基线 `fa9daa1`）
+ 
+-## 近期更新（2026-11-04 打包）
++## 近期更新（2026-11-04 16:27:33 打包）
+ 
+ > 安装包产物名带版本号与时间戳；修掉「安装包里夹带用户存档」的问题。
+ 
+ - [更新日志 2026-11-04_16-27-33](other/docs/更新日志_2026-11-04_16-27-33.md)
+ - [本版补丁](other/docs/patches/2026-11-04_16-27-33_更新补丁.patch)（基线 `d9ca59c`）
+ 
+-## 近期更新（2026-11-04 更新检查）
++## 近期更新（2026-11-04 02:00:15 更新检查）
+ 
+ > 启动时自动查 GitHub 上的新版本，有新版本就在标题栏弹一条可点击的通知，点开直达补丁页。
+ 
+ - [更新日志 2026-11-04_02-00-15](other/docs/更新日志_2026-11-04_02-00-15.md)
+ - [本版补丁](other/docs/patches/2026-11-04_02-00-15_更新补丁.patch)（基线 `8542abd`）
+ 
+-## 近期更新（2026-11-04）
++## 近期更新（2026-11-04 01:53:50）
+ 
+ > 文档与规则更新：新增「文件名带时分秒」命名规则，补上拆包体检脚本与报告。
+ > **不改运行时逻辑**，代码与 11-03 一致。
+@@ -80,7 +94,7 @@
+ - [更新日志 2026-11-04_01-53-50](other/docs/更新日志_2026-11-04_01-53-50.md)
+ - [本版补丁](other/docs/patches/2026-11-04_01-53-50_更新补丁.patch)（基线 `30bcc78`，只含文档与工具）
+ 
+-## 近期更新（2026-11-03）
++## 近期更新（2026-11-03 23:49:16）
+ 
+ 这一天分成两轮，**日志和补丁都是分开的**：
+ 
+@@ -356,8 +370,10 @@ WA2-Kazusa-Bot/
+ 
+ | 文档 | 内容 |
+ |---|---|
+-| [other/docs/更新日志_2026-11-06_00-10-47.md](other/docs/更新日志_2026-11-06_00-10-47.md) | **最新**：选择分支（原版素材 1:1 + 开着选项存档）、一键更新、素材提示节流 |
+-| [other/docs/patches/2026-11-06_00-15-00_更新补丁.patch](other/docs/patches/2026-11-06_00-15-00_更新补丁.patch) | **最新补丁**（基线 `a234411`） |
++| [other/docs/更新日志_2026-11-06_11-13-45.md](other/docs/更新日志_2026-11-06_11-13-45.md) | **最新**：修画面闪（字模缓存不再算素材）/ 场景·立绘·BGM 自动切换 / 分支数量设置生效 |
++| [other/docs/patches/2026-11-06_11-14-00_更新补丁.patch](other/docs/patches/2026-11-06_11-14-00_更新补丁.patch) | **最新补丁**（基线 `e871081`） |
++| [other/docs/更新日志_2026-11-06_00-10-47.md](other/docs/更新日志_2026-11-06_00-10-47.md) | 选择分支（原版素材 1:1 + 开着选项存档）、一键更新、素材提示节流 |
++| [other/docs/patches/2026-11-06_00-15-00_更新补丁.patch](other/docs/patches/2026-11-06_00-15-00_更新补丁.patch) | 补丁（基线 `a234411`） |
+ | [other/docs/更新日志_2026-11-05_23-16-17.md](other/docs/更新日志_2026-11-05_23-16-17.md) | 选择分支 UI 重做全过程：0.625 等比、加法烘图、黑边/框线的三个真因 |
+ | [other/docs/更新日志_2026-11-05_23-48-35.md](other/docs/更新日志_2026-11-05_23-48-35.md) | 选择分支：开着选项存档、读档原样摆回（`meta.choice`） |
+ | [other/docs/更新日志_2026-11-04_16-27-33.md](other/docs/更新日志_2026-11-04_16-27-33.md) | 安装包命名（版本+时间戳）、排除存档 |
+diff --git a/other/docs/交接速览.md b/other/docs/交接速览.md
+index dcc8868..579038e 100644
+--- a/other/docs/交接速览.md
++++ b/other/docs/交接速览.md
+@@ -1,173 +1,178 @@
+-# 交接速览（1 页）
+-
+-> 新会话先读这一页就够开工；要动代码按 [`架构/00_总览.md`](架构/00_总览.md) 找那一层，只读那一份。
+-> 细节去 `新对话交接说明.md`（按节读，`tools/digest.py --outline` 看目录）。
+-
+-## 一句话
+-
+-WA2 冬马和纱桌面聊天程序：Python 本地 HTTP + WebView2 无边框窗口，galgame 界面；
+-对话走云端 LLM，语音走本地 GPT-SoVITS。角色 = `characters/<角色>/`，一个文件夹自包含。
+-
+-## 现在什么状态
+-
+-能正常玩。**本版 `2026-11-06.1` 已推 GitHub**（远端 `master` = 本地；上一版远端是 `a234411` / `2026-11-05.2`）。
+-用户没让「更新 GitHub」时**只准本地提交**：不 push、不改版本号、不生成补丁；`characters/` 是本地数据，不入库。
+-
+-> **选择分支 UI 已重做**（2026-11-05 23:16，同日 22:52 叫停之后）：条 **490×45**（784×72 × 0.625，
+-> 上一版误写成 490×22）、行距 **52**、上沿 **148**、左端 154.7；悬停是**段1 加段2**
+-> （`plus-lighter`），不是换贴图；编号和正文用同一张补丁字模。
+-> 走之前先读 [`更新日志_2026-11-05_23-16-17.md`](更新日志_2026-11-05_23-16-17.md)，
+-> 几何读数全在 `choice.css` 顶部注释里。旧的
+-> [`交接_2026-11-05_22-52-00_选择分支.md`](交接_2026-11-05_22-52-00_选择分支.md) 只当历史看，
+-> 里面「用户已叫停 / 条高 22 / 行距 29」的说法已被推翻。
+-
+-做完的（P0 / P1 清空，P2 进行中）：多角色与角色包 · 立绘中文命名 · 记忆书界面 · 密钥环境变量 ·
+-切角色过渡 · **#5 存档 schema + 崩溃恢复** · **#6 缓存守卫 + 素材自检 + 缺图占位** ·
+-**#2 演出状态机**（`ui/wt-perf.js`）· **#7 交叉淡化 + 响度归一 + 音频设备切换** ·
+-**#13 调试面板指标**（`diag.py`）· **#12 参数表**（`params.py` / `参数与指标.md`）·
+-**#11 测试三类化**（`cases.md` + `run_smoke.py`）· **#15 日志诊断包**（`logpack.py`）·
+-**#14 像素测量 + 性能采样**（`measure_ui.py` / `perf.py`）· **#3 常驻记忆书两段化**（`standing.py`）·
+-**#19 演出 / 切片配置**（`perfcfg.py` + `wt-perfcfg.js`，每角色两个 json）·
+-**#20 素材向导 + 热重载**（`hotreload.py` + `wt-hotreload.js` + `asset-wizard.js`）·
+-**#17 数据清理入口**（`api_cleanup.py` + `cleanup.js`：清缓存 / 导出 zip / 删角色＝挪进 `_deleted/`）。
+-
+-另外这一轮做了三件「不算路线图」的维护：**剧情检索召回修复**（df 去重 + 意图门槛 + 索引标题行）、
+-**回复标签宽容**（拼错的 `</emomotion>` 不再漏进台词、修 `ja_clean` 换行 bug）、
+-**角色内容按原文整理**（人设跨路线提炼 / 记忆书 / 世界书 31 条含 5 条结局索引——本地数据，不入库）。
+-之后又修了**全屏 / 最大化点了没反应**（拆 mixin 后窗口接口拿到空壳 `main` 模块，见坑二；
+-守卫 `test_window_api.py`）。
+-
+-## 目录（只记要紧的）
+-
+-```
+-program/src/          源码（改这里）
+-program/build_env/    运行时（run_dev.py 从 src 同步，别手改）；角色数据在 build_env/characters/
+-program/res/assets/   素材（不入库）
+-program/tools/        工具与自测（run_smoke.py 一键跑）
+-program/tests/        用例清单 cases.md（核心 / 边界 / 降级）
+-program/logs/         日志 / run_state.json / crash_*.log / asset_report.json / perf-*.csv
+-other/docs/           文档（日志、踩坑、路线图）
+-```
+-
+-## 命令
+-
+-```powershell
+-program\启动程序.bat                                   # 启动
+-python program\tools\run_smoke.py                     # 全量自测（31 份 + 静态 + 在线冒烟，约 8 秒）
+-python program\tools\run_dev.py --sync-only            # 只同步到 build_env
+-python program\tools\arch_map.py --write               # 改完代码更新映射表（--check 验证）
+-python program\tools\param_table.py --check            # 参数表是否过期（改常量后 --write）
+-python program\tools\measure_ui.py compare a.jpg b.png --asset 1896x288   # 像素：偏移 / 宽高比
+-python program\tools\ui_probe.py --url <url> --js a.js --check b.js --wait 1500
+-```
+-
+-自测清单不在这里抄：`program/tests/cases.md`（K 核心 / B 边界 / D 降级），或 `run_smoke.py --list`。
+-新日志/补丁用 `名称_YYYY-MM-DD_HH-MM-SS.后缀`（已发布的不改名）。
+-
+-## 几个必知的坑
+-
+-1. 只起后端必须带 `WA2_ASSETS_DIR`，否则 `/game/assets/**` 404；在线冒烟里用 `WA2_NO_MODELS=1` 避免拉起 GPT-SoVITS。
+-2. 前端改了要 **bump `index.html` 的 `?v=`**，否则 WebView2 用旧缓存。
+-3. 探针 `--js/--check` 收**文件路径**，脚本要包成 IIFE（顶层 `return` 会报错）；不要输出截图，看 JSON 数字。
+-   **正文被字模渲染器换成了 `<img>`，读 `textContent` 会是空的——要读 `data-uitxt`。**
+-4. `run_state.json` 是「本次运行」标记：强杀会留下，下次启动提示「上次没有正常退出」——设计行为。
+-5. 演出过渡开关是 `prefs.json` 的 `xfade` / `xfadeMs`（200~300），菜单「环境设置 → 演出过渡」。
+-6. 改「调了会变行为」的数字先看 `other/docs/参数与指标.md`；改完 `param_table.py --write` + `test_params.py`。
+-7. 提交前跑 `run_smoke.py`：31 份自测（35 项），前端拆分告警基线钉在 91，涨了就是这次带进来的。
+-   **窗口全屏 / 最大化点了没反应**先看 `tools/test_window_api.py`：接口回 200 但 body 里是
+-   `module 'main' has no attribute '_WINDOW'` 就是主模块名拿错了（坑二）。
+-8. 日志留 14 天（`WA2_LOG_KEEP_DAYS`），`/api/text` `/api/tts` 查询串不落日志；分享用「帮助 → 导出诊断包（默认不含对话）」。
+-9. 性能采样写 `logs/perf-<日期>.csv`（每 20 轮，`WA2_PERF=0` 关）；像素对齐差 >1% 退出码 1。
+-10. `memory/standing.json`（常驻记忆书两段化）**本地数据**：删掉即回落到 `memory/*.txt`，
+-    改过 txt 想重新抄一遍也是删掉再等关系阶段变化（阶段 1 不生成，失败冷却 30 分钟）。
+-11. 演出 / 切片可配：`performance.json`（`fade_ms` / 情绪→表情 / 场景→衣服）和
+-    `persona_slices.json`（原作检索与世界书预算）都**只写覆盖值**，缺项用代码默认；
+-    写错只弹一次 toast + WARN，不会崩。前端 `WA2.perfCfg` 启动和切角色各拉一次 `/api/performance`。
+-12. 素材热重载：素材 / 角色文件夹一变，约 7 秒内画面自己换新（勾子失败保留旧图并记 WARN）；
+-    `WA2_HOTRELOAD=0` 关掉。缺什么看菜单「环境设置 → 素材检查」（向导只提示，不替你导入）。
+-13. **临时文件一律放 `program/work_scratch/`**（已 `.gitignore`）：`run_smoke.py` 会把子进程的
+-    `TEMP/TMP` 指到 `work_scratch/tmp`，跑完自己收走。别再用系统 `%TEMP%`——用户明确说过不想在
+-    C 盘看到这些（之前堆了 430 MB）。手动跑单份自测时也要先 `$env:TEMP=<program>\work_scratch\tmp`。
+-14. 剧情检索（`story_rag`）**只在话里出现剧情锚点时触发**（`STORY_HINTS`：记得/以前/结局/学园祭/
+-    车祸/第二音乐室/毕业…）。闲聊不注入；要扩召回就加词，别把门槛整体调低（会把「今天好冷」也塞进剧本）。
+-    索引块带 `〔标题行〕`，重建后记得复制 `.gz` 到 `build_env/`（`run_dev` 只同步 `.py`）。
+-    **v3 索引**（`story_index_v3.json.gz`，8792 块）每块带 `period/route/tags`，
+-    `memory_context(period=, tags=)` 会加权并让同标签块优先占位；重建用
+-    `python other/dev/work/build_index_v3.py`，同样要复制到 `build_env/`。
+-    说话风格参考 `prompt/style.txt` 由 `other/dev/work/extract_style.py` 生成，**别手改**。
+-15. 角色内容分三层，**同一件事只放一层**：提示词（每轮必带，身份/说话/规则）→ 记忆书（每轮必带，
+-    ≤1500 字，她记得的事件）→ 世界书（关键词触发，≤4 条/1200 字，资料卡）。
+-    跨路线提炼的人设放提示词；各条结局线做成世界书条目（`结局线·…`），内容开头写明
+-    「资料、不是现在」，被问起时用「那条线里」的口气——别让某个结局变成正在发生的事。
+-16. 模型偶尔把标签拼错（`</emomotion>`）；`text_parse.split_emotion` 已把闭标签放宽到 `</?emo…>`。
+-    再遇到漏字先进这个文件看正则，别急着重写解析。
+-17. **情绪标签要当「不可信输入」处理**：模型经常整句不写 `<emotion>`（实测 5 句里 2~4 句没有），
+-    而且改词表顺序只会把偏置挪到另一个词（把毒舌排第一，平常句就被标成毒舌）。
+-    现在 `split_emotion` 会在缺标签时按台词形态猜，来源记在 `LAST_EMO_SOURCE`
+-    （`tag/inferred/default/override`），`api_chat` 打一行「情绪标签推断/缺失」。
+-    **别再把它改回「没标签就 calm」**——那会让参考音频和立绘表情一起瘫在 calm 上。
+-18. **语音名字读错先看 `characters/<角色>/pronunciation.json` 在不在**：读音替换只读这份数据，
+-    代码里不写死任何角色名。角色包导出/导入**不带**它，重整过角色文件夹就会丢（2026-11-05 就是这么丢的）。
+-    映射表按 mtime 缓存，补完不用重启。
+-19. **台词是双语输出，别再单独去翻**：模型一次给
+-    `<emotion>…</emotion><action>（中文动作）</action><ja>日语</ja><zh>中文</zh>`，
+-    `split_bilingual()` 拆开 —— ja 给 TTS（`speak_ja`）、zh 给字幕。
+-    只有模型**没给 `<zh>` 或不像中文**时才走 `translate.py` 兜底（云端 → 本地 Hy-MT2）。
+-    谷歌免费端点实测 **429**，别浪费时间接；云端翻译必须 `reasoning_effort=none`
+-    （否则 `max_tokens` 会被 reasoning 吃光、`content` 为空）。
+-    人名靠角色文件夹的 `translation_glossary.json`（`{"to_zh": {"春树": "春希"}}`，长键优先）纠正。
+-20. **回想重播慢 ≠ 缓存坏了**：TTS 缓存 key 是 `text|lang|emotion|参考音频签名`
+-    （文件在 `program/cache/tts`，启动时清空是设计行为）。重播必须用**这句当时的情绪**
+-    （`row.dataset.emo` / `history[i].emo`），以前写死 `neutral`，于是每次都 miss、重新合成 2~5 秒。
+-    排查看日志那行 `TTS 合成: N 字节, 耗时 0.0s`——0.0s 才是命中。
+-21. **「字幕长、语音短」先分清是合成截断还是文本本身长度差**：合成端 `cut5` 不截断
+-    （实测 1 句 1.56s / 2 句 3.24s / 3 句 6.70s；`cut0` 才会截断，别改）。
+-    `text_parse.ja_clean()` 以前**无条件按第一个句号取第一句**、还会从句中逗号砍，
+-    两句台词会被砍成半句——已修。旧版字幕是另一次翻译的产物，字数本来就对不上；
+-    现在字幕是模型自己写的 `<zh>`。
+-22. **「素材已更新」狂弹不是推送，是轮询把运行时数据当成了素材**：后端 2 秒扫一次
+-    assets + 当前角色目录算签名，前端 4 秒轮询 `gen` 变了就弹。角色目录里的
+-    `sessions/`（自动存档/缩略图）和 `memory/standing.json` 聊天时一直在变，于是几秒弹一次。
+-    现在 `hotreload.SKIP_DIRS`（sessions/cache/_deleted/logs/…）与 `SKIP_FILES`（standing.json）
+-    不参与签名，前端提示也节流到 15 秒一次；放真素材（portrait/voice）仍然立刻生效。
+-
+-## 待办 / 下一步
+-
+-- **下一步：#18 桌面行为**（P2；`#17 数据清理入口` 已完成，`#1 缓存分层` 用户已决定跳过）
+-- 之后按路线图 `#21~#24`
+-- 界面真机眼验还没做（清理面板只过了自测 + 真机 HTTP 接口，没点过按钮）；
+-  删角色只挪不真删，但用户还没实际删过一次，第一次删完记得看一眼 `characters/_deleted/`
+-- 立绘里 128 张叫「其他N」的还没表情名；时期补丁 `persona_ic/cc/coda.txt` 还没内容
+-- 角色内容：用户 2026-11-05 20:00 先按《冬马和纱.txt》重写了记忆书，随后提示词 / 阶段 /
+-  世界书也按同一标准重写（引文全部回查 txt）。**以后再改这三层，先按记忆书那个口径：
+-  只写 txt 里有的事实，引文必须能在原文里找到，别写解说和比喻。**
+-
+-## 省钱的办法
+-
+-| 做法 | 省什么 |
+-|---|---|
+-| 不输出截图，只看探针 JSON | 一张截图上千 token，最贵的一项 |
+-| 新会话只喂这一页 + 本次任务 | 省掉 1 万+ 历史与长文档 |
+-| 按 `架构/00_总览.md` 只读那一层 | 省掉整份读代码 |
+-| diff 先 `--stat`；机械活换便宜模型 | 省一大截 |
+-
+-## 最近提交
+-
+-本版 `2026-11-06.1` 已推：远端 `master` = 本版（2026-11-06）→ **本地未推 0 个**。
+-本版补丁：`other/docs/patches/2026-11-06_00-15-00_更新补丁.patch`（基线 `a234411`）。
+-本版要点见 `更新日志_2026-11-06_00-10-47.md`：**选择分支**（原版素材 1:1：条 490×45 /
+-行距 52 / 悬停换图 / 雪花与白牌用原版图；开着选项也能存档、读档原样摆回）·
+-一键更新（标题栏点一下取最新整份代码）· 素材提示节流。自测 `run_smoke.py` 38 项全绿。
+-上上版（`2026-11-05.2`，远端 `a234411`）：演出状态机 · 剧情检索 v3 · 日中双语 ·
+-数据清理面板 · 参数与指标表 · 日志诊断包；另修全屏失效、回想重播慢、字幕两句而语音半句、
+-拼错闭标签漏进台词。补丁 `2026-11-05_20-49-35_更新补丁.patch`（基线 `fa9daa1`，127 个文件）。
+-
+-上一段历史（本版里较早的一批，已并入）：`58a50f8` #5 前半 · `90d7dc5` #5 后半 · `806e5ab` 文档 · `71ff1df` #6 ·
+-`ed28469` #2 · `66b04b8` 文档 · `8e4ebd7` #7 · `2fb0dfc` #13 · `5342010` #12 · `8fae0bd` #11 ·
+-`e34d6a1` #15 · `ea68dc5` #14 · `2780b3d` #3 · `3766e26` #19 · `e88aafa` #20 ·
+-`33a0b6f` 临时目录 · `3ec1f88` 日志路径 · `5d60466` 剧情检索 · `6907b91` 标签解析 · `92f1c1e` 文档交接 ·
+-`de6b70e` 修全屏失效 · `63445b3` 文档 · `2dd787d` #17 数据清理入口 · `74ea747` 文档 ·
+-`d51f4f7` 自测 #17 进在线冒烟 · `f69f410` 文档 · `15ab725` 语音情绪 + 读音 · `文档交接` ·
+-`d2dd452` 翻译层
+-
+-
++# 交接速览（1 页）
++
++> 新会话先读这一页就够开工；要动代码按 [`架构/00_总览.md`](架构/00_总览.md) 找那一层，只读那一份。
++> 细节去 `新对话交接说明.md`（按节读，`tools/digest.py --outline` 看目录）。
++
++## 一句话
++
++WA2 冬马和纱桌面聊天程序：Python 本地 HTTP + WebView2 无边框窗口，galgame 界面；
++对话走云端 LLM，语音走本地 GPT-SoVITS。角色 = `characters/<角色>/`，一个文件夹自包含。
++
++## 现在什么状态
++
++能正常玩。**本版 `2026-11-06.2` 已推 GitHub**（远端 `master` = 本版；上一版是 `2026-11-06.1`，其前是 `2026-11-05.2`）。
++用户没让「更新 GitHub」时**只准本地提交**：不 push、不改版本号、不生成补丁；`characters/` 是本地数据，不入库。
++
++> **选择分支 UI 已重做**（2026-11-05 23:16，同日 22:52 叫停之后）：条 **490×45**（784×72 × 0.625，
++> 上一版误写成 490×22）、行距 **52**、上沿 **148**、左端 154.7；悬停是**段1 加段2**
++> （`plus-lighter`），不是换贴图；编号和正文用同一张补丁字模。
++> 走之前先读 [`更新日志_2026-11-05_23-16-17.md`](更新日志_2026-11-05_23-16-17.md)，
++> 几何读数全在 `choice.css` 顶部注释里。旧的
++> [`交接_2026-11-05_22-52-00_选择分支.md`](交接_2026-11-05_22-52-00_选择分支.md) 只当历史看，
++> 里面「用户已叫停 / 条高 22 / 行距 29」的说法已被推翻。
++
++做完的（P0 / P1 清空，P2 进行中）：多角色与角色包 · 立绘中文命名 · 记忆书界面 · 密钥环境变量 ·
++切角色过渡 · **#5 存档 schema + 崩溃恢复** · **#6 缓存守卫 + 素材自检 + 缺图占位** ·
++**#2 演出状态机**（`ui/wt-perf.js`）· **#7 交叉淡化 + 响度归一 + 音频设备切换** ·
++**#13 调试面板指标**（`diag.py`）· **#12 参数表**（`params.py` / `参数与指标.md`）·
++**#11 测试三类化**（`cases.md` + `run_smoke.py`）· **#15 日志诊断包**（`logpack.py`）·
++**#14 像素测量 + 性能采样**（`measure_ui.py` / `perf.py`）· **#3 常驻记忆书两段化**（`standing.py`）·
++**#19 演出 / 切片配置**（`perfcfg.py` + `wt-perfcfg.js`，每角色两个 json）·
++**#20 素材向导 + 热重载**（`hotreload.py` + `wt-hotreload.js` + `asset-wizard.js`）·
++**#17 数据清理入口**（`api_cleanup.py` + `cleanup.js`：清缓存 / 导出 zip / 删角色＝挪进 `_deleted/`）。
++
++另外这一轮做了三件「不算路线图」的维护：**剧情检索召回修复**（df 去重 + 意图门槛 + 索引标题行）、
++**回复标签宽容**（拼错的 `</emomotion>` 不再漏进台词、修 `ja_clean` 换行 bug）、
++**角色内容按原文整理**（人设跨路线提炼 / 记忆书 / 世界书 31 条含 5 条结局索引——本地数据，不入库）。
++之后又修了**全屏 / 最大化点了没反应**（拆 mixin 后窗口接口拿到空壳 `main` 模块，见坑二；
++守卫 `test_window_api.py`）。
++
++## 目录（只记要紧的）
++
++```
++program/src/          源码（改这里）
++program/build_env/    运行时（run_dev.py 从 src 同步，别手改）；角色数据在 build_env/characters/
++program/res/assets/   素材（不入库）
++program/tools/        工具与自测（run_smoke.py 一键跑）
++program/tests/        用例清单 cases.md（核心 / 边界 / 降级）
++program/logs/         日志 / run_state.json / crash_*.log / asset_report.json / perf-*.csv
++other/docs/           文档（日志、踩坑、路线图）
++```
++
++## 命令
++
++```powershell
++program\启动程序.bat                                   # 启动
++python program\tools\run_smoke.py                     # 全量自测（31 份 + 静态 + 在线冒烟，约 8 秒）
++python program\tools\run_dev.py --sync-only            # 只同步到 build_env
++python program\tools\arch_map.py --write               # 改完代码更新映射表（--check 验证）
++python program\tools\param_table.py --check            # 参数表是否过期（改常量后 --write）
++python program\tools\measure_ui.py compare a.jpg b.png --asset 1896x288   # 像素：偏移 / 宽高比
++python program\tools\ui_probe.py --url <url> --js a.js --check b.js --wait 1500
++```
++
++自测清单不在这里抄：`program/tests/cases.md`（K 核心 / B 边界 / D 降级），或 `run_smoke.py --list`。
++新日志/补丁用 `名称_YYYY-MM-DD_HH-MM-SS.后缀`（已发布的不改名）。
++
++## 几个必知的坑
++
++1. 只起后端必须带 `WA2_ASSETS_DIR`，否则 `/game/assets/**` 404；在线冒烟里用 `WA2_NO_MODELS=1` 避免拉起 GPT-SoVITS。
++2. 前端改了要 **bump `index.html` 的 `?v=`**，否则 WebView2 用旧缓存。
++3. 探针 `--js/--check` 收**文件路径**，脚本要包成 IIFE（顶层 `return` 会报错）；不要输出截图，看 JSON 数字。
++   **正文被字模渲染器换成了 `<img>`，读 `textContent` 会是空的——要读 `data-uitxt`。**
++4. `run_state.json` 是「本次运行」标记：强杀会留下，下次启动提示「上次没有正常退出」——设计行为。
++5. 演出过渡开关是 `prefs.json` 的 `xfade` / `xfadeMs`（200~300），菜单「环境设置 → 演出过渡」。
++6. 改「调了会变行为」的数字先看 `other/docs/参数与指标.md`；改完 `param_table.py --write` + `test_params.py`。
++7. 提交前跑 `run_smoke.py`：31 份自测（35 项），前端拆分告警基线钉在 91，涨了就是这次带进来的。
++   **窗口全屏 / 最大化点了没反应**先看 `tools/test_window_api.py`：接口回 200 但 body 里是
++   `module 'main' has no attribute '_WINDOW'` 就是主模块名拿错了（坑二）。
++8. 日志留 14 天（`WA2_LOG_KEEP_DAYS`），`/api/text` `/api/tts` 查询串不落日志；分享用「帮助 → 导出诊断包（默认不含对话）」。
++9. 性能采样写 `logs/perf-<日期>.csv`（每 20 轮，`WA2_PERF=0` 关）；像素对齐差 >1% 退出码 1。
++10. `memory/standing.json`（常驻记忆书两段化）**本地数据**：删掉即回落到 `memory/*.txt`，
++    改过 txt 想重新抄一遍也是删掉再等关系阶段变化（阶段 1 不生成，失败冷却 30 分钟）。
++11. 演出 / 切片可配：`performance.json`（`fade_ms` / 情绪→表情 / 场景→衣服）和
++    `persona_slices.json`（原作检索与世界书预算）都**只写覆盖值**，缺项用代码默认；
++    写错只弹一次 toast + WARN，不会崩。前端 `WA2.perfCfg` 启动和切角色各拉一次 `/api/performance`。
++12. 素材热重载：素材 / 角色文件夹一变，约 7 秒内画面自己换新（勾子失败保留旧图并记 WARN）；
++    `WA2_HOTRELOAD=0` 关掉。缺什么看菜单「环境设置 → 素材检查」（向导只提示，不替你导入）。
++13. **临时文件一律放 `program/work_scratch/`**（已 `.gitignore`）：`run_smoke.py` 会把子进程的
++    `TEMP/TMP` 指到 `work_scratch/tmp`，跑完自己收走。别再用系统 `%TEMP%`——用户明确说过不想在
++    C 盘看到这些（之前堆了 430 MB）。手动跑单份自测时也要先 `$env:TEMP=<program>\work_scratch\tmp`。
++14. 剧情检索（`story_rag`）**只在话里出现剧情锚点时触发**（`STORY_HINTS`：记得/以前/结局/学园祭/
++    车祸/第二音乐室/毕业…）。闲聊不注入；要扩召回就加词，别把门槛整体调低（会把「今天好冷」也塞进剧本）。
++    索引块带 `〔标题行〕`，重建后记得复制 `.gz` 到 `build_env/`（`run_dev` 只同步 `.py`）。
++    **v3 索引**（`story_index_v3.json.gz`，8792 块）每块带 `period/route/tags`，
++    `memory_context(period=, tags=)` 会加权并让同标签块优先占位；重建用
++    `python other/dev/work/build_index_v3.py`，同样要复制到 `build_env/`。
++    说话风格参考 `prompt/style.txt` 由 `other/dev/work/extract_style.py` 生成，**别手改**。
++15. 角色内容分三层，**同一件事只放一层**：提示词（每轮必带，身份/说话/规则）→ 记忆书（每轮必带，
++    ≤1500 字，她记得的事件）→ 世界书（关键词触发，≤4 条/1200 字，资料卡）。
++    跨路线提炼的人设放提示词；各条结局线做成世界书条目（`结局线·…`），内容开头写明
++    「资料、不是现在」，被问起时用「那条线里」的口气——别让某个结局变成正在发生的事。
++16. 模型偶尔把标签拼错（`</emomotion>`）；`text_parse.split_emotion` 已把闭标签放宽到 `</?emo…>`。
++    再遇到漏字先进这个文件看正则，别急着重写解析。
++17. **情绪标签要当「不可信输入」处理**：模型经常整句不写 `<emotion>`（实测 5 句里 2~4 句没有），
++    而且改词表顺序只会把偏置挪到另一个词（把毒舌排第一，平常句就被标成毒舌）。
++    现在 `split_emotion` 会在缺标签时按台词形态猜，来源记在 `LAST_EMO_SOURCE`
++    （`tag/inferred/default/override`），`api_chat` 打一行「情绪标签推断/缺失」。
++    **别再把它改回「没标签就 calm」**——那会让参考音频和立绘表情一起瘫在 calm 上。
++18. **语音名字读错先看 `characters/<角色>/pronunciation.json` 在不在**：读音替换只读这份数据，
++    代码里不写死任何角色名。角色包导出/导入**不带**它，重整过角色文件夹就会丢（2026-11-05 就是这么丢的）。
++    映射表按 mtime 缓存，补完不用重启。
++19. **台词是双语输出，别再单独去翻**：模型一次给
++    `<emotion>…</emotion><action>（中文动作）</action><ja>日语</ja><zh>中文</zh>`，
++    `split_bilingual()` 拆开 —— ja 给 TTS（`speak_ja`）、zh 给字幕。
++    只有模型**没给 `<zh>` 或不像中文**时才走 `translate.py` 兜底（云端 → 本地 Hy-MT2）。
++    谷歌免费端点实测 **429**，别浪费时间接；云端翻译必须 `reasoning_effort=none`
++    （否则 `max_tokens` 会被 reasoning 吃光、`content` 为空）。
++    人名靠角色文件夹的 `translation_glossary.json`（`{"to_zh": {"春树": "春希"}}`，长键优先）纠正。
++20. **回想重播慢 ≠ 缓存坏了**：TTS 缓存 key 是 `text|lang|emotion|参考音频签名`
++    （文件在 `program/cache/tts`，启动时清空是设计行为）。重播必须用**这句当时的情绪**
++    （`row.dataset.emo` / `history[i].emo`），以前写死 `neutral`，于是每次都 miss、重新合成 2~5 秒。
++    排查看日志那行 `TTS 合成: N 字节, 耗时 0.0s`——0.0s 才是命中。
++21. **「字幕长、语音短」先分清是合成截断还是文本本身长度差**：合成端 `cut5` 不截断
++    （实测 1 句 1.56s / 2 句 3.24s / 3 句 6.70s；`cut0` 才会截断，别改）。
++    `text_parse.ja_clean()` 以前**无条件按第一个句号取第一句**、还会从句中逗号砍，
++    两句台词会被砍成半句——已修。旧版字幕是另一次翻译的产物，字数本来就对不上；
++    现在字幕是模型自己写的 `<zh>`。
++22. **「素材已更新」狂弹不是推送，是轮询把运行时数据当成了素材**：后端 2 秒扫一次
++    assets + 当前角色目录算签名，前端 4 秒轮询 `gen` 变了就弹。角色目录里的
++    `sessions/`（自动存档/缩略图）和 `memory/standing.json` 聊天时一直在变，于是几秒弹一次。
++    现在 `hotreload.SKIP_DIRS`（sessions/cache/_deleted/logs/…）与 `SKIP_FILES`（standing.json）
++    不参与签名，前端提示也节流到 15 秒一次；放真素材（portrait/voice）仍然立刻生效。
++
++## 待办 / 下一步
++
++- **下一步：#18 桌面行为**（P2；`#17 数据清理入口` 已完成，`#1 缓存分层` 用户已决定跳过）
++- 之后按路线图 `#21~#24`
++- 界面真机眼验还没做（清理面板只过了自测 + 真机 HTTP 接口，没点过按钮）；
++  删角色只挪不真删，但用户还没实际删过一次，第一次删完记得看一眼 `characters/_deleted/`
++- 立绘里 128 张叫「其他N」的还没表情名；时期补丁 `persona_ic/cc/coda.txt` 还没内容
++- 角色内容：用户 2026-11-05 20:00 先按《冬马和纱.txt》重写了记忆书，随后提示词 / 阶段 /
++  世界书也按同一标准重写（引文全部回查 txt）。**以后再改这三层，先按记忆书那个口径：
++  只写 txt 里有的事实，引文必须能在原文里找到，别写解说和比喻。**
++
++## 省钱的办法
++
++| 做法 | 省什么 |
++|---|---|
++| 不输出截图，只看探针 JSON | 一张截图上千 token，最贵的一项 |
++| 新会话只喂这一页 + 本次任务 | 省掉 1 万+ 历史与长文档 |
++| 按 `架构/00_总览.md` 只读那一层 | 省掉整份读代码 |
++| diff 先 `--stat`；机械活换便宜模型 | 省一大截 |
++
++## 最近提交
++
++本版 `2026-11-06.2` 已推：远端 `master` = 本版（2026-11-06 11:13）→ **本地未推 0 个**。
++本版补丁：`other/docs/patches/2026-11-06_11-14-00_更新补丁.patch`（基线 `e871081`）。
++本版要点见 `更新日志_2026-11-06_11-13-45.md`：全是实机修复 —— **画面闪**（字模缓存
++`assets/ui/text_cache` 不再算素材变化）· **场景/立绘/BGM 自动切换**（演出标签提示云端本地都加；
++立绘索引没 `index.json` 时扫目录；情绪名中文别名表；BGM 判情喂中文侧）·
++**分支数量设置生效**（以前读不存在的 `WA2.prefs`）。自测 `run_smoke.py` **41 项**全绿。
++上一版（`2026-11-06.1`，远端 `e871081`）：**选择分支**（原版素材 1:1：条 490×45 /
++行距 52 / 悬停换图 / 雪花与白牌用原版图；开着选项也能存档、读档原样摆回）·
++一键更新（标题栏点一下取最新整份代码）· 素材提示节流。补丁
++`2026-11-06_00-15-00_更新补丁.patch`（基线 `a234411`）。
++上上版（`2026-11-05.2`，远端 `a234411`）：演出状态机 · 剧情检索 v3 · 日中双语 ·
++数据清理面板 · 参数与指标表 · 日志诊断包；另修全屏失效、回想重播慢、字幕两句而语音半句、
++拼错闭标签漏进台词。补丁 `2026-11-05_20-49-35_更新补丁.patch`（基线 `fa9daa1`，127 个文件）。
++
++上一段历史（本版里较早的一批，已并入）：`58a50f8` #5 前半 · `90d7dc5` #5 后半 · `806e5ab` 文档 · `71ff1df` #6 ·
++`ed28469` #2 · `66b04b8` 文档 · `8e4ebd7` #7 · `2fb0dfc` #13 · `5342010` #12 · `8fae0bd` #11 ·
++`e34d6a1` #15 · `ea68dc5` #14 · `2780b3d` #3 · `3766e26` #19 · `e88aafa` #20 ·
++`33a0b6f` 临时目录 · `3ec1f88` 日志路径 · `5d60466` 剧情检索 · `6907b91` 标签解析 · `92f1c1e` 文档交接 ·
++`de6b70e` 修全屏失效 · `63445b3` 文档 · `2dd787d` #17 数据清理入口 · `74ea747` 文档 ·
++`d51f4f7` 自测 #17 进在线冒烟 · `f69f410` 文档 · `15ab725` 语音情绪 + 读音 · `文档交接` ·
++`d2dd452` 翻译层
++
++
+diff --git a/other/docs/更新日志_2026-11-06_11-05-00.md b/other/docs/更新日志_2026-11-06_11-05-00.md
+new file mode 100644
+index 0000000..88b74df
+--- /dev/null
++++ b/other/docs/更新日志_2026-11-06_11-05-00.md
+@@ -0,0 +1,157 @@
++# 更新日志 · 2026-11-06 11:05 —— 修「背景闪」+「场景/立绘/BGM 不变」
++
++> 实机反馈（用户 2026-11-06 上午，跑的是本地模型 `kazusa14b-v7`）：
++> ① 对话界面背景不时闪烁；② 基本没有自动换过场景 CG、立绘和 BGM。
++> 四条根因全部在日志/接口里抓到了实证，逐条修。
++>
++> 追加（同一天 11:30）：③ 设置里把分支数量改成几，出来的都是 2 个 —— 见文末「六」。
++
++## 一、背景闪烁：程序自己写的字模缓存被当成了「素材变化」
++
++`hotreload.watch(ASSETS_DIR)` 盯的是整个素材目录，而字模缓存
++`assets/ui/text_cache/` **就在这个目录里**，且是程序自己每渲染一句没见过的台词就写一张 PNG。
++
++于是每来一句新台词 → 目录签名变了 → 2 秒后判定「素材变了」→ `gen+1` →
++前端 `wt-hotreload.apply()` 调 `__reapplyBg()`（还会重拉立绘索引）→ 背景交叉淡化重画一次
++→ **画面闪一下**。
++
++实证（`logs/app-20261106.log`，用户那一局）：
++
++```
++[10:23:52] 热重载：assets 变了（第 1 代）
++[10:24:00] ...（第 3 代）    ← 70 秒内触发 10 次
++[10:24:59] ...（第 10 代）
++```
++
++我自己手动请求 2 次 `/api/text`，也立刻多了 2 代：
++
++```
++请求前 text_cache 0 个文件 → 请求后 2 个 → 热重载第 1、2 代
++```
++
++**修**：`hotreload.SKIP_DIRS` 加上 `text_cache`（和 `sessions` / `cache` / `logs` 同理，
++都是运行时数据，不是用户放的素材）。修后复测：连写 3 张新字模，
++`/api/hotreload` 的 `gen` 一直 0（4 次轮询都没动）。
++
++## 二、场景 CG 不换：演出标签提示只在「有云端 key」时才会加
++
++`api_chat._chat` 里这段【场景】【服装】【情绪】【格式】提示，以前整个包在 `if cc:` 里
++（`cc = cloud_cfg()`，有云端 key 才为真）。用户跑的是**本地 Ollama 模型**，
++于是模型从来没被告知要输出 `<scene>`/`<outfit>`/`<emotion>`——
++后端 `split_scene` / `scene_cg.match` 再准也没东西可匹配。
++
++**修**：抽出 `api_chat.performance_hints(cc, outfit_hint)`：
++
++- 云端**和本地**都加【场景】【服装】【情绪】【格式】
++- 只有【语言】（只用日语）和【双语】（`<ja><zh>`）留给云端——本地小模型做不好双语，
++  硬要求反而写坏，中文由 `translate.py` 兜底
++
++## 三、立绘不变：角色包里没有 `portrait/index.json`，索引是空的
++
++角色目录实际长这样（14 套衣服，都是图片）：
++
++```
++characters/和纱/portrait/高中·常服/{认真,微笑,生气,冷淡,惊讶,其他,其他2}.png
++                        /高中·军装/...
++```
++
++**但没有 `index.json`**（老版本导入的角色包不写），`characters.sprite_index()`
++于是返回空 → 前端 `SPRITE_INDEX` 空 → `spritePath()` 每套衣服都查不到 →
++`return "assets/kaz_cold.png"` 永远同一张。
++
++实证：修前 `/api/character/sprite/index.json` 返回 `outfits: {}`；
++修后返回 **14 套**，每套几十个表情。
++
++**修**：`characters._scan_portrait_outfits()` —— 索引为空时照
++`portrait/<衣服>/<表情>.png` 现扫一份（不写文件，加了图下次自动生效）。
++写了 `index.json` 的仍以文件为准（那里有扫不出来的 code/label/variants）。
++
++顺带修了一个合并 bug：自带索引按编号、角色索引按中文名时，改名分支把
++**自带那套的表情映射整段丢了**（注释写着要叠加，代码读的是新 key 的位置）。
++`test_sprite_scan.py` 的第 3 组用例盯住了这条。
++
++## 四、表情永远同一张：情绪名跟素材对不上
++
++模型给的 `<emotion>` 是 `calm / soft / 毒舌 / 撒娇 / 哭腔 / 调侃吐槽 / 问句`，
++程序 `detectMood` 给的是 `angry/sad/warm/smile/cold`，
++而素材里的表情名是中文：`认真 / 微笑 / 生气 / 冷淡 / 惊讶 / 害羞 / 难过 / 其他`。
++`MOOD_TO_EMO` 里映射的是 `angry→"angry"` 这种英文名，素材里没有 → 退「认真」→
++**换情绪等于没换**。
++
++**修**：`wt-sprite.js` 加 `EMO_ALIAS`，按顺序逐个试（原名 → 角色覆盖表 →
++`MOOD_TO_EMO` → 别名），命中就用：
++
++| 给的 | 用素材里的 |
++|---|---|
++| `calm` / `问句` | 认真 |
++| `soft` / `warm` / `smile` / `撒娇` / `调侃吐槽` | 微笑 |
++| `毒舌` / `cold` | 冷淡 |
++| `angry` | 生气 |
++| `sad` / `哭腔` | 难过 |
++| `惊讶` / `shy` | 惊讶 / 害羞 |
++
++## 五、BGM 不变：`detectMood` 是全中文正则，却喂了日语原文
++
++`accumulateMood(reply)` 里的 `reply` 是**日语原句**，而 `detectMood()` 的关键词
++（滚/烦/早点睡/对不起…）全是中文，日语原文一个都不命中 → 永远返回 `calm` →
++累积氛围永远是 calm → `best !== currentBgmMood()` 恒假 → **BGM 一辈子不换**。
++（双语改造之前 `reply` 是中文译文，所以以前是好的。）
++
++**修**：`accumulateMood(replyZh || shown)`，有中文字幕就喂中文。
++切换门槛没动（0.65 衰减 + 连续两轮领先 2 分），避免单句抽风跳歌。
++
++## 六、分支数量设置不生效：读了不存在的 `WA2.prefs`
++
++用户反馈：设置里把「选择分支数量」改成 3/4/5，出来的永远是 **2 个**。
++
++根因很短：`wt-choices.js` 的 `prefsCount()` 读的是 `WA2.prefs.getPrefs()`，
++而**这个对象从来没有被定义过**——设置模块的真实入口是 `window.App.getPrefs/setPref`
++（`config.js` 里只挂了 `window.App`）。读不到就一路回落到默认值 2，
++于是每次请求 `/api/choice` 都带 `count: 2`，后端再怎么按 count 生成也只有 2 个。
++
++`menubar.js` 的 `setChoiceCount()` 同样先试 `WA2.prefs.setPref`，落空后走自己拼的兜底
++（localStorage + POST /api/prefs）——所以**设置其实存进去了**（`prefs.json` 里
++`choiceCount: 5` 就是用户最后选的值），只是读的那一侧永远拿不到。
++
++**修**：
++- `prefsCount()` 改用 `window.App.getPrefs()`（和 `wt-audio.js` 读音量的写法一致）
++- `setChoiceCount()` 改用 `window.App.setPref("choiceCount", n)`（它自己会写 localStorage、
++  POST `/api/prefs`、派发 `app:prefs`）
++- 两处都保留兜底分支，`window.App` 没就绪时不抛异常，回落到 2
++
++**验证**（真机 `ui_probe`，把设置改成 4）：
++
++```
++prefsCount: 4      请求体里的 count: [4]      摆出来的行数: 4
++1.第一个选择 2.第二个选择 3.第三个选择 4.第四个选择
++```
++
++新增 `test_choices_prefs.js`（9 项，纯 Node + vm 把模块加载起来）盯着接线、
++夹取（1→2、9→5）、字符串、缺键、App 未就绪，以及「不要再回去读 `WA2.prefs`」。
++
++## 验证（一~四，2026-11-06 上午）
++
++真机 `ui_probe`（真 WebView2）一次跑完：
++
++| 验的东西 | 读数 |
++|---|---|
++| 立绘索引 | 14 套衣服，第一套 10 个表情 |
++| 6 种情绪 → 图片 | **5 张不同**（calm/问句 都→认真，正确） |
++| `毒舌` → 冷淡.png / `soft` → 微笑.png / `sad` → 其他2.png | ✅ |
++| DOM 真的换了 | 切毒舌后 `#sprite` = 冷淡.png，切微笑后 = 微笑.png |
++| 场景 id 解析 | `咖啡厅（白天）` → `assets/cg/咖啡厅（白天）.webp`；乱写的名字 → 回落课堂 |
++| BGM | calm →（1 轮不动）→ **sad** → **warm** |
++| 闪烁 | 写 3 张新字模后 `gen` 一直 0；探针全程 `assetsVer` 0 |
++
++`run_smoke.py` **40 项全绿**（新增 2 项）：
++- `test_chat_hints.py` 15 项（云端/本地各自的提示内容，防止再退回云端专属）
++- `test_sprite_scan.py` 13 项（扫目录兜底 + 文件优先 + 合并规则）
++- `test_hotreload.py` 30 → 33 项（字模缓存不触发、同目录真素材照样触发）
++
++## 要注意
++
++- **本地模型现在也会收到【场景】【服装】【情绪】**：小模型的输出会更啰嗦一点，
++  但这是演出能跑起来的前提。如果发现本地模型开始乱塞标签，
++  别删提示，改 `scene_cg.prompt_hint()` 的措辞。
++- 老角色包**不用重新导入**：索引是读的时候现扫的。
++- 字模缓存目录位置没动（仍在 `assets/ui/text_cache`），只是不再参与素材签名。
+diff --git a/other/docs/更新日志_2026-11-06_11-13-45.md b/other/docs/更新日志_2026-11-06_11-13-45.md
+new file mode 100644
+index 0000000..5dafd43
+--- /dev/null
++++ b/other/docs/更新日志_2026-11-06_11-13-45.md
+@@ -0,0 +1,112 @@
++# 更新日志 · 2026-11-06 11:13 —— 版本 `2026-11-06.2`
++
++> 覆盖范围：`e871081`（上一版 `2026-11-06.1`）→ 本版。共 3 个提交。
++> 全是实机反馈的修复：**画面闪 / 场景立绘 BGM 不变 / 分支数量不生效**。
++> 补丁：`other/docs/patches/2026-11-06_11-14-00_更新补丁.patch`（基线 `e871081`）
++
++## 一、背景不时闪烁：程序自己写的字模缓存被当成「素材变化」
++
++`hotreload` 盯的是整个素材目录，而**字模缓存 `assets/ui/text_cache/` 就在这个目录里**，
++它是程序每渲染一句没见过的台词就写一张 PNG 的地方。
++
++于是每来一句新台词 → 目录签名变了 → 2 秒后判定「素材变了」→ `gen+1` →
++前端 `wt-hotreload.apply()` 调 `__reapplyBg()`（还会重拉立绘索引）→ 背景交叉淡化重画一次
++→ **画面闪一下**。
++
++实证（用户那一局的 `logs/app-20261106.log`）：70 秒内触发了 **10 代**；
++我手动请求 2 次 `/api/text`，也立刻多出 2 代。
++
++**修**：`hotreload.SKIP_DIRS` 加 `text_cache`（和 `sessions`/`cache`/`logs` 同理：
++运行时数据，不是用户放的素材）。复测：连写 3 张新字模，`gen` 一直 0。
++
++## 二、场景 CG 不换：演出标签提示只在「有云端 key」时才加
++
++`api_chat._chat` 里那段【场景】【服装】【情绪】【格式】提示，以前整个包在 `if cc:` 里
++（`cc = cloud_cfg()`）。跑**本地模型**时模型从来没被告知要输出 `<scene>`/`<outfit>`/`<emotion>`，
++后端 `split_scene` / `scene_cg.match` 再准也没东西可匹配。
++
++**修**：抽出 `api_chat.performance_hints(cc, outfit_hint)`：云端**和本地**都加
++【场景】【服装】【情绪】【格式】；只有【语言】（只用日语）和【双语】（`<ja><zh>`）留给云端
++——本地小模型做不好双语，硬要求反而写坏，中文由 `translate.py` 兜底。
++
++## 三、立绘不变：角色包里没有 `portrait/index.json`
++
++角色目录有 14 套衣服、每套几十张表情图，**但没有 `index.json`**（老版本导入的角色包不写），
++`sprite_index()` 返回空 → 前端 `SPRITE_INDEX` 空 → `spritePath()` 每套衣服都查不到 →
++永远 `assets/kaz_cold.png`。
++
++**修**：`characters._scan_portrait_outfits()` —— 索引为空时照
++`portrait/<衣服>/<表情>.png` 现扫一份（不写文件，加图下次自动生效）。
++写了 `index.json` 的仍以文件为准。修前接口返回 `outfits: {}`，修后 **14 套**。
++
++顺带修一个合并 bug：自带索引按编号、角色索引按中文名时，改名分支把
++**自带那套的表情映射整段丢了**（注释写着要叠加，代码读的位置不对）。
++
++## 四、表情永远同一张：情绪名跟素材对不上
++
++模型给的 `<emotion>` 是 `calm / soft / 毒舌 / 撒娇 / 哭腔 / 调侃吐槽 / 问句`，
++程序 `detectMood` 给英文，而素材里的表情名是中文（认真/微笑/生气/冷淡/惊讶/害羞/难过/其他）。
++`MOOD_TO_EMO` 映射到的英文名在素材里不存在 → 一律退「认真」→ 换情绪等于没换。
++
++**修**：`wt-sprite.js` 加 `EMO_ALIAS` 按顺序逐个试（原名 → 角色覆盖表 → `MOOD_TO_EMO` → 别名）：
++
++| 给的 | 用素材里的 |
++|---|---|
++| `calm` / `问句` | 认真 |
++| `soft` / `warm` / `smile` / `撒娇` / `调侃吐槽` | 微笑 |
++| `毒舌` / `cold` | 冷淡 |
++| `angry` | 生气 |
++| `sad` / `哭腔` | 难过 |
++| `惊讶` / `shy` | 惊讶 / 害羞 |
++
++## 五、BGM 不变：`detectMood` 是全中文正则，却喂了日语原文
++
++`accumulateMood(reply)` 里的 `reply` 是**日语原句**，而 `detectMood()` 的关键词
++（滚/烦/早点睡/对不起…）全是中文，一个都不命中 → 永远 `calm` → 永远不换歌。
++（双语改造之前 `reply` 是中文译文，所以以前是好的。）
++
++**修**：`accumulateMood(replyZh || shown)`。切换门槛没动（0.65 衰减 + 连续两轮领先 2 分）。
++
++## 六、分支数量设置不生效：读了不存在的 `WA2.prefs`
++
++设置里把「选择分支数量」改成 3/4/5，出来的永远是 **2 个**。
++
++`wt-choices.js` 的 `prefsCount()` 读的是 `WA2.prefs.getPrefs()`，而**这个对象从来没定义过**
++——设置模块的真实入口是 `window.App.getPrefs/setPref`。读不到就回落默认 2，
++于是每次请求 `/api/choice` 都带 `count: 2`，后端按 count 生成也只有 2 个。
++
++`menubar.js` 的 `setChoiceCount()` 同样先试 `WA2.prefs.setPref`，落空后走自己拼的兜底
++（localStorage + POST `/api/prefs`）——所以**设置其实存进去了**（用户 `prefs.json` 里
++`choiceCount: 5` 就是他最后选的值），只是读的那侧永远拿不到。
++
++**修**：两处都改用 `window.App`（读 `getPrefs` / 写 `setPref`），保留兜底，App 未就绪回落 2。
++
++## 七、顺手清理（协作约定第 11 条）
++
++- 删掉 `wt-mood.js` 里没人用的 `MOOD_SPRITE`（立绘那边已改成 `EMO_ALIAS`，
++  留着两套情绪映射以后必然打架）
++
++## 验证
++
++真机 `ui_probe`（真 WebView2）：
++
++| 验的 | 读数 |
++|---|---|
++| 立绘索引 | 14 套衣服，第一套 10 个表情 |
++| 6 种情绪 → 图片 | **5 张不同**（calm/问句 都→认真，正确） |
++| DOM 真的换了 | 毒舌 → `冷淡.png`，微笑 → `微笑.png` |
++| 场景 id 解析 | `咖啡厅（白天）` → `assets/cg/咖啡厅（白天）.webp`；乱写的名字回落课堂 |
++| BGM | calm →（1 轮不动）→ **sad** → **warm** |
++| 闪烁 | 写 3 张新字模后 `gen` 一直 0；探针全程 `assetsVer` 0 |
++| 分支数量 | 设置改 4 → `prefsCount=4`、请求体 `count:[4]`、摆出 4 条 |
++
++`run_smoke.py` **41 项全绿**（38 → 41）：
++- `test_chat_hints.py` 15 项（云端/本地各自的提示内容）
++- `test_sprite_scan.py` 13 项（扫目录兜底 + 文件优先 + 合并规则）
++- `test_choices_prefs.js` 9 项（分支数量接线、夹取、兜底）
++- `test_hotreload.py` 30 → 33 项（字模缓存不触发、同目录真素材照样触发）
++
++## 升级
++
++`git pull` 即最新；老安装打补丁；一键更新点标题栏通知。**老角色包不用重新导入**
++（立绘索引是读的时候现扫的）。
+diff --git a/other/docs/架构/02_对话管线.md b/other/docs/架构/02_对话管线.md
+index f026c5f..11716db 100644
+--- a/other/docs/架构/02_对话管线.md
++++ b/other/docs/架构/02_对话管线.md
+@@ -57,6 +57,19 @@
+   翻译层（云端优先 → 本地 Hy-MT2 → 空串）。所以模型偶尔不听话也不影响玩。
+ - `<action>` 一般直接是中文；只有出现假名时才翻译。
+ 
++## 演出标签提示：云端和本地都要加（2026-11-06 修）
++
++`api_chat.performance_hints(cc, outfit_hint)` 单独提出来，因为它出过一次大错：
++整段（`【场景】`/`【服装】`/`【情绪】`/`【格式】`）以前挂在 `if cc:`（有云端 key）下面，
++**本地模型根本不知道要输出 `<scene>/<outfit>/<emotion>`**，于是场景 CG、立绘、BGM
++全都不会变（用户反馈「基本没自动换过」）。
++
++- `cc=False`（本地 Ollama）：也要加【场景】【服装】【情绪】【格式】
++- `cc=True`（云端）：再加【语言】（只用日语）+【双语】（`<ja><zh>`）
++- 本地不给双语：小模型做不好，硬要求反而写坏，中文由 `translate.py` 兜底
++
++自测 `tools/test_chat_hints.py`（15 项）盯着这条，别再退回云端专属。
++
+ ## 坑
+ 
+ - **别在 `_chat` 里塞和对话无关的接口**（历史包袱多，已经 79 KB）。
+diff --git a/other/docs/架构/05_前端界面.md b/other/docs/架构/05_前端界面.md
+index 2146bda..070a6e6 100644
+--- a/other/docs/架构/05_前端界面.md
++++ b/other/docs/架构/05_前端界面.md
+@@ -54,6 +54,24 @@
+ 2. **?v= 缓存**：改了 css/js 要 bump `index.html` 里对应的 `?v=`，否则 WebView2 可能用旧文件。
+ 3. **浮层开关统一走 `screens.js`**：右键/ESC 只关最上层，别在各自 js 里 `classList.remove("show")`。
+ 
++## 演出拉满（场景 / 立绘 / BGM）—— 2026-11-06 连修三条
++
++- **立绘情绪名要对得上素材**：模型 `<emotion>` 给的是
++  `calm / soft / 毒舌 / 撒娇 / 哭腔 / 调侃吐槽 / 问句`，`detectMood` 给的是英文
++  `angry/sad/warm/smile/calm`，而素材里的表情名是**中文**（认真/微笑/生气/冷淡/惊讶/害羞/难过/其他）。
++  `wt-sprite.js` 的 `EMO_ALIAS` 按顺序逐个试，命中就用；都命不中才退「认真」→ 默认。
++  以前只认英文名，查不到就一律退「认真」，表现是「表情永远不变」。
++- **角色包没有 `portrait/index.json` 时扫目录**：`characters._scan_portrait_outfits()`
++  按 `portrait/<衣服>/<表情>.png` 现扫一份索引。老角色包只有图片，索引一空
++  前端每套衣服都查不到 → 永远同一张默认图。写了 `index.json` 的仍以文件为准。
++- **BGM 按中文那侧判**：`detectMood` 的规则全是中文词，喂日语原文永远判成 calm
++  → BGM 一辈子不换。现在 `accumulateMood(replyZh || shown)`。
++  切换门槛：每轮衰减 0.65，连续两轮领先 2 分以上才换（不随单句抽风）。
++- **热重载只认「素材」**：`hotreload.SKIP_DIRS` 里的不参与签名。
++  **字模缓存（`assets/ui/text_cache`）必须在里面**——它是程序自己聊天时写进去的 PNG，
++  算进签名就每几秒「素材变了」→ 前端重画背景 → 画面闪（2026-11-06 实机问题：
++  日志里 70 秒内触发了 10 代）。
++
+ ## 演出过渡（`wt-fade.js`，`WA2.fade`）
+ 
+ - **背景**：`#bgLayer` 常驻当前图，`#bgLayer2` 只在过渡时淡入；过渡结束后把新图搬回 `#bgLayer`
+diff --git a/other/docs/架构/映射表.md b/other/docs/架构/映射表.md
+index 36b3735..52585e2 100644
+--- a/other/docs/架构/映射表.md
++++ b/other/docs/架构/映射表.md
+@@ -19,7 +19,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/menubar.js` | 607 | 顶部菜单：场景/服装/时期/窗口 | __applyTextScale, __lockScene, __nextOutfit, __nextScene, applyRes, closeAll | <script 全局> | — |
++| `src/ui/menubar.js` | 611 | 顶部菜单：场景/服装/时期/窗口 | __applyTextScale, __lockScene, __nextOutfit, __nextScene, applyRes, closeAll | <script 全局> | — |
+ 
+ ## 一级 · 前端/设置
+ 
+@@ -63,7 +63,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/wt-chat.js` | 111 | 发送与分析回复（WA2.chat） | __history, __lastEmo, __nextOutfit, __nextScene | <script 全局> | — |
++| `src/ui/wt-chat.js` | 113 | 发送与分析回复（WA2.chat） | __history, __lastEmo, __nextOutfit, __nextScene | <script 全局> | — |
+ 
+ ## 二级 · 前端/导航
+ 
+@@ -75,7 +75,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/wt-mood.js` | 77 | 情绪判断与 BGM 情绪（WA2.mood） | accumulateMood, currentBgmMood, detectMood | <script 全局> | — |
++| `src/ui/wt-mood.js` | 78 | 情绪判断与 BGM 情绪（WA2.mood） | accumulateMood, currentBgmMood, detectMood | <script 全局> | — |
+ 
+ ## 二级 · 前端/文字
+ 
+@@ -139,7 +139,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/wt-sprite.js` | 206 | 立绘/服装/表情（WA2.sprite） | __reloadSprites, __spriteSummary, __spriteWarned, cfgOverride, loadIndex, mergeMap | <script 全局> | — |
++| `src/ui/wt-sprite.js` | 246 | 立绘/服装/表情（WA2.sprite） | __reloadSprites, __spriteSummary, __spriteWarned, cfgOverride, loadIndex, mergeMap | <script 全局> | — |
+ 
+ ## 二级 · 前端/记忆书
+ 
+@@ -181,7 +181,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/ui/wt-choices.js` | 286 | 选择分支选项条：/api/choice → 字模 + 贴图五层（WA2.choices） | __closeChoices, __openChoices, historyMsgs, perf, prefsCount, se | <script 全局> | — |
++| `src/ui/wt-choices.js` | 289 | 选择分支选项条：/api/choice → 字模 + 贴图五层（WA2.choices） | __closeChoices, __openChoices, historyMsgs, perf, prefsCount, se | <script 全局> | — |
+ 
+ ## 二级 · 前端/配置
+ 
+@@ -225,7 +225,7 @@
+ 
+ | 文件 | 行数 | 职责 | 导出 | 依赖 | 被谁调用 |
+ |---|---|---|---|---|---|
+-| `src/api_chat.py` | 306 | /api/chat 对话入口 | ChatApi | char_res, characters, diag, perf, perfcfg, persona_ctx | main |
++| `src/api_chat.py` | 317 | /api/chat 对话入口 | performance_hints, ChatApi | char_res, characters, diag, perf, perfcfg, persona_ctx | main |
+ 
+ ## 二级 · 接口/日志
+ 
+@@ -289,7 +289,7 @@
+ |---|---|---|---|---|---|
+ | `src/applog.py` | 162 | 日志文件 | path, log, error, dump_stacks, start_heartbeat, stop | — | api_choice, api_tts, api_window, cache_io, hotreload, logpack |
+ | `src/diag.py` | 215 | 调试面板的只读状态账本（/api/debug/state） | count, counters, note, note_get, round_record, rounds | — | api_chat, api_text, logpack, main, perf, tts_client |
+-| `src/hotreload.py` | 244 | 素材热重载：盯目录 → 失效缓存 → 前端重拉（可关） | set_hooks, watch, enabled, set_enabled, signature, tick | applog, characters | api_hotreload, main |
++| `src/hotreload.py` | 248 | 素材热重载：盯目录 → 失效缓存 → 前端重拉（可关） | set_hooks, watch, enabled, set_enabled, signature, tick | applog, characters | api_hotreload, main |
+ | `src/logpack.py` | 425 | 日志按天滚动 + 诊断包导出（脱敏） | log_dir, scrub, prune, bundle | applog, diag, secret | api_log, main |
+ | `src/params.py` | 317 | 关键参数登记表（生成 other/docs/参数与指标.md） | P, get, rows, groups, check | — | — |
+ | `src/perf.py` | 246 | 性能采样：logs/perf-<日期>.csv（内存/句柄/缓存） | snapshot, sample, maybe, last, reset | applog, diag | api_chat |
+@@ -306,7 +306,7 @@
+ |---|---|---|---|---|---|
+ | `src/char_pack.py` | 482 | 角色包导出/导入（zip） | pick_export_dir, pick_pack_file, export_pack, export_with_dialog, import_pack, import_with_dialog | characters | api_charpack |
+ | `src/char_res.py` | 234 | 角色资源定位与状态 | char_file, prompt_path, prompt_text, worldbook, worldbook_text, memory_path | special_files | api_chat, api_memory, api_wizard, main, persona_ctx, tts_client |
+-| `src/characters.py` | 552 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | api_char, api_chat, api_cleanup, api_wizard, char_pack, hotreload |
++| `src/characters.py` | 599 | 角色文件夹/切换/立绘索引 | user_dir, root, set_seed_sources, seed_character, ensure, active_id | — | api_char, api_chat, api_cleanup, api_wizard, char_pack, hotreload |
+ | `src/special_cfg.py` | 132 | 角色名读写 | name_file, defaults, current, ensure, save, get_name | characters, memory | api_char, main |
+ | `src/special_files.py` | 404 | 特别模式导入/打开/立绘落盘 | char_dir, set_assets_dir, save_upload, set_default_paths, kind_dir, portrait_dir | characters | char_res, main |
+ | `src/tts_client.py` | 688 | 语音合成与参考音频 | refs_dir, load_refs, pick_ref, available, start, start_translate | audio_gain, cache_io, char_res, diag | api_chat, api_modelcfg, api_tts, main |
+@@ -348,9 +348,9 @@
+ |---|---|---|
+ | `src/main.py` | 1531 | 超过 800 行，必须拆 |
+ | `src/tts_client.py` | 688 | 超过 400 行，建议拆 |
+-| `src/ui/menubar.js` | 607 | 超过 400 行，建议拆 |
++| `src/ui/menubar.js` | 611 | 超过 400 行，建议拆 |
++| `src/characters.py` | 599 | 超过 400 行，建议拆 |
+ | `src/api_cleanup.py` | 582 | 超过 400 行，建议拆 |
+ | `src/ui/game.js` | 553 | 超过 400 行，建议拆 |
+-| `src/characters.py` | 552 | 超过 400 行，建议拆 |
+ | `src/char_pack.py` | 482 | 超过 400 行，建议拆 |
+ | `src/logpack.py` | 425 | 超过 400 行，建议拆 |
+diff --git a/program/src/api_chat.py b/program/src/api_chat.py
+index 8182f66..7dfdaa6 100644
+--- a/program/src/api_chat.py
++++ b/program/src/api_chat.py
+@@ -23,9 +23,40 @@ STORY_K = 2                  # 原作检索注入几块
+ STORY_MAX_CHARS = 900        # 原作检索最多注入多少字
+ 
+ 
++def performance_hints(cc, outfit_hint=""):
++    """人设末尾的演出标签提示（场景 / 服装 / 情绪 / 动作；云端另加语言 + 双语）。
++
++    **云端和本地都要加**：以前整段挂在 `if cc:` 下面，本地模型（Ollama）
++    压根不知道要输出 <scene>/<outfit>/<emotion>，于是场景 CG、立绘、BGM
++    全都不会变（2026-11-06 用户反馈「基本没自动换过」）。
++    本地不加的只有「只用日语」和「双语输出」：小模型做不好双语，
++    硬要求反而写坏，中文由 translate.py 兜底。
++    单独提出来是为了能测（见 tools/test_chat_hints.py）。
++    """
++    s = (scene_cg.prompt_hint() +
++         "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
++         + (outfit_hint or "（按当前角色立绘）") +
++         "平时绝对不要输出。"
++         "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
++         "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
++         "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
++         "标记只能是开头那一个，正文里不要再出现。"
++         "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
++         "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。")
++    if cc:
++        s += ("\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
++              "\n【双语】台词必须给两份，紧跟在一起：<ja>日语原句</ja><zh>对应的中文</zh>。"
++              "<zh> 不是另一个人写的翻译，就是你自己那句话的意思，"
++              "所以要和 <ja> 对得上（不许改口、不许省略、不许加戏），中文要口语、带情绪。"
++              '<action> 里的描写也用中文写。例：'
++              '<emotion>毒舌</emotion><action>（别过脸）</action>'
++              '<ja>「べ、別に。あんたのためじゃないから」</ja>'
++              '<zh>「才、才不是。不是为你才做的」</zh>')
++    return s
++
++
+ class ChatApi:
+     """见 main.Handler。"""
+-
+     def _chat(self):
+         from main import (ASSETS_DIR, DEFAULT_MODEL, FALLBACK_MODEL, NO_MODELS, OLLAMA, STORY, _memory_context, _record_usage, cloud_cfg, fewshot_msgs, log, ollama_models, split_action, split_emotion, split_scene, split_thinking, urllib)
+         try:
+@@ -150,28 +181,8 @@ class ChatApi:
+         except Exception:
+             outfit_hint = "（按当前角色立绘）"
+         _before_tail = len(system)
+-        if cc:
+-            # 云端：人设末尾补语言/格式约束，前面插 few-shot
+-            # 【场景】的地点表由素材目录（assets/cg/index.json）生成，加了新背景图不用改这里
+-            system = system + (
+-                "\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
+-                + scene_cg.prompt_hint() +
+-                "\n【服装】只有明确换了一套衣服时才输出 <outfit>衣服名</outfit>："
+-                + outfit_hint +
+-                "平时绝对不要输出。"
+-                "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
+-                "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句。"
+-                "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
+-                "标记只能是开头那一个，正文里不要再出现。"
+-                "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
+-                "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。"
+-                "\n【双语】台词必须给两份，紧跟在一起：<ja>日语原句</ja><zh>对应的中文</zh>。"
+-                "<zh> 不是另一个人写的翻译，就是你自己那句话的意思，"
+-                "所以要和 <ja> 对得上（不许改口、不许省略、不许加戏），中文要口语、带情绪。"
+-                '<action> 里的描写也用中文写。例：'
+-                '<emotion>毒舌</emotion><action>（别过脸）</action>'
+-                '<ja>「べ、別に。あんたのためじゃないから」</ja>'
+-                '<zh>「才、才不是。不是为你才做的」</zh>')
++        # 演出标签（场景 / 服装 / 情绪 / 动作）：云端和本地都要，见 performance_hints
++        system = system + performance_hints(cc, outfit_hint)
+         _seg["tail"] = len(system) - _before_tail
+         _few = fewshot_msgs() if cc else []
+         payload = {
+diff --git a/program/src/characters.py b/program/src/characters.py
+index 2bde6b7..bfe5abe 100644
+--- a/program/src/characters.py
++++ b/program/src/characters.py
+@@ -475,11 +475,52 @@ def _read_index(path):
+         return {}
+ 
+ 
++def _scan_portrait_outfits():
++    """没写 index.json 的角色包：照 `portrait/<衣服>/<表情>.png` 现扫一份索引出来。
++
++    为什么需要：老版本导入的角色包只有图片、没有 `index.json`。索引一空，
++    前端 `spritePath()` 每套衣服都找不到，只能退回同一张默认立绘——
++    表现就是「立绘和表情永远不变」（2026-11-06 用户反馈）。
++    扫一遍就能直接用，不用让用户重新导入；写了 `index.json` 的仍然以文件为准
++    （文件里可以带 code / label / variants，那是扫不出来的）。
++    """
++    root = sprite_dir()
++    if not root or not os.path.isdir(root):
++        return {}
++    out = {}
++    for name in sorted(os.listdir(root)):
++        d = os.path.join(root, name)
++        if not os.path.isdir(d):
++            continue
++        images = {}
++        try:
++            for f in sorted(os.listdir(d)):
++                stem, ext = os.path.splitext(f)
++                if ext.lower() in (".png", ".webp", ".jpg", ".jpeg"):
++                    images[stem] = f
++        except OSError:
++            continue
++        if not images:
++            continue
++        out[name] = {
++            "code": "",
++            "label": name,
++            # 「认真」是这套素材的默认脸，没有就用第一个
++            "default": images.get("认真") or next(iter(images.values())),
++            "emotions": dict(images),
++            "variants": [],
++            "scanned": True,
++        }
++    return out
++
++
+ def sprite_index(assets_sprites):
+     """合并：自带 assets/sprites/index.json + 当前角色的 portrait/index.json（角色优先）
+ 
+     key 现在都是**衣服名（中文）**；老安装的自带索引还是数字编号，按 `code` 对齐，
+     保证同一套衣服不会同时出现「礼服」和「027」两条。
++
++    两边都没索引（老角色包只有图）时，退回扫 `portrait/` 目录（`_scan_portrait_outfits`）。
+     """
+     base = _read_index(os.path.join(assets_sprites, "index.json"))
+     own = _read_index(os.path.join(sprite_dir(), "index.json")) if sprite_dir() else {}
+@@ -495,19 +536,25 @@ def sprite_index(assets_sprites):
+         v = v if isinstance(v, dict) else {}
+         code = str(v.get("code") or "")
+         old = code_key.get(code) if code else None
+-        merged = dict(outfits.get(old) or {}) if old and old != k else dict(outfits.get(k) or {})
++        # 改名的时候（自带那份按编号、角色这份按中文名）要拿**旧那条**当底，
++        # 不能去 outfits.get(k) 找——那时候 k 还没写进去，表情映射会整段丢掉。
++        prev = outfits.get(old) if (old and old != k) else outfits.get(k)
++        merged = dict(prev or {})
+         if old and old != k:
+             outfits.pop(old, None)          # 角色这份用中文名，自带那份丢掉
+             code_key[code] = k
+         merged.update(v)
+         # 角色自己加的情绪映射要叠在自带上面，不能把自带的整套覆盖掉
+-        emo = dict((outfits.get(k) or {}).get("emotions") or {})
++        emo = dict((prev or {}).get("emotions") or {})
+         emo.update(v.get("emotions") or {})
+         if emo:
+             merged["emotions"] = emo
+         merged.setdefault("code", code)
+         merged["label"] = v.get("label") or merged.get("label") or k
+         outfits[k] = merged
++    if not outfits:
++        # 没有任何索引：照目录扫（不写文件，加了图下次自动生效）
++        outfits = _scan_portrait_outfits()
+     out = dict(base)
+     out["outfits"] = outfits
+     return out
+diff --git a/program/src/hotreload.py b/program/src/hotreload.py
+index 662df8d..9711674 100644
+--- a/program/src/hotreload.py
++++ b/program/src/hotreload.py
+@@ -32,7 +32,11 @@ MAX_ENTRIES = 6000               # 单次扫描上限（超大素材目录不至
+ # 不参与签名的目录：这些是**运行时数据**，聊天时每轮都在变（自动存档、缩略图、缓存）。
+ # 盯着它们会让「素材已更新」提示每几秒弹一次（2026-11-05 用户反馈的实际问题）。
+ SKIP_DIRS = {"sessions", "cache", "_deleted", "logs", "work_scratch", "tmp",
+-             "__pycache__", ".git"}
++             "__pycache__", ".git",
++             # 字模缓存（assets/ui/text_cache）：**程序自己**每渲染一句没见过的台词就写一张 PNG。
++             # 它在素材目录里，算进签名的话，玩起来每几秒就「素材变了」→ 前端重画背景 → 画面闪。
++             # 它只是缓存（删了会重画），不是用户放的素材，不该触发重载。
++             "text_cache"}
+ # 单个文件级的排除：常驻记忆书的关系摘要会随阶段刷新，但那不是「素材」
+ SKIP_FILES = {"standing.json"}
+ 
+diff --git a/program/src/ui/index.html b/program/src/ui/index.html
+index 1b6ce3a..d800564 100644
+--- a/program/src/ui/index.html
++++ b/program/src/ui/index.html
+@@ -302,16 +302,16 @@
+ <script src="wt-fade.js?v=202611051530"></script>
+ <script src="wt-update.js?v=202611052105"></script>
+ <script src="wt-audio.js?v=202611051348"></script>
+-<script src="wt-sprite.js?v=202611051550"></script>
++<script src="wt-sprite.js?v=202611061100"></script>
+ <script src="wt-hotreload.js?v=2026110521202611051550"></script>
+ <script src="wt-voice.js?v=202611051348"></script>
+ <script src="wt-text.js?v=202611051348"></script>
+ <script src="wt-backlog.js?v=202611051939"></script>
+-<script src="wt-choices.js?v=202611052330e"></script>
+-<script src="wt-chat.js?v=202611051939"></script>
++<script src="wt-choices.js?v=202611061130"></script>
++<script src="wt-chat.js?v=202611061100"></script>
+ <script src="wt-session.js?v=202611052330d"></script>
+ <script src="wt-cost.js?v=202611051348"></script>
+-<script src="wt-mood.js?v=202611051348"></script>
++<script src="wt-mood.js?v=202611061200"></script>
+ <script src="wt-gdi.js?v=202611051348"></script>
+ <script src="wt-nav.js?v=202611052330"></script>
+ <script src="config.js?v=202611051348"></script>
+@@ -332,7 +332,7 @@
+ <script src="zoom.js?v=202611051348"></script>
+ <script src="debug.js?v=202611051409"></script>
+ <script src="scale.js?v=202611051348"></script>
+-<script src="menubar.js?v=202611051920"></script>
++<script src="menubar.js?v=202611061130"></script>
+ <script src="asset-wizard.js?v=202611051550"></script>
+ <script src="cleanup.js?v=202611051920"></script>
+ <script src="uitext.js?v=202611051348"></script>
+@@ -423,6 +423,6 @@ window.addEventListener("load", function () {
+ 
+ 
+ 
+-
+-
+-
++
++
++
+diff --git a/program/src/ui/menubar.js b/program/src/ui/menubar.js
+index 4a3e63d..319c936 100644
+--- a/program/src/ui/menubar.js
++++ b/program/src/ui/menubar.js
+@@ -345,11 +345,15 @@
+   }
+ 
+ 
+-  /* 选择分支数量：写进 prefs（后端落盘 prefs.json），选项条下次打开就用新值 */
++  /* 选择分支数量：写进 prefs（后端落盘 prefs.json），选项条下次打开就用新值。
++     设置模块的入口是 `window.App.setPref`（它会同时写 localStorage、POST /api/prefs、
++     派发 app:prefs 事件）；**没有 `WA2.prefs`**。以前先试 `WA2.prefs.setPref`，
++     拿不到才走下面那段自己拼的兜底——兜底能存但读不回来（wt-choices 也读的 WA2.prefs），
++     结果就是「不管改成几都是 2 个」（2026-11-06）。 */
+   function setChoiceCount(n) {
+     n = Math.max(2, Math.min(5, n | 0));
+     try {
+-      if (window.WA2 && WA2.prefs && WA2.prefs.setPref) WA2.prefs.setPref("choiceCount", n);
++      if (window.App && window.App.setPref) window.App.setPref("choiceCount", n);
+       else {
+         var raw = localStorage.getItem("app_prefs");
+         var p = raw ? JSON.parse(raw) : {};
+diff --git a/program/src/ui/wt-chat.js b/program/src/ui/wt-chat.js
+index fefcdfd..ab18326 100644
+--- a/program/src/ui/wt-chat.js
++++ b/program/src/ui/wt-chat.js
+@@ -86,8 +86,10 @@
+ 
+       const mood = (window.__lastEmo || detectMood(shown));
+       // 立绘表情随情绪变，服装与场景只在模型明确标记时切换
+-      accumulateMood(reply);            // BGM 按累积氛围切换，不随单句变
+-
++      // BGM 按累积氛围切换，不随单句变。
++      // 注意要喂**中文**那侧：detectMood 的规则全是中文词，喂日语原文永远判成 calm，
++      // 于是 BGM 一辈子不换（2026-11-06 用户反馈「BGM 基本没换过」）。
++      accumulateMood(replyZh || shown);
+       sessionSave();          // 自动存档
+       turnCount++;
+     } catch (e) {
+diff --git a/program/src/ui/wt-choices.js b/program/src/ui/wt-choices.js
+index 64c764e..75e84ed 100644
+--- a/program/src/ui/wt-choices.js
++++ b/program/src/ui/wt-choices.js
+@@ -36,10 +36,13 @@
+ 
+   var COLORS = { normal: "", gold: "f0e0a0" };
+ 
++  /* 读设置里的「分支数量」。注意：设置模块挂在 `window.App.getPrefs/setPref`，
++     **没有 `WA2.prefs`**（2026-11-06 之前这里读 `WA2.prefs`，永远拿不到，
++     所以不管设置改成几都是 2 个选项）。 */
+   function prefsCount() {
+     var n = 2;
+     try {
+-      var p = (WA2.prefs && WA2.prefs.getPrefs) ? WA2.prefs.getPrefs() : null;
++      var p = (window.App && window.App.getPrefs) ? window.App.getPrefs() : null;
+       if (p && p.choiceCount) n = parseInt(p.choiceCount, 10) || 2;
+     } catch (e) {}
+     return Math.max(2, Math.min(5, n));
+diff --git a/program/src/ui/wt-mood.js b/program/src/ui/wt-mood.js
+index ad4fd0e..0b7ea88 100644
+--- a/program/src/ui/wt-mood.js
++++ b/program/src/ui/wt-mood.js
+@@ -16,7 +16,8 @@
+   }
+ 
+   const MOOD_BGM = { angry: "tense", sad: "sad", warm: "warm", smile: "warm", cold: "calm" };
+-  const MOOD_SPRITE = { angry: "angry", sad: "sad", warm: "school", smile: "smile", cold: "cold" };
++  /* 情绪→表情不在这里：立绘那边已改成中文名别名表（wt-sprite.js 的 EMO_ALIAS），
++     这里的 MOOD_SPRITE 早就没人用了，删掉省得以后两边映射打架。 */
+ 
+   /* ---------- 氛围累积（BGM 不随单句变化） ---------- */
+   const moodScore = { calm: 0, warm: 0, sad: 0, tense: 0 };
+@@ -70,7 +71,7 @@
+   WA2.mood = _exp;
+   WA2.register("mood", _exp);
+   /* __export_all__ */
+-  ["accumulateMood", "currentBgmMood", "detectMood", "MOOD_BGM", "MOOD_SPRITE", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "t"].forEach(function (n) {
++  ["accumulateMood", "currentBgmMood", "detectMood", "MOOD_BGM", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "t"].forEach(function (n) {
+     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
+   });
+ })();
+diff --git a/program/src/ui/wt-sprite.js b/program/src/ui/wt-sprite.js
+index 2ec0951..00affaa 100644
+--- a/program/src/ui/wt-sprite.js
++++ b/program/src/ui/wt-sprite.js
+@@ -83,22 +83,62 @@
+     return keys.length ? keys[0] : "";
+   }
+ 
+-  // 程序情绪 → 立绘情绪（warm 用微笑）
+-  var MOOD_TO_EMO = { angry: "angry", sad: "sad", cold: "cold", smile: "smile", warm: "smile" };
++  // 程序情绪（detectMood 给的英文）→ 立绘表情名。
++  // 素材里表情名大多是**中文**（认真/微笑/生气/冷淡/惊讶/其他/其他2），
++  // 所以这里直接映射到中文名；老素材用英文名时靠下面的别名表兜底。
++  var MOOD_TO_EMO = { angry: "生气", sad: "其他2", cold: "冷淡", smile: "微笑", warm: "微笑" };
++
++  /* 情绪 → 立绘里可能叫的名字（按顺序试，第一个存在的就用）。
++     模型 <emotion> 只会给这几个词：calm / soft / 毒舌 / 撒娇 / 哭腔 / 调侃吐槽 / 问句；
++     本地 detectMood 给的是 calm / warm / sad / angry / smile。
++     以前这里只认英文名、素材里又是中文名，查不到就一律退回「认真」，
++     表现是「表情永远不变」（2026-11-06 用户反馈）。 */
++  var EMO_ALIAS = {
++    calm: ["认真", "calm", "serious"],
++    soft: ["微笑", "soft", "smile"],
++    warm: ["微笑", "warm", "smile"],
++    smile: ["微笑", "smile"],
++    "撒娇": ["害羞", "微笑", "其他", "smile"],
++    "调侃吐槽": ["微笑", "其他", "smile"],
++    "毒舌": ["冷淡", "生气", "cold", "angry"],
++    cold: ["冷淡", "cold"],
++    angry: ["生气", "angry"],
++    sad: ["难过", "其他2", "其他", "sad"],
++    "哭腔": ["难过", "其他2", "其他", "sad"],
++    "问句": ["认真", "serious"],
++    "惊讶": ["惊讶", "surprised"],
++    shy: ["害羞", "其他"]
++  };
++
++  /* 挑一张表情图：先试模型/程序给的词，再试覆盖表，最后按别名表挨个试 */
++  function pickEmotion(o, emotion) {
++    var em = (o && o.emotions) || {};
++    var raw = emotion || "";
++    if (!raw) return "";
++    var override = cfgOverride("moodMap") || {};
++    var cands = [raw, override[raw], MOOD_TO_EMO[raw]]
++      .concat(EMO_ALIAS[raw] || [])
++      .concat(EMO_ALIAS[override[raw]] || [])
++      .concat(EMO_ALIAS[MOOD_TO_EMO[raw]] || []);
++    for (var i = 0; i < cands.length; i++) {
++      if (cands[i] && em[cands[i]]) return em[cands[i]];
++    }
++    return "";
++  }
+ 
+   function spritePath(outfit, emotion) {
+     var o = SPRITE_INDEX[outfit];
+     if (!o) return "assets/kaz_cold.png";
+-    var emo = emotion ? (mergeMap(MOOD_TO_EMO, cfgOverride("moodMap"))[emotion] || emotion) : "";
+     var u = function (name) {
+       var url = "/api/character/sprite/" + encodeURIComponent(outfit) + "/" + encodeURIComponent(name);
+       /* #20 热重载：换了图之后靠 ?v= 让 WebView2 重新取，不然还吃旧缓存 */
+       if (WA2.assetsVer) url += "?v=" + WA2.assetsVer;
+       return url;
+     };
+-    if (emo && o.emotions && o.emotions[emo]) return u(o.emotions[emo]);
++    var file = pickEmotion(o, emotion);
++    if (file) return u(file);
+     // 该套衣服没有这个情绪 → 退到「认真」，再退到默认
+-    if (o.emotions && o.emotions.serious) return u(o.emotions.serious);
++    if (o.emotions && (o.emotions.认真 || o.emotions.serious)) return u(o.emotions.认真 || o.emotions.serious);
+     return u(o.default);
+   }
+ 
+diff --git a/program/src/version.py b/program/src/version.py
+index a40d5a3..2e06298 100644
+--- a/program/src/version.py
++++ b/program/src/version.py
+@@ -1,7 +1,7 @@
+ # -*- coding: utf-8 -*-
+ """版本号与更新检查的常量（发布时改这里 + 仓库根目录 version.json）。"""
+ 
+-VERSION = "2026-11-06.1"                     # 本机版本：YYYY-MM-DD.N
++VERSION = "2026-11-06.2"                     # 本机版本：YYYY-MM-DD.N
+ REPO = "yiyusen1229-eng/ai-chat-ui-arch"     # GitHub 仓库
+ RAW_VERSION_URL = "https://raw.githubusercontent.com/%s/master/version.json" % REPO
+ REPO_URL = "https://github.com/%s" % REPO
+diff --git a/program/tests/cases.md b/program/tests/cases.md
+index a9361e2..436e741 100644
+--- a/program/tests/cases.md
++++ b/program/tests/cases.md
+@@ -77,6 +77,10 @@
+ | D7 | 云端连不上 | 返回错误文案，界面不崩、输入框恢复 | 手动（断网发一句） |
+ | D8 | 音频设备被拔 | 暂停 → 重建 → 续播；续不上提示重播 | 手动（#7） |
+ 
++| K32 | 演出拉满（场景/立绘/BGM） | 用户 2026-11-06 反馈「基本没有自动换过场景 CG、立绘和 BGM」，三个根因各一条：① 演出标签提示（【场景】【服装】【情绪】）以前整段挂在 if cc: 下，本地模型压根不知道要输出 <scene>/<outfit>/<emotion> —— 现在云端本地都加，只有「只用日语」「双语」留给云端；② 角色包 portrait/ 只有图片没有 index.json 时索引为空，前端每套衣服都查不到只能退回默认图 —— 现在扫目录兜底；③ 情绪名对不上（模型给 毒舌/soft，素材里叫 冷淡/微笑）—— 加了别名表逐个试，命中即用；BGM 的 detectMood 只认中文词，以前喂的是日语原文所以永远判 calm —— 现在喂中文那侧 | 	est_chat_hints.py（15 项）+ 	est_sprite_scan.py（13 项）+ 真机 ui_probe 验 5 种情绪给出 5 张不同的图、CG id 能解析、BGM calm→sad→warm |
++
++| K33 | 分支数量设置 | 设置 →「选择分支数量」写进 prefs（window.App.setPref），选项条打开时按这个数请求 /api/choice。**别读 WA2.prefs**——那个对象根本不存在，读不到就永远 2 个（2026-11-06 用户反馈「不管改成几都是两个」）。prefsCount() 还要夹在 2~5、字符串能认、0/缺键/App 未就绪都回落到 2 | 	est_choices_prefs.js（9 项）+ 真机 ui_probe 把设置改 4，确认请求体 count=4、摆出 4 条 |
++
+ ## 发版前手动过一遍
+ 
+ 1. `program\启动程序.bat`：标题栏、背景、立绘、字模、按钮音效、窗口按钮
+diff --git a/program/tools/run_smoke.py b/program/tools/run_smoke.py
+index 28f3886..540a695 100644
+--- a/program/tools/run_smoke.py
++++ b/program/tools/run_smoke.py
+@@ -1,4 +1,4 @@
+-﻿# -*- coding: utf-8 -*-
++# -*- coding: utf-8 -*-
+ """一键跑自测（#11 测试三类化）。
+ 
+     python tools/run_smoke.py               # 全部（含在线冒烟）
+@@ -84,9 +84,12 @@ STEPS = [
+     ("核心", "剧情检索 27 项", "py", ["tools/test_story_rag.py"], 120),
+     ("核心", "一键更新 30 项", "py", ["tools/test_update.py"], 120),
+     ("核心", "选择分支 29 项", "py", ["tools/test_choice.py"], 120),
++    ("核心", "分支数量接线 9 项", "node", ["tools/test_choices_prefs.js"], 60),
++    ("核心", "演出标签提示 15 项", "py", ["tools/test_chat_hints.py"], 60),
++    ("核心", "立绘索引扫描 13 项", "py", ["tools/test_sprite_scan.py"], 60),
+     ("核心", "回复标签解析 44 项", "py", ["tools/test_text_parse.py"], 60),
+     ("核心", "翻译层 21 项", "py", ["tools/test_translate.py"], 60),
+-    ("核心", "素材热重载 30 项", "py", ["tools/test_hotreload.py"], 120),
++    ("核心", "素材热重载 33 项", "py", ["tools/test_hotreload.py"], 120),
+     ("核心", "素材向导 19 项", "py", ["tools/test_wizard.py"], 120),
+     ("核心", "日志保留 + 诊断包 40 项", "py", ["tools/test_logpack.py"], 180),
+     ("核心", "性能采样 59 项", "py", ["tools/test_perf_sample.py"], 120),
+diff --git a/program/tools/test_chat_hints.py b/program/tools/test_chat_hints.py
+new file mode 100644
+index 0000000..652103d
+--- /dev/null
++++ b/program/tools/test_chat_hints.py
+@@ -0,0 +1,62 @@
++# -*- coding: utf-8 -*-
++"""演出标签提示（system 末尾那段）的自测。
++
++为什么单独测：2026-11-06 用户反馈「基本没有自动换过场景 CG、立绘和 BGM」，
++根因是这段提示以前整个挂在 `if cc:`（有云端 key）下面 —— 本地模型根本不知道
++要输出 <scene>/<outfit>/<emotion>，全是空转。这个测试盯着「两条路都要有」。
++
++跑：
++    cd program && .\\build_env\\venv\\Scripts\\python.exe tools\\test_chat_hints.py
++"""
++import os
++import sys
++
++sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
++
++import api_chat  # noqa: E402
++
++_fail = []
++
++
++def check(name, ok, detail=""):
++    print(("  ok   " if ok else "  FAIL ") + name + ("" if ok else "  " + str(detail)))
++    if not ok:
++        _fail.append(name)
++
++
++def main():
++    local = api_chat.performance_hints(False, "礼服、睡衣")
++    cloud = api_chat.performance_hints(True, "礼服、睡衣")
++
++    print("[1] 本地模型（没有云端 key）")
++    check("带【场景】", "【场景】" in local, local[:60])
++    check("带【服装】且列出了可选衣服", "【服装】" in local and "礼服" in local)
++    check("带【情绪】", "【情绪】" in local, "")
++    check("带【格式】（action 标签）", "【格式】" in local and "<action>" in local)
++    check("不要求「只用日语」", "只用日语" not in local, "")
++    check("不要求双语", "<ja>" not in local or "【双语】" not in local, "")
++
++    print("[2] 云端")
++    check("带【场景】", "【场景】" in cloud)
++    check("带【语言】只用日语", "【语言】" in cloud and "只用日语" in cloud)
++    check("带【双语】示例", "【双语】" in cloud and "<ja>" in cloud and "<zh>" in cloud)
++
++    print("[3] 公共部分")
++    check("没有空括号地名表", "（）" not in local and "()" not in local, "")
++    check("云端比本地长", len(cloud) > len(local), "%d vs %d" % (len(cloud), len(local)))
++    check("两句都提到 <scene>", "<scene>" in local and "<scene>" in cloud)
++    check("两句都提到 <outfit>", "<outfit>" in local and "<outfit>" in cloud)
++    check("两句都提到 <emotion>", "<emotion>" in local and "<emotion>" in cloud)
++
++    check("默认参数（不给衣服）也不崩", "【服装】" in api_chat.performance_hints(False))
++
++    print()
++    if _fail:
++        print("失败 %d 项：%s" % (len(_fail), "、".join(_fail)))
++        return 1
++    print("全部通过")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/program/tools/test_choices_prefs.js b/program/tools/test_choices_prefs.js
+new file mode 100644
+index 0000000..d35efbf
+--- /dev/null
++++ b/program/tools/test_choices_prefs.js
+@@ -0,0 +1,98 @@
++/* wt-choices.js 的「分支数量」接线自测（纯 Node，不开界面）。
++ *
++ * 跑法：
++ *   cd program
++ *   node tools/test_choices_prefs.js
++ *
++ * 为什么专门测这个：2026-11-06 用户反馈「不管设置里改成几，出现的都是两个」。
++ * 原因是 `prefsCount()` 去读 `WA2.prefs.getPrefs()` —— 而**根本没有 `WA2.prefs`**，
++ * 设置模块的入口是 `window.App.getPrefs/setPref`。读不到就永远用默认 2，
++ * 于是后端每次都被要求给 2 个。
++ *
++ * 这里用 vm 把模块加载起来（假 document / 假 App），只调 `prefsCount()`。
++ */
++const fs = require("fs");
++const path = require("path");
++const vm = require("vm");
++
++const code = fs.readFileSync(path.join(__dirname, "..", "src", "ui", "wt-choices.js"), "utf8");
++
++const fails = [];
++function check(name, cond, extra) {
++  console.log((cond ? "  ok   " : "  FAIL ") + name + (cond ? "" : "  " + JSON.stringify(extra)));
++  if (!cond) fails.push(name);
++}
++
++/* 假环境：只给模块加载时需要的一点点 */
++function load(prefs, opts) {
++  opts = opts || {};
++  const doc = {
++    addEventListener: function () {},
++    getElementById: function () { return null; },
++    createElement: function () {
++      return { style: {}, classList: { add: function () {}, remove: function () {} },
++               appendChild: function () {}, addEventListener: function () {} };
++    },
++    head: { appendChild: function () {} },
++    body: { appendChild: function () {} }
++  };
++  const win = {
++    document: doc,
++    WA2: { register: function () {}, perf: null },
++    __history: [],
++    toast: function () {},
++    setTimeout: setTimeout,
++    clearTimeout: clearTimeout,
++    Promise: Promise,
++    fetch: function () { return Promise.resolve({ json: function () { return Promise.resolve({ ok: true, options: ["a", "b"] }); } }); },
++    console: console
++  };
++  if (prefs !== null) win.App = { getPrefs: function () { return prefs; }, setPref: function () {} };
++  if (opts.addWa2Prefs) {
++    /* 老代码找的那个（永远不存在）也补上，确认我们没退回去读它 */
++    win.WA2.prefs = { getPrefs: function () { return { choiceCount: 5 }; } };
++  }
++  const sandbox = {
++    window: win, document: doc, console: console,
++    setTimeout: setTimeout, clearTimeout: clearTimeout, Promise: Promise,
++    fetch: win.fetch, Math: Math, parseInt: parseInt, String: String, JSON: JSON,
++    Image: function () {}, encodeURIComponent: encodeURIComponent
++  };
++  sandbox.globalThis = sandbox;
++  vm.createContext(sandbox);
++  vm.runInContext(code, sandbox);
++  return sandbox.window.WA2.choices;
++}
++
++console.log("[1] 读的是 window.App.getPrefs");
++let c = load({ choiceCount: 4 });
++check("设置 4 个 → prefsCount() = 4", c.prefsCount() === 4, c.prefsCount());
++
++c = load({ choiceCount: 2 });
++check("设置 2 个 → 2", c.prefsCount() === 2, c.prefsCount());
++
++c = load({ choiceCount: "5" });
++check("字符串 '5' 也认", c.prefsCount() === 5, c.prefsCount());
++
++console.log("[2] 夹取与兜底");
++c = load({ choiceCount: 9 });
++check("超过 5 → 夹到 5", c.prefsCount() === 5, c.prefsCount());
++c = load({ choiceCount: 1 });
++check("小于 2 → 夹到 2", c.prefsCount() === 2, c.prefsCount());
++c = load({ choiceCount: 0 });
++check("0 当没设 → 2", c.prefsCount() === 2, c.prefsCount());
++c = load({});
++check("没这个键 → 2", c.prefsCount() === 2, c.prefsCount());
++c = load(null);
++check("App 还没就绪 → 2（不抛异常）", c.prefsCount() === 2, c.prefsCount());
++
++console.log("[3] 不再依赖不存在的 WA2.prefs");
++c = load({ choiceCount: 3 }, { addWa2Prefs: true });
++check("即使有 WA2.prefs，也以 App.getPrefs 为准（3 而不是 5）", c.prefsCount() === 3, c.prefsCount());
++
++console.log();
++if (fails.length) {
++  console.log("失败 " + fails.length + " 项：" + fails.join("、"));
++  process.exit(1);
++}
++console.log("全部通过");
+diff --git a/program/tools/test_hotreload.py b/program/tools/test_hotreload.py
+index 3a92280..1111094 100644
+--- a/program/tools/test_hotreload.py
++++ b/program/tools/test_hotreload.py
+@@ -107,6 +107,31 @@ def main():
+     hotreload.watch(assets, char)
+     hotreload.tick(now=t0 + 21)                 # 重记基线
+ 
++    # ---------------- 4.5 运行时数据不算「素材变了」
++    # 2026-11-06 实机问题：字模缓存 assets/ui/text_cache 是程序自己聊天时写进去的，
++    # 算进签名 → 每几秒触发一次 → 前端重画背景 → 画面闪。这里盯着它别再回来。
++    called.clear()
++    hotreload.reset()
++    hotreload.set_hooks({"one": lambda kinds: called.append(kinds)})
++    os.makedirs(os.path.join(assets, "ui", "text_cache"), exist_ok=True)
++    hotreload.watch(assets, char)
++    hotreload.tick(now=t0 + 40)                 # 基线
++    for i in range(3):
++        time.sleep(0.01)
++        with open(os.path.join(assets, "ui", "text_cache", "t%d.png" % i), "wb") as f:
++            f.write(b"g" * 200)
++        hotreload.tick(now=t0 + 41 + i)
++        hotreload.tick(now=t0 + 50 + i)
++    check("字模缓存变化：一次都不触发", called == [], called)
++    check("字模缓存变化：gen 还是 0", hotreload.state()["gen"] == 0, hotreload.state()["gen"])
++
++    # 同一层里放一张真素材，仍然要触发
++    time.sleep(0.01)
++    with open(os.path.join(assets, "ui", "real.png"), "wb") as f:
++        f.write(b"r" * 100)
++    hotreload.tick(now=t0 + 60)
++    check("同一目录放真素材：照样触发", hotreload.tick(now=t0 + 60 + hotreload.SETTLE + 0.01) is True)
++
+     # ---------------- 5 勾子失败
+     boom = []
+ 
+diff --git a/program/tools/test_sprite_scan.py b/program/tools/test_sprite_scan.py
+new file mode 100644
+index 0000000..6494b37
+--- /dev/null
++++ b/program/tools/test_sprite_scan.py
+@@ -0,0 +1,110 @@
++# -*- coding: utf-8 -*-
++"""立绘索引的自测：没写 index.json 的老角色包要能照目录扫出来。
++
++为什么单独测：2026-11-06 用户反馈「立绘基本没换过」。查下来是角色包里
++`portrait/` 有 14 套衣服目录、但**没有 index.json**，`sprite_index()` 返回空，
++前端每套衣服都查不到，只能永远退回同一张默认图。
++修法是扫目录兜底，这个测试盯着它别再退回去。
++
++跑：
++    cd program && .\\build_env\\venv\\Scripts\\python.exe tools\\test_sprite_scan.py
++"""
++import json
++import os
++import sys
++import tempfile
++
++sys.stdout.reconfigure(encoding="utf-8", errors="replace")
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++PROGRAM = os.path.dirname(HERE)
++sys.path.insert(0, os.path.join(PROGRAM, "src"))
++
++_TMP = tempfile.mkdtemp(prefix="wa2_sprite_scan_")
++os.environ["WA2_USER_DIR"] = _TMP
++import characters  # noqa: E402
++
++FAILS = []
++
++
++def check(name, cond, extra=""):
++    print(("  ok   " if cond else "  FAIL ") + name +
++          (("  " + str(extra)[:200]) if extra and not cond else ""))
++    if not cond:
++        FAILS.append(name)
++
++
++def touch(path):
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++    with open(path, "wb") as f:
++        f.write(b"\x89PNGfake")
++
++
++def main():
++    assets = os.path.join(_TMP, "assets")
++    os.makedirs(os.path.join(assets, "sprites"), exist_ok=True)   # 自带索引也没有
++    char = os.path.join(_TMP, "characters", "测试")
++    os.makedirs(os.path.join(char, "portrait"), exist_ok=True)
++    with open(os.path.join(_TMP, "characters", "active.json"), "w", encoding="utf-8") as f:
++        json.dump({"id": "测试"}, f, ensure_ascii=False)
++
++    # 老角色包：只有「衣服/表情.png」，没有 index.json
++    for emo in ("认真", "微笑", "生气", "冷淡", "惊讶", "害羞", "难过"):
++        touch(os.path.join(char, "portrait", "常服", emo + ".png"))
++    touch(os.path.join(char, "portrait", "礼服", "认真.png"))
++    touch(os.path.join(char, "portrait", "礼服", "微笑.png"))
++    # 干扰项：非图片文件、空目录
++    touch(os.path.join(char, "portrait", "常服", "说明.txt"))
++    os.makedirs(os.path.join(char, "portrait", "空目录"), exist_ok=True)
++
++    print("[1] 没有 index.json：照目录扫")
++    idx = characters.sprite_index(os.path.join(assets, "sprites"))
++    of = idx.get("outfits") or {}
++    check("扫出两套衣服", sorted(of) == ["常服", "礼服"], sorted(of))
++    check("空目录不算一套", "空目录" not in of, sorted(of))
++    emo = (of.get("常服") or {}).get("emotions") or {}
++    check("表情名 = 文件名", emo.get("生气") == "生气.png", emo)
++    check("非图片文件没混进来", "说明" not in emo, list(emo))
++    check("默认脸用「认真」", (of.get("常服") or {}).get("default") == "认真.png",
++          (of.get("常服") or {}).get("default"))
++    check("label 就是衣服名", (of.get("常服") or {}).get("label") == "常服")
++
++    print("[2] 写了 index.json：文件优先，不扫目录")
++    own = os.path.join(char, "portrait", "index.json")
++    with open(own, "w", encoding="utf-8") as f:
++        json.dump({"outfits": {"自定义": {"code": "027", "label": "自定义",
++                                          "default": "认真.png",
++                                          "emotions": {"angry": "生气.png"}}}},
++                  f, ensure_ascii=False)
++    idx2 = characters.sprite_index(os.path.join(assets, "sprites"))
++    of2 = idx2.get("outfits") or {}
++    check("以 index.json 为准", sorted(of2) == ["自定义"], sorted(of2))
++    check("文件里的 emotions 保留", (of2["自定义"].get("emotions") or {}).get("angry") == "生气.png")
++    check("code 保留", of2["自定义"].get("code") == "027")
++
++    print("[3] 自带索引 + 角色索引合并（角色优先）")
++    with open(os.path.join(assets, "sprites", "index.json"), "w", encoding="utf-8") as f:
++        json.dump({"outfits": {"常服": {"code": "027", "label": "常服",
++                                        "default": "认真.png",
++                                        "emotions": {"serious": "认真.png"}},
++                               "自带专用": {"code": "099", "default": "x.png"}}},
++                  f, ensure_ascii=False)
++    idx3 = characters.sprite_index(os.path.join(assets, "sprites"))
++    of3 = idx3.get("outfits") or {}
++    check("同 code 合成一条（用角色那份的名字）", "自定义" in of3 and "常服" not in of3, sorted(of3))
++    check("自带独有的那套仍在", "自带专用" in of3, sorted(of3))
++    check("表情映射两边叠起来", (of3["自定义"].get("emotions") or {}).get("angry") == "生气.png"
++          and (of3["自定义"].get("emotions") or {}).get("serious") == "认真.png",
++          of3["自定义"].get("emotions"))
++    check("合并后 code 还是 027", of3["自定义"].get("code") == "027")
++
++    print()
++    if FAILS:
++        print("失败 %d 项：%s" % (len(FAILS), "、".join(FAILS)))
++        return 1
++    print("全部通过")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/version.json b/version.json
+index c468b75..0de704d 100644
+--- a/version.json
++++ b/version.json
+@@ -1,5 +1,5 @@
+ {
+-  "version": "2026-11-06.1",
++  "version": "2026-11-06.2",
+   "url": "https://github.com/yiyusen1229-eng/ai-chat-ui-arch/tree/master/other/docs/patches",
+-  "notes": "选择分支（原版素材 1:1，含开着选项存档）/ 一键更新 / 素材提示节流"
++  "notes": "修画面闪 / 场景立绘 BGM 自动切换 / 分支数量设置生效"
+ }
