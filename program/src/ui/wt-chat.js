@@ -87,9 +87,10 @@
       const mood = (window.__lastEmo || detectMood(shown));
       // 立绘表情随情绪变，服装与场景只在模型明确标记时切换
       // BGM 按累积氛围切换，不随单句变。
-      // 注意要喂**中文**那侧：detectMood 的规则全是中文词，喂日语原文永远判成 calm，
-      // 于是 BGM 一辈子不换（2026-11-06 用户反馈「BGM 基本没换过」）。
-      accumulateMood(replyZh || shown);
+      // 注意要喂**中文**那侧：detectMood 的规则全是中文词，喂日语原文永远判成 calm。
+      // 同时把模型给的 <emotion> 一起传进去 —— BGM 优先信它
+      // （毒舌是她日常嘴硬、算 calm；只有「沉重」才切冰之刃）。
+      accumulateMood(replyZh || shown, window.__lastEmo || "");
       sessionSave();          // 自动存档
       turnCount++;
     } catch (e) {

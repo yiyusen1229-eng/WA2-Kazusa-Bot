@@ -15,24 +15,54 @@
     return "calm";
   }
 
-  const MOOD_BGM = { angry: "tense", sad: "sad", warm: "warm", smile: "warm", cold: "calm" };
+  const MOOD_BGM = { angry: "tense", sad: "sad", warm: "warm", smile: "warm", calm: "calm" };
   /* 情绪→表情不在这里：立绘那边已改成中文名别名表（wt-sprite.js 的 EMO_ALIAS），
      这里的 MOOD_SPRITE 早就没人用了，删掉省得以后两边映射打架。 */
+
+  /* ---------- BGM 槽位：优先信模型给的 <emotion>，没有才回退到文本规则 ----------
+     2026-11-06 用户反馈「BGM 只在寂静的冬夜和冰之刃之间切」。
+     实测（用本机 8 个存档、473 句真实台词跑）：正则判出 angry 11%，靠累积算法
+     最终只在 calm↔tense 之间跳；而模型给的 <emotion> 里根本没有「沉重」这个词，
+     于是「争执/分手」和「日常嘴硬」走的是同一条路 —— 冰之刃满天飞。
+     现在：毒舌/问句算日常（calm），soft/撒娇/调侃吐槽算温柔（warm），
+     哭腔算难过（sad），「沉重」留给真的争执（词表里已补，见 performance_hints）。 */
+  var EMO_BGM = {
+    calm: "calm", "毒舌": "calm", "问句": "calm",
+    soft: "warm", "撒娇": "warm", "调侃吐槽": "warm",
+    "哭腔": "sad",
+    "沉重": "tense"
+  };
+  /* 没有 <emotion> 时的回退规则（分两档：真的伤人话才算 tense，嘴硬不算） */
+  var TEXT_SLOT = [
+    ["tense", /分手|别碰我|滚出去|恨你|讨厌你|离开我|受够|够了[，,。]|再也别|不要再/],
+    ["sad", /哭|寂寞|后悔|对不起|抱歉|难过|别走/],
+    ["warm", /早点睡|注意身体|吃药|别勉强|小心|累了吧|照顾好|谢谢你|辛苦了/],
+    ["warm", /呵|笑|有趣|真拿你没办法|好吧/],
+    // 「笨蛋/哼/少来/别管/烦」是她日常的嘴硬，落回 calm，不再算 tense
+  ];
+
+  function bgmSlot(text, emo) {
+    var e = (emo || "").trim();
+    if (e && EMO_BGM[e]) return EMO_BGM[e];
+    var t = text || "";
+    for (var i = 0; i < TEXT_SLOT.length; i++) {
+      if (TEXT_SLOT[i][1].test(t)) return TEXT_SLOT[i][0];
+    }
+    return "calm";
+  }
 
   /* ---------- 氛围累积（BGM 不随单句变化） ---------- */
   const moodScore = { calm: 0, warm: 0, sad: 0, tense: 0 };
   let moodStable = { name: "calm", turns: 0 };
 
-  function accumulateMood(reply) {
-    const mood = detectMood(reply);
-    const bgm = MOOD_BGM[mood] || "calm";
-    // 每轮衰减，越近的话权重越大
-    for (const k in moodScore) moodScore[k] *= 0.65;
+  function accumulateMood(reply, emo) {
+    const bgm = bgmSlot(reply, emo);
+    // 每轮衰减，越近的话权重越大（0.65 太黏：calm 占八成时谁都翻不了身，
+    // 实测 473 句只切 2 次；0.5 + 差 1.5 分能到 9 次，且 warm/sad 都能出现）
+    for (const k in moodScore) moodScore[k] *= 0.50;
     moodScore[bgm] = (moodScore[bgm] || 0) + 2;
     // 长句、强烈情绪加权
-    if (reply.length > 40) moodScore[bgm] += 0.8;
-    if (/[！!]{2,}|滚|闭嘴|笨蛋/.test(reply)) moodScore.tense += 1.2;
-    if (/[（(]笑|呵|真拿你|好吧/.test(reply)) moodScore.warm += 0.8;
+    if ((reply || "").length > 40) moodScore[bgm] += 0.8;
 
     // 当前氛围的分数
     let best = "calm", bestV = -1;
@@ -41,13 +71,13 @@
     }
     const curV = moodScore[currentBgmMood()] || 0;
 
-    // 需要连续两轮领先 2 分以上才切换
+    // 需要连续两轮保持领先才切换
     if (best !== moodStable.name) {
       moodStable = { name: best, turns: 1 };
     } else {
       moodStable.turns++;
     }
-    const enough = bestV - curV >= 2.0 && moodStable.turns >= 2;
+    const enough = bestV - curV >= 1.5 && moodStable.turns >= 2;
     if (best !== currentBgmMood() && enough) {
       setBgm(best);
     }
@@ -71,14 +101,14 @@
   /* 合并版：按当前角色给开场白 */
   var OPENING_LINE = { zh: "「……」", ja: "", emo: "calm" };
   var _exp = {};
-  var _names = ["accumulateMood", "currentBgmMood", "detectMood", "reset"];
+  var _names = ["accumulateMood", "currentBgmMood", "detectMood", "bgmSlot", "reset"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }
   WA2.mood = _exp;
   WA2.register("mood", _exp);
   /* __export_all__ */
-  ["accumulateMood", "currentBgmMood", "detectMood", "MOOD_BGM", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "reset", "t"].forEach(function (n) {
+  ["accumulateMood", "currentBgmMood", "detectMood", "bgmSlot", "MOOD_BGM", "EMO_BGM", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "reset", "t"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
