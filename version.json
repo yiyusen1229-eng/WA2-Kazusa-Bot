@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-06.2",
+  "version": "2026-11-06.3",
   "url": "https://github.com/yiyusen1229-eng/ai-chat-ui-arch/tree/master/other/docs/patches",
-  "notes": "修画面闪 / 场景立绘 BGM 自动切换 / 分支数量设置生效"
+  "notes": "演出标签喂稳（场景概率 0→4/6）/ 开新游戏清历史 / 角色包导出脱敏"
 }
