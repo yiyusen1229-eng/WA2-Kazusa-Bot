@@ -16,7 +16,8 @@
   }
 
   const MOOD_BGM = { angry: "tense", sad: "sad", warm: "warm", smile: "warm", cold: "calm" };
-  const MOOD_SPRITE = { angry: "angry", sad: "sad", warm: "school", smile: "smile", cold: "cold" };
+  /* 情绪→表情不在这里：立绘那边已改成中文名别名表（wt-sprite.js 的 EMO_ALIAS），
+     这里的 MOOD_SPRITE 早就没人用了，删掉省得以后两边映射打架。 */
 
   /* ---------- 氛围累积（BGM 不随单句变化） ---------- */
   const moodScore = { calm: 0, warm: 0, sad: 0, tense: 0 };
@@ -70,7 +71,7 @@
   WA2.mood = _exp;
   WA2.register("mood", _exp);
   /* __export_all__ */
-  ["accumulateMood", "currentBgmMood", "detectMood", "MOOD_BGM", "MOOD_SPRITE", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "t"].forEach(function (n) {
+  ["accumulateMood", "currentBgmMood", "detectMood", "MOOD_BGM", "OPENING_LINE", "WA2", "_exp", "_names", "best", "bgm", "curV", "enough", "mood", "moodScore", "moodStable", "t"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();
