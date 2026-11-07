@@ -71,6 +71,8 @@
     window.__nextOutfit = (d.outfit || "").trim(); // 只有明确换衣服才有值
     window.__lastThinking = (d.thinking || "").trim();
     window.__lastAction = (d.action_zh || d.action || "").trim();
+    /* 当前是不是成人场面（后端判定）：写在 body 上，回想重放旧句时要读它（不新增全局） */
+    try { document.body.dataset.hscene = d.hscene ? "1" : "0"; } catch (e) {}
     renderThinking();
       history.push({ role: "assistant", content: reply });
       window.__history = history;
@@ -82,6 +84,7 @@
       history[history.length - 1].emo = window.__lastEmo || "";   /* 重播要按当时的情绪算缓存 key */
       addHistory("assistant", shown, reply, window.__lastEmo || "");   /* 三参：日文原句；四参：当时的情绪 */
       // 先合成语音；语音没准备好就先不出文字，等语音出来一起出
+      try { if (WA2.backlog && WA2.backlog.setVoiceOnLast) WA2.backlog.setVoiceOnLast(window.__lastVoiceReq); } catch (e) {}
       speakReply(reply).then(() => {
         // 场景/服装只在模型明确标记时才切，且与文字同一时刻出现
         const _want = window.__lockOutfit ? "" : (window.__nextOutfit || "");

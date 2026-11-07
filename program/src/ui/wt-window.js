@@ -48,7 +48,8 @@
     var a = Math.max(40, Math.min(255, parseInt(v, 10) || 255));
     return api("alpha", { v: a }).then(function (d) {
       state.alpha = (d && typeof d.alpha === "number") ? d.alpha : a;
-      setPref("winAlpha", state.alpha);
+      /* 注意：不能写 winAlpha —— 那个键是 game.js 的「UI 底图透明度」（0~100，--ui-alpha），抢用会让一开窗就发灰。 */
+      setPref("winOpacity", state.alpha);
       if (!silent) toast("窗口不透明度 " + Math.round(state.alpha / 255 * 100) + "%", 1500);
       return state.alpha;
     }).catch(function () { return state.alpha; });
@@ -67,7 +68,8 @@
   function applySaved() {
     var p = prefs();
     if (p.winTopmost) setTopmost(true, true);
-    if (p.winAlpha && parseInt(p.winAlpha, 10) < 255) setAlpha(p.winAlpha, true);
+    var op = parseInt(p.winOpacity, 10);
+    if (op && op < 255 && op >= 40) setAlpha(op, true);
     return api("state").then(function (d) {
       if (d && d.ok) {
         state.topmost = !!d.topmost;

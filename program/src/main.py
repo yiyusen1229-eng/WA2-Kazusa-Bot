@@ -1165,6 +1165,17 @@ class Handler(UpdateApi, ChatApi, WindowApi, CharApi, CharPackApi, MemoryApi,
                 persona_stage.reset()          # 关系阶段按读进来的历史重新判断
             except Exception as e:
                 log("人设阶段：读档重置失败 %s" % e)
+            try:
+                # 成人场面：按存档里的历史重新判定（清空会让 H 存档首播变平静，
+                # 沿用旧状态又会让日常存档带着 H 语气）
+                import hscene as _hsc
+                _msgs = (d or {}).get("messages") or (d or {}).get("history") or []
+                _hsc.reset()
+                _is = _hsc.is_intimate(_msgs)
+                _hsc.set_last(_is)
+                log("场面：读档 %s 判定为%s" % (slot, "成人场面" if _is else "普通场面"))
+            except Exception as e:
+                log("场面判定：读档重算失败 %s" % e)
             if isinstance(d, dict):
                 d.pop("memory", None)          # 记忆书对前端不可见
             return self._json(d)
@@ -1343,7 +1354,15 @@ if not NO_MODELS:
 if not NO_MODELS:
     threading.Thread(target=lambda: tts_client.start(), daemon=True).start()
 applog.start_heartbeat(30)
-applog.log("程序启动: 安全模式=%s 语音依赖=%s 模型=%s" % (NO_MODELS, tts_client.available(), DEFAULT_MODEL))
+try:
+    _cc0 = cloud_cfg()
+    _eff = (_cc0.get("model") if _cc0 else DEFAULT_MODEL) or DEFAULT_MODEL
+    _where = ("云端 " + (_cc0.get("base_url") or "")) if _cc0 else ("本地 " + OLLAMA)
+except Exception:
+    _eff, _where = DEFAULT_MODEL, "本地 " + OLLAMA
+# 以前这里印的是 DEFAULT_MODEL（本地模型名），用云端时看着像「在用本地模型」，误导
+applog.log("程序启动: 安全模式=%s 语音依赖=%s 对话模型=%s（%s）"
+           % (NO_MODELS, tts_client.available(), _eff, _where))
 
 
 class _Server(ThreadingHTTPServer):
@@ -1428,7 +1447,11 @@ def main(prefer_port=None):
     _memory.clear_runtime()          # 记忆缓存只活这一次运行
     try:
         import tts_client as _tc
-        _tc.clear_tts_cache()
+        # 以前这里是 clear_tts_cache()：每次启动清空 → 开一次程序后去回想重放，
+        # 每句都要重新合成 3~7 秒（用户报「重放又要等加载」）。
+        # 缓存 key 里已含「文本+语种+情绪+参考音频版本」，换音色/改台词天然失效，
+        # 所以只需要修剪，不需要清空。
+        _tc.prune_tts_cache()
     except Exception:
         pass
     os.environ.setdefault("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",

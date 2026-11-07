@@ -30,7 +30,16 @@
     calm: "calm", "毒舌": "calm", "问句": "calm",
     soft: "warm", "撒娇": "warm", "调侃吐槽": "warm",
     "哭腔": "sad",
-    "沉重": "tense"
+    "沉重": "tense",
+    /* 新标签：按"这段该配什么氛围"归到四个槽位 */
+    "紧张": "tense",
+    "激动": "tense",
+    "委屈巴巴": "sad",
+    "自怨自艾": "sad",
+    "故作轻松": "calm",
+    "气喘吁吁": "warm",
+    "H": "warm",
+    "睡觉时的呼吸": "calm"
   };
   /* 没有 <emotion> 时的回退规则（分两档：真的伤人话才算 tense，嘴硬不算） */
   var TEXT_SLOT = [

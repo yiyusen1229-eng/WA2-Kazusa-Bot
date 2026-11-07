@@ -50,6 +50,19 @@ def main():
 
     check("默认参数（不给衣服）也不崩", "【服装】" in api_chat.performance_hints(False))
 
+
+    print("[H 规则] 成人场面要正面要求标 H（不能只写「不在这种场面里不要用」）")
+    hints = api_chat.performance_hints(True, "睡衣")
+    check("提到「正在发生成人场面」", "正在发生成人场面" in hints)
+    check("明确说了拟声也要标 H", "拟声" in hints and "H" in hints)
+    check("警告了标 calm 会不搭", "calm" in hints and "不搭" in hints)
+
+
+    print("[hscene] 场面判定标记（规则 + 示例都要有）")
+    check("规则里有 <hscene> 说明", "<hscene>是</hscene>" in hints)
+    check("示例里有 <hscene>否</hscene>", "<hscene>否</hscene>" in hints)
+    check("说明了只用来挑语音参考", "语音参考" in hints)
+
     print()
     if _fail:
         print("失败 %d 项：%s" % (len(_fail), "、".join(_fail)))

@@ -14,8 +14,24 @@
     if (s) prefs = Object.assign(prefs, JSON.parse(s));
   } catch (e) {}
 
-  function setPref(k, v) {
-  prefs[k] = v;
+  /* 几个已知键的取值范围（2026-11-06 事故：整窗透明度曾抢用 winAlpha，
+   把 0~255 的 255 写进这个 0~100 的键，于是「UI 底图透明度」被人为拉到上限） */
+var PREF_RANGE = {
+  winAlpha: [0, 100],      /* UI 底图透明度（--ui-alpha），100 = 完全不透明 */
+  bgmVol: [0, 100],
+  seVol: [0, 100],
+  choiceCount: [2, 5],
+  textSpeed: [0, 3]
+};
+
+function clampPref(k, v) {
+  var r = PREF_RANGE[k];
+  if (!r || typeof v !== "number" || !isFinite(v)) return v;
+  return Math.max(r[0], Math.min(r[1], Math.round(v)));
+}
+
+function setPref(k, v) {
+  prefs[k] = clampPref(k, v);
   savePrefs();
 }
 
@@ -198,7 +214,7 @@ window.App = { prefs: null, catalog: null };
       const panel = buildPanel();
       window.App.catalog = catalog;
       window.App.prefs = prefs;
-      window.App.setPref = (k, v) => { prefs[k] = v; savePrefs(); };
+      window.App.setPref = (k, v) => { setPref(k, v); };
       window.App.openConfig = () => { panel.classList.add("show"); };
       window.App.getPrefs = () => prefs;
       window.App.playPreview = playPreview;

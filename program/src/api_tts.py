@@ -26,6 +26,21 @@ class TtsApi:
             text = qs(q, ("text", "t")).strip()
             lang = qs(q, ("lang",), "zh").strip() or "zh"
             emotion = qs(q, ("emotion", "emo"), "neutral").strip() or "neutral"
+            # 重放旧存档句时的标记：当前确实在成人场面，就按 H 念
+            # （旧存档里的 emotion 是生成时写死的，可能是 calm，重放会听着不对）
+            _hs_raw = (qs(q, ("hscene", "hs")) or "").strip().lower()
+            _hs_on = _hs_raw in ("1", "true", "yes", "on")
+            if not _hs_raw:
+                # 没带参数就用后端记住的"当前场面"（载入存档后的自动重播走这条）
+                try:
+                    import hscene as _hsc
+                    _hs_on = _hsc.last_scene() is True
+                except Exception:
+                    _hs_on = False
+            if _hs_on:
+                if emotion != "H":
+                    applog.log("重放：按当前场面用 H 参考（原标签 %r）" % (emotion,), "TTS")
+                    emotion = "H"
             speak_ja = qs(q, ("speak_ja", "sp")).strip()
             if not text:
                 return self._json({"error": "empty"}, 400)

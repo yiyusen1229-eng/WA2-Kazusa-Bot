@@ -75,10 +75,15 @@
         const meta = d.meta || {};
         if (meta.bg) { currentBg = null; setBg(meta.bg); }
         if (meta.outfit) { WA2.state.outfit = meta.outfit; }
+        /* 立绘表情 / BGM 按存档还原（以前这里只还原背景，表情停在默认） */
+        try {
+          setSpriteByScene(meta.bg || "classroom", meta.emo || "calm", true, meta.outfit || "");
+          if (meta.bgm) setBgm(meta.bgm, 600);
+        } catch (e) {}
         var line = lastAssistant();
         if (line.zh) {
           try { showReply(line.zh); } catch (e) { $("msgText").textContent = line.zh; }
-          if (line.ja) speakLineJa(line.ja, "calm");
+          if (line.ja) speakLineJa(line.ja, line.emo || "");
         }
         if (meta.outfit) {
           try { setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit); } catch (e) {}
@@ -119,13 +124,13 @@
       titleBgmStarted = true;
       if (meta.bg) { currentBg = null; setBg(meta.bg); } else { setBg("classroom"); }
       if (meta.outfit) { WA2.state.outfit = meta.outfit; }
-      setSpriteByScene(meta.bg || "classroom", "calm", true, meta.outfit || "");
+      setSpriteByScene(meta.bg || "classroom", meta.emo || "calm", true, meta.outfit || "");
       gdiRenderName(CHAR_NAME, $("namePlate"));
-      setBgm("calm", 600);
+      setBgm(meta.bgm || meta.emo || "calm", 600);
       var line = lastAssistant();
       if (line.zh) {
         try { showReply(line.zh); } catch (e) { $("msgText").textContent = line.zh; }
-        if (line.ja) speakLineJa(line.ja, "calm");
+        if (line.ja) speakLineJa(line.ja, line.emo || "");
       }
       try { rebuildBacklog(); } catch (e) {}
       /* 存档里存着「还没选的分支」：摆回来，并且不要抢输入框焦点 */
@@ -140,6 +145,9 @@
     var meta = {
       bg: (typeof currentBg !== "undefined" && currentBg) || "",
       outfit: (WA2.state.outfit || ""),
+      /* 立绘表情和 BGM 也要存：以前读档写死 calm，导致「回到默认立绘和场景」 */
+      emo: (window.__lastEmo || ""),
+      bgm: (WA2.audio && WA2.audio.current) || "",
       at: Date.now()
     };
     /* 选择分支开着、而且一条都没选 → 把这几个选项一起存。

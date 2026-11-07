@@ -10,6 +10,12 @@ import perfcfg
 import persona_ctx
 import persona_stage
 import scene_cg
+import hscene
+
+# <hscene>是</hscene>：聊天模型对「当前是不是成人场面」的判定
+import re
+
+_re_hscene = re.compile(r"<hscene>\s*([^<]{1,8}?)\s*</hscene>", re.I)
 import llm
 import standing
 import text_parse as _tp
@@ -39,17 +45,25 @@ def performance_hints(cc, outfit_hint=""):
          + (outfit_hint or "（按当前角色立绘）") +
          "平时绝对不要输出。"
          "\n【情绪】在回复最前面输出一个情绪标记，格式 <emotion>情绪</emotion>，"
-         "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句 沉重。"
+         "只能从这些里选：calm(平静) soft(温柔) 毒舌 撒娇 哭腔 调侃吐槽 问句 沉重 "
+         "紧张 激动 委屈巴巴 自怨自艾 故作轻松 气喘吁吁 H。"
+         "怎么挑：紧张=心跳快/结巴/怕被听见；激动=声音压不住（兴奋或气到发抖）；"
+         "委屈巴巴=被误会、忍着不哭；自怨自艾=自责、否定自己；故作轻松=明明在意却装没事；"
+         "气喘吁吁=刚跑过或刚结束、气息不稳；"
+         "H=正在发生成人场面时用 —— 只要此刻是这种场面（场景、动作、对方的举动都算），"
+         "哪怕台词听着跟平常没两样、很短、甚至只有拟声和喘息，也一律标 H，不要标 calm 或 soft；"
+         "这种场面里的句子通常不长，标 calm 会让她用平静语气说话，很不搭。"
          "按这句台词的实际语气挑，只有心情真的平复时才用 calm；"
          "「毒舌」「调侃吐槽」是她平常的嘴硬和开玩笑，别当生气；"
          "只有真的在争执、说到痛处、要分开时才用「沉重」。"
          "标记只能是开头那一个，正文里不要再出现。"
+         "\n【场面】如果是成人场面，在回复最前面加 <hscene>是</hscene>；否则不加。这个标记只用来挑语音参考，不会念出来。"
          "\n【格式】只输出你要说的话。如果有动作或表情，必须写成 "
          "<action>（…）</action> 放在台词前面，不允许出现没有标签的描写句。"
          # 格式示例两条路都要：小模型只靠模仿，光讲规则它一个标签都不吐
          # （2026-11-06 实测：本地模型 6 次「人已经进到某处」0 次输出 <scene>）
          "\n【示例】人到了新地方、还带动作和情绪时，回复长这样："
-         "<scene>咖啡厅</scene><emotion>calm</emotion>"
+         "<hscene>否</hscene><scene>咖啡厅</scene><emotion>calm</emotion>"
          '<action>（推开门，暖气扑在脸上）</action>「…あったかい」')
     if cc:
         s += ("\n\n【语言】无论对方用什么语言说话，你都只用日语回答。"
@@ -89,6 +103,9 @@ class ChatApi:
         raw_msgs = list(msgs)          # 关系阶段要看完整历史，不能用裁剪后的
         # 当前背景图（前端带的）：模型没说时间时，新场景沿用这个时段
         prev_bg = (req.get("bg") or "").strip()
+        # 成人场面：先听模型自己（<hscene> 标记），没给才退回关键词兜底
+        _intimate = False
+        _h_src = ""
         # 当前衣服 / 手动时期：决定这一轮用哪套人设和世界书
         outfit_now = (req.get("outfit") or "").strip()
         period_req = (req.get("period") or "").strip().lower()
@@ -195,6 +212,7 @@ class ChatApi:
         _before_tail = len(system)
         # 演出标签（场景 / 服装 / 情绪 / 动作）：云端和本地都要，见 performance_hints
         system = system + performance_hints(cc, outfit_hint)
+        # 场面的最终判定在模型回复里（<hscene>），这里不预判；判定为「是」时解析后强制 H。
         _seg["tail"] = len(system) - _before_tail
         # 「为什么标签不出现」这类问题，光看代码猜不出来 —— WA2_DUMP_PROMPT=1 时把这一轮
         # 真正发出去的 system 落到 work_scratch/last_prompt.txt，方便和最小复现对比
@@ -256,6 +274,42 @@ class ChatApi:
                         % ("推断" if _src == "inferred" else "缺失", emo))
             except Exception:
                 pass
+            # —— 场面判定：优先用模型自己给的 <hscene> ——
+            _h = None
+            _m = _re_hscene.search(raw or "")
+            if _m:
+                _v = (_m.group(1) or "").strip().lower()
+                _h = _v in ("是", "yes", "y", "true", "1", "h")
+                raw = _re_hscene.sub("", raw, count=1)
+                _h_src = "模型标记"
+                log("成人场面：模型判定=%s" % ("是" if _h else "否"))
+            else:
+                try:
+                    _h = hscene.is_intimate(raw_msgs)
+                except Exception:
+                    _h = False
+                _h_src = "关键词兜底"
+                log("成人场面：模型没给 <hscene>，关键词判定=%s" % ("是" if _h else "否"))
+            _intimate = bool(_h)
+            try:
+                # 带迟滞：返回的是**生效**状态（H 场面里短句不会把语气拽回平静）
+                _intimate = hscene.set_last(_intimate)
+            except Exception:
+                pass
+            if _intimate != bool(_h):
+                log("成人场面：本轮判定=否，但仍在 H 场面里（迟滞保护）")
+            # 成人场面里模型仍可能标 calm/soft：这里按场面改掉（只影响选参考音频）
+            if _intimate:
+                # 成人场面里**任何**情绪标签都压成 H：
+                # 实证过一次判定为「是」但标签是「毒舌」，只改 calm/soft 的名单漏掉了它，
+                # 结果用毒舌参考音频去念 H 台词。这里不再列举，直接压。
+                try:
+                    _norm = (emo or "").strip()
+                    if _norm != "H":
+                        log("情绪纠正：成人场面把 %r 改成 H" % (_norm,))
+                        emo = "H"
+                except Exception:
+                    pass
             raw, scene_now, outfit_now = split_scene(raw)
             acts, raw = split_action(raw)
             # 模型自己给的双语：<ja>日语</ja><zh>中文</zh>（比事后再翻译准，还省一次往返）
@@ -335,7 +389,7 @@ class ChatApi:
 
             self._json({"reply": reply, "reply_zh": reply_zh, "thinking": think,
                         "action": action, "action_zh": action_zh,
-                        "emotion": emo,
+                        "emotion": emo, "hscene": bool(_intimate),
                         "scene": scene_now, "outfit": outfit_now,
                         "bg": bg_hit.get("id", ""),
                         "period": period,

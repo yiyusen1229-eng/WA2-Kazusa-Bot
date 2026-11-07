@@ -5,6 +5,21 @@
   var WA2 = window.WA2 = window.WA2 || {};
   var $ = (WA2.util && WA2.util.$) || function (id) { return document.getElementById(id); };
 
+  /* 把「这句当初合成语音用的参数」记到最后一条她的行上。
+   调用方（wt-chat）在语音请求发出后调用一次即可。 */
+  function setVoiceOnLast(req) {
+    if (!req || !req.t) return false;
+    try {
+      const list = $("historyList");
+      if (!list) return false;
+      const rows = list.querySelectorAll(".hline.her");
+      const row = rows[rows.length - 1];
+      if (!row) return false;
+      row.dataset.voice = JSON.stringify({ t: req.t, l: req.l || "", e: req.e || "" });
+      return true;
+    } catch (e) { return false; }
+  }
+
   function addHistory(role, text, raw, emo) {
     const d = document.createElement("div");
     d.className = "hline " + (role === "user" ? "me" : "her");
@@ -96,8 +111,14 @@
                     .replace(/^[「『]/, "").replace(/[」』]$/, "").trim();
     /* 用这句当时的情绪（dataset.emo）算缓存 key，才能命中原来那段音频；
        老存档没有 emo 才退回按文本猜。 */
-    const emo = (row.dataset.emo || "").trim() ||
-                (window.emoOf ? window.emoOf(clean) : "calm");
+    /* 优先用「当初合成时」的参数（dataset.voice）：同一句重放必须命中同一段缓存。
+       没有记录（老存档 / 老行）才退回按当前语言与情绪推算。 */
+    let voiceReq = null;
+    try { voiceReq = row.dataset.voice ? JSON.parse(row.dataset.voice) : null; } catch (e) { voiceReq = null; }
+    const emo = (voiceReq && voiceReq.e) ? String(voiceReq.e)
+              : ((row.dataset.emo || "").trim() ||
+                 (window.emoOf ? window.emoOf(clean) : "calm"));
+    const vLang = (voiceReq && voiceReq.l) ? String(voiceReq.l) : "ja";
     const done = function () {
       if (done._ended) return;
       done._ended = true;
@@ -106,7 +127,13 @@
       setRowHighlight(row, false);
       if (backlogPlayingRow === row) backlogPlayingRow = null;
     };
-    fetch("/api/tts?text=" + encodeURIComponent(clean) + "&lang=ja&emotion=" + encodeURIComponent(emo) + "&speak_ja=" + encodeURIComponent(clean))
+    const vText = (voiceReq && voiceReq.t) ? String(voiceReq.t) : clean;
+    /* 旧存档里的 emo 是生成时写死的（可能是 calm）；当前确实在成人场面时，
+       带 hscene=1 让后端按 H 念，和实时播放保持一致 */
+    const _hs = (row.dataset.hscene === "1" ||
+                 (document.body && document.body.dataset.hscene === "1")) ? "&hscene=1" : "";
+    fetch("/api/tts?text=" + encodeURIComponent(vText) + "&lang=" + encodeURIComponent(vLang) +
+          "&emotion=" + encodeURIComponent(emo) + "&speak_ja=" + encodeURIComponent(clean) + _hs)
       .then(function (r) { if (!r.ok) throw new Error("tts " + r.status); return r.blob(); })
       .then(function (b) {
         const u = URL.createObjectURL(b);
@@ -161,14 +188,14 @@
 
   /* ---------- 选项 ---------- */
   var _exp = {};
-  var _names = ["addHistory", "rebuildBacklog", "replayBacklogVoice", "setRowHighlight", "toggleBacklog"];
+  var _names = ["addHistory", "rebuildBacklog", "replayBacklogVoice", "setRowHighlight", "setVoiceOnLast", "toggleBacklog"];
   for (var _i = 0; _i < _names.length; _i++) {
     try { var _f = eval(_names[_i]); if (typeof _f === "function") { _exp[_names[_i]] = _f; window[_names[_i]] = _f; } } catch (e) {}
   }
   WA2.backlog = _exp;
   WA2.register("backlog", _exp);
   /* __export_all__ */
-  ["addHistory", "rebuildBacklog", "replayBacklogVoice", "setRowHighlight", "toggleBacklog", "CH", "HL_COLOR", "WA2", "_exp", "_names", "a", "backlogPlayingRow", "body", "canReplay", "clean", "d", "done", "ic", "ico", "isHer", "ja", "lines", "list", "prevIc", "row", "shown", "toBottom", "txt", "u", "who"].forEach(function (n) {
+  ["addHistory", "rebuildBacklog", "replayBacklogVoice", "setRowHighlight", "setVoiceOnLast", "toggleBacklog", "CH", "HL_COLOR", "WA2", "_exp", "_names", "a", "backlogPlayingRow", "body", "canReplay", "clean", "d", "done", "ic", "ico", "isHer", "ja", "lines", "list", "prevIc", "row", "shown", "toBottom", "txt", "u", "who"].forEach(function (n) {
     try { var v = eval(n); if (v !== undefined) { window[n] = v; } } catch (e) {}
   });
 })();

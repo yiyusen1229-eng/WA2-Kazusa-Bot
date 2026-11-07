@@ -61,6 +61,15 @@
   /** 合成语音并返回 Audio（失败或超时返回 null） */
   function fetchVoice(text, timeoutMs) {
     if (!ttsOn) return Promise.resolve(null);
+    /* 把这次真正用到的参数记下来：回想重放要原样复用，否则参数一漂就缓存未命中
+       （用户报「同一句话重放还要等加载」）。 */
+    try {
+      window.__lastVoiceReq = {
+        t: text,
+        l: currentVoiceLang(),
+        e: (window.__lastEmo || (window.emoOf ? window.emoOf(text) : "") || "")
+      };
+    } catch (e) {}
     return new Promise((resolve) => {
       const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
       let done = false;
